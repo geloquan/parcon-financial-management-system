@@ -1,0 +1,5 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="raw-data-collection:capture-frames-forever" type="PhpLocalRunConfigurationType" factoryName="PHP Console" path="$PROJECT_DIR$/app/backend/artisan" scriptParameters="raw-data-collection:capture-frames-forever --sleep=5">
+    <method v="2" />
+  </configuration>
+</component>
