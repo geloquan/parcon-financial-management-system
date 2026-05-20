@@ -1,0 +1,15 @@
+{
+  "name": "parcon-financial-management-system-monorepo",
+  "private": true,
+  "workspaces": [
+    "app/frontend",
+    "app/backend"
+  ],
+  "scripts": {
+    "frontend:dev": "npm run dev --workspace @parcon-financial-management-system/frontend",
+    "frontend:lint": "npm run lint --workspace @parcon-financial-management-system/frontend",
+    "frontend:build": "npm run build --workspace @parcon-financial-management-system/frontend",
+    "backend:assets:dev": "npm run dev --workspace @parcon-financial-management-system/backend-assets",
+    "backend:assets:build": "npm run build --workspace @parcon-financial-management-system/backend-assets"
+  }
+}
