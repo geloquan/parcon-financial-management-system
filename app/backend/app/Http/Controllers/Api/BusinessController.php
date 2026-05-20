@@ -20,7 +20,11 @@ class BusinessController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $user = $request->user();
-        if (! in_array($user->role, ['admin', 'owner'], true) && $user->business_id) {
+        if (! in_array($user->role, ['admin', 'owner'], true)) {
+            if (! $user->business_id) {
+                return BusinessResource::collection(Business::query()->whereRaw('1 = 0')->paginate(15));
+            }
+
             return BusinessResource::collection(Business::query()->where('id', $user->business_id)->paginate(15));
         }
 

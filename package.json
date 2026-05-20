@@ -6,10 +6,10 @@
     "app/backend"
   ],
   "scripts": {
-    "frontend:dev": "npm run dev --workspace @parcon-financial-management-system/frontend",
-    "frontend:lint": "npm run lint --workspace @parcon-financial-management-system/frontend",
-    "frontend:build": "npm run build --workspace @parcon-financial-management-system/frontend",
-    "backend:assets:dev": "npm run dev --workspace @parcon-financial-management-system/backend-assets",
-    "backend:assets:build": "npm run build --workspace @parcon-financial-management-system/backend-assets"
+    "frontend:dev": "npm run dev --workspace app/frontend",
+    "frontend:lint": "npm run lint --workspace app/frontend",
+    "frontend:build": "npm run build --workspace app/frontend",
+    "backend:assets:dev": "npm run dev --workspace app/backend",
+    "backend:assets:build": "npm run build --workspace app/backend"
   }
 }
