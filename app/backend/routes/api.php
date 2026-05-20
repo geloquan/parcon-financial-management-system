@@ -26,6 +26,8 @@ Route::middleware('auth.api')->group(function (): void {
   Route::prefix('businesses/{business}')
     ->middleware('business.access')
     ->group(function (): void {
+      Route::post('capital/movements', [CapitalMovementController::class, 'storeBusiness'])
+        ->middleware('role:admin,owner');
       Route::apiResource('staff', StaffController::class)->only(['index', 'store', 'update', 'destroy']);
       Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
       Route::apiResource('gcash_sales', GcashSaleController::class)

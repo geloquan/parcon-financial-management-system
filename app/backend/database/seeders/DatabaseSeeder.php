@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Business;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -17,6 +18,29 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RoleSeeder::class);
+
+        foreach ([
+            [
+                'name' => 'Coffee shop',
+                'slug' => 'coffee',
+                'description' => 'Coffee business',
+            ],
+            [
+                'name' => 'Print shop',
+                'slug' => 'print',
+                'description' => 'Print business',
+            ],
+            [
+                'name' => 'Ethereal',
+                'slug' => 'ethereal',
+                'description' => 'Beauty salon business',
+            ],
+        ] as $business) {
+            Business::query()->updateOrCreate(
+                ['slug' => $business['slug']],
+                $business
+            );
+        }
 
         User::query()->updateOrCreate([
             'username' => 'marco',

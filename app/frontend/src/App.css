@@ -1,5 +1,5 @@
 .screen {
-  max-width: 420px;
+  max-width: 980px;
   margin: 0 auto;
   padding: 12px;
   display: grid;
@@ -20,9 +20,13 @@
 }
 
 .tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.tabs button {
+  width: auto;
 }
 
 .tabs button.active {

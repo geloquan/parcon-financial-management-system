@@ -58,3 +58,57 @@ export type GcashSale = {
   transaction_type: 'cash_in' | 'cash_out'
   transaction_date: string
 }
+
+export type CoffeeSale = {
+  id: number
+  business_id: number
+  price: string
+  coffee_type: string
+  size: string
+  add_ons: string | null
+  sale_date: string
+}
+
+export type PrintSale = {
+  id: number
+  business_id: number
+  job_type: string
+  description: string
+  sales_amount: string
+  sale_date: string
+}
+
+export type EtherealSale = {
+  id: number
+  business_id: number
+  staff_id: number
+  service_cost: string
+  discount_percentage: string
+  cash_discount: string
+  net_amount: string
+  service_date: string
+}
+
+export type Staff = {
+  id: number
+  business_id: number
+  full_name: string
+  age: number
+  employment_start_date: string
+  employment_end_date: string | null
+  employment_type: string
+  salary: string
+  is_active: boolean
+}
+
+export type CapitalMovement = {
+  id: number
+  initiated_by_user_id: number
+  amount: string
+  direction: 'add' | 'deduct' | 'transfer'
+  source_type: 'portfolio' | 'business'
+  source_business_id: number | null
+  target_business_id: number | null
+  occurred_on: string
+  notes: string | null
+}
