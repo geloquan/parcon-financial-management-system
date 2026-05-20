@@ -8,7 +8,7 @@ class StorePortfolioCapitalMovementRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return in_array($this->user()?->role, ['admin', 'owner'], true);
+        return $this->user()?->hasAnyRole(['admin', 'owner']) ?? false;
     }
 
     public function rules(): array
