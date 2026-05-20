@@ -10,11 +10,13 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $role = $this->getRoleNames()->first() ?? $this->role;
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'username' => $this->username,
-            'role' => $this->role,
+            'role' => $role,
             'business_id' => $this->business_id,
         ];
     }

@@ -17,7 +17,7 @@ class EnsureBusinessAccess
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        if (in_array($user->role, ['admin', 'owner'], true)) {
+        if ($user->hasAnyRole(['admin', 'owner'])) {
             return $next($request);
         }
 
@@ -26,7 +26,22 @@ class EnsureBusinessAccess
             return response()->json(['message' => 'Business context is required.'], 422);
         }
 
-        $expectedSlug = str_replace('-staff', '', $user->role);
+        if ($user->hasRole('staff')) {
+            if ($user->business_id !== $business->id) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
+
+            return $next($request);
+        }
+
+        $staffRole = $user->getRoleNames()
+            ->first(fn (string $role): bool => str_ends_with($role, '-staff'));
+
+        if (! $staffRole) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $expectedSlug = str_replace('-staff', '', $staffRole);
 
         if ($business->slug !== $expectedSlug) {
             return response()->json(['message' => 'Forbidden.'], 403);

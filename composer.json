@@ -1,0 +1,13 @@
+{
+    "name": "parcon/financial-management-system-monorepo",
+    "description": "Monorepo Composer autoload mapping for backend namespace resolution.",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/backend/app/",
+            "Database\\Factories\\": "app/backend/database/factories/",
+            "Database\\Seeders\\": "app/backend/database/seeders/",
+            "Tests\\": "app/backend/tests/"
+        }
+    }
+}

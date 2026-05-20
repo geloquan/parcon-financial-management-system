@@ -12,7 +12,7 @@ class EnsureRole
     {
         $user = $request->user();
 
-        if (! $user || ! in_array($user->role, $roles, true)) {
+        if (! $user || ! $user->hasAnyRole($roles)) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
