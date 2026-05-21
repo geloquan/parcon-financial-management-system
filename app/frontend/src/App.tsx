@@ -21,6 +21,10 @@ import {
   Sparkles,
   UserRound,
   Wallet,
+  TrendingUp,
+  TrendingDown,
+  ArrowRightLeft,
+  ChevronRight,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -124,10 +128,7 @@ const formatDateTimeLocal = (value: string | Date) => {
 
 const formatDateTimeDisplay = (value: string) => {
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
+  if (Number.isNaN(date.getTime())) return value
   return date.toLocaleString('en-PH', {
     year: 'numeric',
     month: 'short',
@@ -139,48 +140,129 @@ const formatDateTimeDisplay = (value: string) => {
 
 const formatRelative = (value: string) => {
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return 'unknown time'
-  }
-
+  if (Number.isNaN(date.getTime())) return 'unknown time'
   const seconds = Math.max(Math.floor((Date.now() - date.getTime()) / 1000), 0)
-  if (seconds < 60) {
-    return `${seconds} second${seconds === 1 ? '' : 's'} ago`
-  }
-
+  if (seconds < 60) return `${seconds}s ago`
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) {
-    return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
-  }
-
+  if (minutes < 60) return `${minutes}m ago`
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    return `${hours} hour${hours === 1 ? '' : 's'} ago`
-  }
-
+  if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
-  return `${days} day${days === 1 ? '' : 's'} ago`
+  return `${days}d ago`
 }
 
-const navItems: Array<{ value: Tab; label: string; icon: LucideIcon }> = [
-  { value: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { value: 'businesses', label: 'Businesses', icon: Building2 },
-  { value: 'staff', label: 'Staff', icon: UserRound },
-  { value: 'referenceItems', label: 'Reference Items', icon: NotebookPen },
-  { value: 'expenses', label: 'Expenses', icon: ReceiptText },
-  { value: 'gcash', label: 'GCash', icon: Wallet },
-  { value: 'coffee', label: 'Coffee', icon: Coffee },
-  { value: 'print', label: 'Print', icon: Printer },
-  { value: 'ethereal', label: 'Ethereal', icon: Sparkles },
-  { value: 'portfolioCapital', label: 'Portfolio Money', icon: BanknoteArrowUp },
-  { value: 'businessCapital', label: 'Business Money', icon: BanknoteArrowDown },
+// ─── Nav Groups ──────────────────────────────────────────────────────────────
+const navGroups: Array<{
+  label: string
+  items: Array<{ value: Tab; label: string; icon: LucideIcon }>
+}> = [
+  {
+    label: 'Overview',
+    items: [
+      { value: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+      { value: 'businesses', label: 'Businesses', icon: Building2 },
+    ],
+  },
+  {
+    label: 'Management',
+    items: [
+      { value: 'staff', label: 'Staff', icon: UserRound },
+      { value: 'referenceItems', label: 'Reference Items', icon: NotebookPen },
+      { value: 'expenses', label: 'Expenses', icon: ReceiptText },
+    ],
+  },
+  {
+    label: 'Sales',
+    items: [
+      { value: 'gcash', label: 'GCash', icon: Wallet },
+      { value: 'coffee', label: 'Coffee', icon: Coffee },
+      { value: 'print', label: 'Print', icon: Printer },
+      { value: 'ethereal', label: 'Ethereal', icon: Sparkles },
+    ],
+  },
+  {
+    label: 'Capital',
+    items: [
+      { value: 'portfolioCapital', label: 'Portfolio Money', icon: BanknoteArrowUp },
+      { value: 'businessCapital', label: 'Business Money', icon: BanknoteArrowDown },
+    ],
+  },
 ]
 
+// ─── Shared class constants ───────────────────────────────────────────────────
 const cardClass =
-  'rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-5 shadow-[0_8px_30px_rgba(58,9,18,0.06)]'
+  'rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-6 shadow-[0_4px_20px_rgba(58,9,18,0.06)]'
 
-const formGridClass = 'mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3'
+const formGridClass = 'mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3'
 
+// Pill-style radio/checkbox option
+// Uses CSS has-[:checked] so the label reacts to the actual DOM checked state —
+// works for both controlled (checked=) and uncontrolled (defaultChecked) inputs.
+const optionPillClass =
+  'flex cursor-pointer select-none items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all ' +
+  'border-[var(--neutral-linen)] bg-[var(--surface-card)] text-[var(--neutral-rosewood)] ' +
+  'hover:border-[var(--burgundy-200)] hover:text-[var(--burgundy-800)] ' +
+  'has-[:checked]:border-[var(--burgundy-600)] has-[:checked]:bg-[var(--burgundy-50)] ' +
+  'has-[:checked]:text-[var(--burgundy-800)] has-[:checked]:font-medium'
+
+// Section heading inside a card
+function SectionHeading({
+                          icon: Icon,
+                          title,
+                          description,
+                        }: {
+  icon: LucideIcon
+  title: string
+  description?: string
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--burgundy-50)]">
+        <Icon className="h-4 w-4 text-[var(--burgundy-600)]" />
+      </span>
+      <div>
+        <h3 className="text-lg font-semibold text-[var(--neutral-espresso)]">{title}</h3>
+        {description ? (
+          <p className="mt-0.5 text-xs text-[var(--neutral-rosewood)]">{description}</p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+// Divider between form and list
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="mt-7 mb-4 flex items-center gap-3">
+      <div className="h-px flex-1 bg-[var(--neutral-linen)]" />
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--neutral-rosewood)]">
+        {label}
+      </span>
+      <div className="h-px flex-1 bg-[var(--neutral-linen)]" />
+    </div>
+  )
+}
+
+// Live preview callout
+function LivePreview({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-4 flex items-center gap-3 rounded-lg border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3">
+      <ArrowRightLeft className="h-4 w-4 shrink-0 text-[var(--status-info-text)]" />
+      <p className="text-xs text-[var(--status-info-text)]">{children}</p>
+    </div>
+  )
+}
+
+// Empty state
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--neutral-linen)] py-10 text-center">
+      <p className="text-sm text-[var(--neutral-rosewood)]">{label}</p>
+    </div>
+  )
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
 function App() {
   const [tab, setTab] = useState<Tab>('overview')
   const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null)
@@ -211,43 +293,36 @@ function App() {
 
   const staffQuery = useStaff(selectedBusinessId)
   const createStaffMutation = useCreateStaff(selectedBusinessId)
-
   const expensesQuery = useExpenses(selectedBusinessId)
   const createExpenseMutation = useCreateExpense(selectedBusinessId)
-
   const gcashQuery = useGcashSales(selectedBusinessId)
   const createGcashMutation = useCreateGcashSale(selectedBusinessId)
-
   const coffeeQuery = useCoffeeSales(selectedBusinessId)
   const createCoffeeMutation = useCreateCoffeeSale(selectedBusinessId)
-
   const printQuery = usePrintSales(selectedBusinessId)
   const createPrintMutation = useCreatePrintSale(selectedBusinessId)
-
   const etherealQuery = useEtherealSales(selectedBusinessId)
   const createEtherealMutation = useCreateEtherealSale(selectedBusinessId)
   const referenceItemsQuery = useBusinessReferenceItems(selectedBusinessId)
   const createReferenceItemMutation = useCreateBusinessReferenceItem(selectedBusinessId)
-
   const capitalMovementsQuery = useCapitalMovements()
   const createPortfolioCapitalMutation = useCreatePortfolioCapitalMovement()
   const createBusinessCapitalMutation = useCreateBusinessCapitalMovement(selectedBusinessId)
 
   const selectedBusinessName = useMemo(
-    () => businesses.find((business) => business.id === selectedBusinessId)?.name ?? null,
+    () => businesses.find((b) => b.id === selectedBusinessId)?.name ?? null,
     [businesses, selectedBusinessId],
   )
 
   const portfolioMovements = useMemo(
-    () => (capitalMovementsQuery.data?.data ?? []).filter((movement) => movement.source_type === 'portfolio'),
+    () => (capitalMovementsQuery.data?.data ?? []).filter((m) => m.source_type === 'portfolio'),
     [capitalMovementsQuery.data],
   )
 
   const businessMovements = useMemo(
     () =>
       (capitalMovementsQuery.data?.data ?? []).filter(
-        (movement) =>
-          movement.source_business_id === selectedBusinessId || movement.target_business_id === selectedBusinessId,
+        (m) => m.source_business_id === selectedBusinessId || m.target_business_id === selectedBusinessId,
       ),
     [capitalMovementsQuery.data, selectedBusinessId],
   )
@@ -259,212 +334,156 @@ function App() {
   const printEntries = useMemo(() => printQuery.data?.data ?? [], [printQuery.data])
   const etherealEntries = useMemo(() => etherealQuery.data?.data ?? [], [etherealQuery.data])
   const referenceItems = useMemo(() => referenceItemsQuery.data?.data ?? [], [referenceItemsQuery.data])
-  const productReferenceItems = useMemo(
-    () => referenceItems.filter((item) => item.item_type === 'product'),
-    [referenceItems],
-  )
-  const serviceReferenceItems = useMemo(
-    () => referenceItems.filter((item) => item.item_type === 'service'),
-    [referenceItems],
-  )
+  const productReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'product'), [referenceItems])
+  const serviceReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'service'), [referenceItems])
 
   const expenseTotal = useMemo(
-    () => expenseEntries.reduce((total, item) => total + parseAmount(item.amount), 0),
+    () => expenseEntries.reduce((t, i) => t + parseAmount(i.amount), 0),
     [expenseEntries],
   )
-
   const salesTotal = useMemo(
     () =>
-      gcashEntries.reduce((total, item) => total + parseAmount(item.sales_amount), 0) +
-      coffeeEntries.reduce((total, item) => total + parseAmount(item.price), 0) +
-      printEntries.reduce((total, item) => total + parseAmount(item.sales_amount), 0) +
-      etherealEntries.reduce((total, item) => total + parseAmount(item.net_amount), 0),
+      gcashEntries.reduce((t, i) => t + parseAmount(i.sales_amount), 0) +
+      coffeeEntries.reduce((t, i) => t + parseAmount(i.price), 0) +
+      printEntries.reduce((t, i) => t + parseAmount(i.sales_amount), 0) +
+      etherealEntries.reduce((t, i) => t + parseAmount(i.net_amount), 0),
     [coffeeEntries, etherealEntries, gcashEntries, printEntries],
   )
-
   const profitSnapshot = useMemo(
-    () => gcashEntries.reduce((total, item) => total + parseAmount(item.profit_amount), 0) - expenseTotal,
+    () => gcashEntries.reduce((t, i) => t + parseAmount(i.profit_amount), 0) - expenseTotal,
     [expenseTotal, gcashEntries],
   )
-
   const gcashProfitPreview = useMemo(
     () => parseAmount(gcashSalesAmount) - parseAmount(gcashAmountMoved),
     [gcashAmountMoved, gcashSalesAmount],
   )
-
   const etherealCashDiscountPreview = useMemo(
     () => (parseAmount(etherealServiceCost) * parseAmount(etherealDiscountPercentage)) / 100,
     [etherealDiscountPercentage, etherealServiceCost],
   )
-
   const etherealNetPreview = useMemo(
     () => parseAmount(etherealServiceCost) - etherealCashDiscountPreview,
     [etherealCashDiscountPreview, etherealServiceCost],
   )
-
   const coffeeBatchPreview = useMemo(
-    () => coffeeItems.reduce((total, item) => total + parseAmount(item.price) + parseAmount(item.add_on_price), 0),
+    () => coffeeItems.reduce((t, i) => t + parseAmount(i.price) + parseAmount(i.add_on_price), 0),
     [coffeeItems],
   )
-
   const printBatchPreview = useMemo(
-    () => printItems.reduce((total, item) => total + parseAmount(item.sales_amount), 0),
+    () => printItems.reduce((t, i) => t + parseAmount(i.sales_amount), 0),
     [printItems],
   )
 
   const capitalBalances = useMemo(() => {
-    const allMovements = capitalMovementsQuery.data?.data ?? []
-
-    const portfolioBalance = allMovements.reduce((balance, movement) => {
-      const amount = parseAmount(movement.amount)
-      if (movement.source_type !== 'portfolio') {
-        return balance
-      }
-
-      if (movement.direction === 'add') {
-        return balance + amount
-      }
-
-      return balance - amount
+    const all = capitalMovementsQuery.data?.data ?? []
+    const portfolioBalance = all.reduce((bal, m) => {
+      if (m.source_type !== 'portfolio') return bal
+      const amt = parseAmount(m.amount)
+      return m.direction === 'add' ? bal + amt : bal - amt
     }, 0)
-
-    const businessBalance = allMovements.reduce((balance, movement) => {
-      const amount = parseAmount(movement.amount)
-      if (movement.source_business_id !== selectedBusinessId) {
-        return balance
-      }
-
-      return movement.direction === 'add' ? balance + amount : balance - amount
+    const businessBalance = all.reduce((bal, m) => {
+      if (m.source_business_id !== selectedBusinessId) return bal
+      const amt = parseAmount(m.amount)
+      return m.direction === 'add' ? bal + amt : bal - amt
     }, 0)
-
     return { portfolioBalance, businessBalance }
   }, [capitalMovementsQuery.data, selectedBusinessId])
 
   const portfolioAfterPreview = useMemo(() => {
-    const amount = parseAmount(portfolioAmountPreview)
-    if (portfolioDirectionPreview === 'add') {
-      return capitalBalances.portfolioBalance + amount
-    }
-
-    return capitalBalances.portfolioBalance - amount
+    const amt = parseAmount(portfolioAmountPreview)
+    return portfolioDirectionPreview === 'add'
+      ? capitalBalances.portfolioBalance + amt
+      : capitalBalances.portfolioBalance - amt
   }, [capitalBalances.portfolioBalance, portfolioAmountPreview, portfolioDirectionPreview])
 
   const businessAfterPreview = useMemo(() => {
-    const amount = parseAmount(businessAmountPreview)
-    if (businessDirectionPreview === 'add') {
-      return capitalBalances.businessBalance + amount
-    }
-
-    return capitalBalances.businessBalance - amount
+    const amt = parseAmount(businessAmountPreview)
+    return businessDirectionPreview === 'add'
+      ? capitalBalances.businessBalance + amt
+      : capitalBalances.businessBalance - amt
   }, [businessAmountPreview, businessDirectionPreview, capitalBalances.businessBalance])
 
   const dateInputMax = useMemo(() => formatDateTimeLocal(new Date()), [])
   const dateInputMin = useMemo(() => {
-    if (meQuery.data?.role === 'admin' || meQuery.data?.role === 'owner') {
-      return undefined
-    }
-
-    const startOfToday = new Date()
-    startOfToday.setHours(0, 0, 0, 0)
-    return formatDateTimeLocal(startOfToday)
+    if (meQuery.data?.role === 'admin' || meQuery.data?.role === 'owner') return undefined
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    return formatDateTimeLocal(start)
   }, [meQuery.data?.role])
 
-  const submitLogin = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const form = new FormData(event.currentTarget)
-
+  // ─── Submit handlers (unchanged) ──────────────────────────────────────────
+  const submitLogin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const f = new FormData(e.currentTarget)
     await loginMutation.mutateAsync({
-      username: String(form.get('username') ?? ''),
-      password: String(form.get('password') ?? ''),
+      username: String(f.get('username') ?? ''),
+      password: String(f.get('password') ?? ''),
     })
   }
 
-  const submitStaff = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedBusinessId) {
-      return
-    }
-
-    const form = new FormData(event.currentTarget)
-
+  const submitStaff = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId) return
+    const f = new FormData(e.currentTarget)
     await createStaffMutation.mutateAsync({
-      full_name: String(form.get('full_name') ?? ''),
-      age: Number(form.get('age') ?? 0),
-      employment_start_date: String(form.get('employment_start_date') ?? ''),
-      employment_end_date: String(form.get('employment_end_date') ?? ''),
-      employment_type: String(form.get('employment_type') ?? ''),
-      salary: Number(form.get('salary') ?? 0),
-      is_active: String(form.get('is_active') ?? '1') === '1',
+      full_name: String(f.get('full_name') ?? ''),
+      age: Number(f.get('age') ?? 0),
+      employment_start_date: String(f.get('employment_start_date') ?? ''),
+      employment_end_date: String(f.get('employment_end_date') ?? ''),
+      employment_type: String(f.get('employment_type') ?? ''),
+      salary: Number(f.get('salary') ?? 0),
+      is_active: String(f.get('is_active') ?? '1') === '1',
     })
-
-    event.currentTarget.reset()
+    e.currentTarget.reset()
   }
 
-  const submitExpense = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedBusinessId) {
-      return
-    }
-
-    const form = new FormData(event.currentTarget)
-
+  const submitExpense = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId) return
+    const f = new FormData(e.currentTarget)
     await createExpenseMutation.mutateAsync({
-      date_issued: String(form.get('date_issued') ?? ''),
-      amount: Number(form.get('amount') ?? 0),
-      description: String(form.get('description') ?? ''),
-      purpose: String(form.get('purpose') ?? 'business') as 'business' | 'business_portfolio' | 'service',
-      payment_type: String(form.get('payment_type') ?? 'one_time') as 'one_time' | 'repeat',
-      recurrence_reference: String(form.get('recurrence_reference') ?? ''),
+      date_issued: String(f.get('date_issued') ?? ''),
+      amount: Number(f.get('amount') ?? 0),
+      description: String(f.get('description') ?? ''),
+      purpose: String(f.get('purpose') ?? 'business') as 'business' | 'business_portfolio' | 'service',
+      payment_type: String(f.get('payment_type') ?? 'one_time') as 'one_time' | 'repeat',
+      recurrence_reference: String(f.get('recurrence_reference') ?? ''),
     })
-
-    event.currentTarget.reset()
+    e.currentTarget.reset()
   }
 
-  const submitReferenceItem = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedBusinessId) {
-      return
-    }
-
-    const form = new FormData(event.currentTarget)
-
+  const submitReferenceItem = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId) return
+    const f = new FormData(e.currentTarget)
     await createReferenceItemMutation.mutateAsync({
-      item_type: String(form.get('item_type') ?? 'product') as 'product' | 'service',
-      name: String(form.get('name') ?? ''),
-      price: Number(form.get('price') ?? 0),
-      description: String(form.get('description') ?? ''),
+      item_type: String(f.get('item_type') ?? 'product') as 'product' | 'service',
+      name: String(f.get('name') ?? ''),
+      price: Number(f.get('price') ?? 0),
+      description: String(f.get('description') ?? ''),
     })
-
-    event.currentTarget.reset()
+    e.currentTarget.reset()
   }
 
-  const submitGcash = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedBusinessId) {
-      return
-    }
-
-    const form = new FormData(event.currentTarget)
-
+  const submitGcash = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId) return
+    const f = new FormData(e.currentTarget)
     await createGcashMutation.mutateAsync({
-      transaction_recipient: String(form.get('transaction_recipient') ?? '') || undefined,
-      amount_moved: Number(form.get('amount_moved') ?? 0),
-      sales_amount: Number(form.get('sales_amount') ?? 0),
-      transaction_type: String(form.get('transaction_type') ?? 'cash_in') as 'cash_in' | 'cash_out',
-      transaction_date: String(form.get('transaction_date') ?? ''),
+      transaction_recipient: String(f.get('transaction_recipient') ?? '') || undefined,
+      amount_moved: Number(f.get('amount_moved') ?? 0),
+      sales_amount: Number(f.get('sales_amount') ?? 0),
+      transaction_type: String(f.get('transaction_type') ?? 'cash_in') as 'cash_in' | 'cash_out',
+      transaction_date: String(f.get('transaction_date') ?? ''),
     })
-
-    event.currentTarget.reset()
+    e.currentTarget.reset()
     setGcashAmountMoved('0')
     setGcashSalesAmount('0')
   }
 
-  const submitCoffee = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedBusinessId) {
-      return
-    }
-
+  const submitCoffee = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId) return
     const entries = coffeeItems.map((item) => ({
       price: Number(item.price || 0),
       coffee_type: item.coffee_type,
@@ -473,21 +492,13 @@ function App() {
       add_on_description: item.add_on_description,
       sale_date: item.sale_date,
     }))
-
-    await createCoffeeMutation.mutateAsync({
-      ...entries[0],
-      entries,
-    })
-
+    await createCoffeeMutation.mutateAsync({ ...entries[0], entries })
     setCoffeeItems([createCoffeeDraftItem()])
   }
 
-  const submitPrint = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedBusinessId) {
-      return
-    }
-
+  const submitPrint = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId) return
     const entries = printItems.map((item) => ({
       job_type: item.job_type,
       description: item.description,
@@ -497,21 +508,13 @@ function App() {
       sales_amount: Number(item.sales_amount || 0),
       sale_date: item.sale_date,
     }))
-
-    await createPrintMutation.mutateAsync({
-      ...entries[0],
-      entries,
-    })
-
+    await createPrintMutation.mutateAsync({ ...entries[0], entries })
     setPrintItems([createPrintDraftItem()])
   }
 
-  const submitEthereal = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedBusinessId) {
-      return
-    }
-
+  const submitEthereal = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId) return
     const entries = etherealItems.map((item) => ({
       staff_ids: item.staff_ids,
       service_cost: Number(item.service_cost || 0),
@@ -520,125 +523,180 @@ function App() {
       discount_type: item.discount_type,
       service_date: item.service_date,
     }))
-
     await createEtherealMutation.mutateAsync({
       ...entries[0],
       staff_id: entries[0].staff_ids[0],
       staff_ids: entries[0].staff_ids,
       entries,
     })
-
     setEtherealItems([createEtherealDraftItem()])
     setEtherealServiceCost('0')
     setEtherealDiscountPercentage('0')
   }
 
-  const submitPortfolioCapital = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    const form = new FormData(event.currentTarget)
-    const direction = String(form.get('direction') ?? 'add') as 'add' | 'deduct' | 'transfer'
-    const targetBusinessId = Number(form.get('target_business_id') ?? 0)
-
+  const submitPortfolioCapital = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const f = new FormData(e.currentTarget)
+    const direction = String(f.get('direction') ?? 'add') as 'add' | 'deduct' | 'transfer'
+    const targetBusinessId = Number(f.get('target_business_id') ?? 0)
     await createPortfolioCapitalMutation.mutateAsync({
-      amount: Number(form.get('amount') ?? 0),
+      amount: Number(f.get('amount') ?? 0),
       direction,
       target_business_id: direction === 'transfer' && targetBusinessId ? targetBusinessId : undefined,
-      occurred_on: String(form.get('occurred_on') ?? ''),
-      notes: String(form.get('notes') ?? ''),
-      reauth_username: String(form.get('reauth_username') ?? ''),
-      reauth_password: String(form.get('reauth_password') ?? ''),
+      occurred_on: String(f.get('occurred_on') ?? ''),
+      notes: String(f.get('notes') ?? ''),
+      reauth_username: String(f.get('reauth_username') ?? ''),
+      reauth_password: String(f.get('reauth_password') ?? ''),
     })
-
-    event.currentTarget.reset()
+    e.currentTarget.reset()
     setPortfolioAmountPreview('0')
     setPortfolioDirectionPreview('add')
   }
 
-  const submitBusinessCapital = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedBusinessId) {
-      return
-    }
-
-    const form = new FormData(event.currentTarget)
-
+  const submitBusinessCapital = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId) return
+    const f = new FormData(e.currentTarget)
     await createBusinessCapitalMutation.mutateAsync({
-      amount: Number(form.get('amount') ?? 0),
-      direction: String(form.get('direction') ?? 'add') as 'add' | 'deduct',
-      occurred_on: String(form.get('occurred_on') ?? ''),
-      notes: String(form.get('notes') ?? ''),
+      amount: Number(f.get('amount') ?? 0),
+      direction: String(f.get('direction') ?? 'add') as 'add' | 'deduct',
+      occurred_on: String(f.get('occurred_on') ?? ''),
+      notes: String(f.get('notes') ?? ''),
     })
-
-    event.currentTarget.reset()
+    e.currentTarget.reset()
     setBusinessAmountPreview('0')
     setBusinessDirectionPreview('add')
   }
 
+  // ─── Login screen ─────────────────────────────────────────────────────────
   if (!meQuery.data) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--surface-page)] px-4 py-8 text-[var(--neutral-espresso)]">
-        <section className="w-full max-w-md rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-8 shadow-[0_18px_44px_rgba(58,9,18,0.1)]">
-          <h1 className="text-2xl font-semibold">Parcon FMS</h1>
-          <p className="mt-2 text-sm text-[var(--neutral-rosewood)]">Login with your backend user credentials.</p>
-          <form onSubmit={submitLogin} className="mt-6 grid gap-3">
-            <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-              Username
-              <input name="username" required className="dashboard-input" />
-            </label>
-            <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-              Password
-              <input name="password" type="password" required className="dashboard-input" />
-            </label>
-            <button type="submit" disabled={loginMutation.isPending} className="dashboard-button-primary">
-              <span className="inline-flex items-center gap-2">
-                <LogIn className="h-4 w-4" />
-                {loginMutation.isPending ? 'Logging in...' : 'Login'}
-              </span>
-            </button>
-          </form>
-          {loginMutation.error ? <p className="mt-3 text-sm text-[var(--status-danger-text)]">{loginMutation.error.message}</p> : null}
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--burgundy-900)] px-4 py-8">
+        {/* Decorative background rings */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(133,32,48,0.55) 0%, transparent 70%), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(196,154,108,0.18) 0%, transparent 60%)',
+          }}
+        />
+        <section className="relative z-10 w-full max-w-sm">
+          {/* Brand bar */}
+          <div className="mb-6 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--burgundy-600)]">
+              <BanknoteArrowUp className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight text-white">Parcon FMS</h1>
+            <p className="mt-1 text-sm text-[var(--burgundy-200)]">Financial Management System</p>
+          </div>
+
+          <div className="rounded-2xl border border-[rgba(236,196,202,0.15)] bg-[var(--surface-card)] p-8 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
+            <p className="mb-5 text-sm text-[var(--neutral-rosewood)]">Sign in with your credentials to continue.</p>
+            <form onSubmit={submitLogin} className="grid gap-4">
+              <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                Username
+                <input name="username" required className="dashboard-input" placeholder="Enter username" />
+              </label>
+              <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                Password
+                <input name="password" type="password" required className="dashboard-input" placeholder="••••••••" />
+              </label>
+              <button type="submit" disabled={loginMutation.isPending} className="dashboard-button-primary mt-1">
+                <span className="inline-flex items-center justify-center gap-2">
+                  <LogIn className="h-4 w-4" />
+                  {loginMutation.isPending ? 'Signing in…' : 'Sign in'}
+                </span>
+              </button>
+            </form>
+            {loginMutation.error ? (
+              <p className="mt-4 rounded-lg border border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] px-3 py-2 text-sm text-[var(--status-danger-text)]">
+                {loginMutation.error.message}
+              </p>
+            ) : null}
+          </div>
         </section>
       </main>
     )
   }
 
+  // ─── Authenticated shell ───────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-[var(--surface-page)] text-[var(--neutral-espresso)]">
-      <div className="mx-auto grid w-full max-w-[1460px] gap-6 px-4 py-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-raised)] p-4 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:overflow-auto">
-          <div className="rounded-xl bg-[var(--surface-card)] p-4">
-            <h1 className="text-lg font-semibold text-[var(--burgundy-800)]">Parcon FMS</h1>
-            <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">Dashboard workspace</p>
-          </div>
-            <nav className="mt-4 grid gap-1">
-              {navItems.map((item) => (
-                <button
-                key={item.value}
-                type="button"
-                onClick={() => setTab(item.value)}
-                className={`rounded-lg px-3 py-2 text-left text-sm transition ${
-                  tab === item.value
-                    ? 'bg-[var(--burgundy-600)] text-white'
-                    : 'text-[var(--neutral-rosewood)] hover:bg-[var(--burgundy-50)] hover:text-[var(--burgundy-800)]'
-                }`}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </span>
-                </button>
-              ))}
-            </nav>
-          </aside>
+      <div className="mx-auto grid w-full max-w-[1460px] gap-6 px-4 py-6 lg:grid-cols-[240px_minmax(0,1fr)]">
 
-        <section className="grid gap-6">
-          <header className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-5 shadow-[0_8px_24px_rgba(58,9,18,0.07)]">
+        {/* ── Sidebar ───────────────────────────────────────────────────── */}
+        <aside className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-4 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:overflow-auto">
+          {/* Brand */}
+          <div className="flex items-center gap-3 rounded-xl bg-[var(--burgundy-600)] px-4 py-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20">
+              <BanknoteArrowUp className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Parcon FMS</p>
+              <p className="text-[10px] text-white/70">Dashboard workspace</p>
+            </div>
+          </div>
+
+          {/* Nav groups */}
+          <nav className="mt-4 grid gap-5">
+            {navGroups.map((group) => (
+              <div key={group.label}>
+                <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--neutral-rosewood)]">
+                  {group.label}
+                </p>
+                <div className="grid gap-0.5">
+                  {group.items.map((item) => {
+                    const active = tab === item.value
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() => setTab(item.value)}
+                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-all ${
+                          active
+                            ? 'bg-[var(--burgundy-50)] font-medium text-[var(--burgundy-800)]'
+                            : 'text-[var(--neutral-rosewood)] hover:bg-[var(--surface-raised)] hover:text-[var(--burgundy-800)]'
+                        }`}
+                      >
+                        {/* Active left indicator */}
+                        {active && (
+                          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--burgundy-600)]" />
+                        )}
+                        <item.icon
+                          className={`h-4 w-4 shrink-0 transition-colors ${
+                            active ? 'text-[var(--burgundy-600)]' : 'text-[var(--neutral-rosewood)] group-hover:text-[var(--burgundy-600)]'
+                          }`}
+                        />
+                        {item.label}
+                        {active && <ChevronRight className="ml-auto h-3 w-3 text-[var(--burgundy-400)]" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        {/* ── Main content ─────────────────────────────────────────────── */}
+        <section className="grid gap-6 self-start">
+
+          {/* Top header */}
+          <header className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-5 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-sm text-[var(--neutral-rosewood)]">Welcome back</p>
-                <h2 className="text-2xl font-semibold">{meQuery.data.name}</h2>
-                <p className="text-xs text-[var(--burgundy-600)]">Role: {meQuery.data.role}</p>
+              <div className="flex items-center gap-3">
+                {/* Avatar initial */}
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--burgundy-600)] text-sm font-bold text-white">
+                  {meQuery.data.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--neutral-rosewood)]">Welcome back</p>
+                  <h2 className="text-lg font-semibold leading-tight">{meQuery.data.name}</h2>
+                  <span className="inline-block rounded-full bg-[var(--burgundy-50)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">
+                    {meQuery.data.role}
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
@@ -646,347 +704,484 @@ function App() {
                 disabled={logoutMutation.isPending}
                 className="dashboard-button-secondary"
               >
-                Logout
+                {logoutMutation.isPending ? 'Signing out…' : 'Sign out'}
               </button>
             </div>
 
-            <div className="mt-5 grid gap-2 lg:grid-cols-3">
-              {businesses.map((business) => {
-                const active = selectedBusinessId === business.id
-                return (
-                  <button
-                    key={business.id}
-                    type="button"
-                    onClick={() => setSelectedBusinessId(business.id)}
-                    className={`rounded-xl border px-4 py-3 text-left transition ${
-                      active
-                        ? 'border-[var(--burgundy-600)] bg-[var(--burgundy-50)] text-[var(--burgundy-800)]'
-                        : 'border-[var(--neutral-linen)] bg-[var(--surface-card)] text-[var(--neutral-rosewood)] hover:border-[var(--burgundy-400)] hover:bg-[var(--burgundy-50)]'
-                    }`}
-                  >
-                    <p className="text-sm font-semibold">{business.name}</p>
-                    <p className="text-xs">{business.slug}</p>
-                  </button>
-                )
-              })}
-            </div>
+            {/* Business selector */}
+            {businesses.length > 0 && (
+              <div className="mt-5">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--neutral-rosewood)]">
+                  Active business
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {businesses.map((business) => {
+                    const active = selectedBusinessId === business.id
+                    return (
+                      <button
+                        key={business.id}
+                        type="button"
+                        onClick={() => setSelectedBusinessId(business.id)}
+                        className={`rounded-lg border px-4 py-2 text-left text-sm transition-all ${
+                          active
+                            ? 'border-[var(--burgundy-600)] bg-[var(--burgundy-600)] text-white shadow-sm'
+                            : 'border-[var(--neutral-linen)] bg-[var(--surface-card)] text-[var(--neutral-rosewood)] hover:border-[var(--burgundy-200)] hover:text-[var(--burgundy-800)]'
+                        }`}
+                      >
+                        <p className="font-semibold">{business.name}</p>
+                        <p className={`text-[10px] ${active ? 'text-white/70' : 'text-[var(--neutral-rosewood)]'}`}>
+                          {business.slug}
+                        </p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </header>
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <article className={cardClass}>
-              <p className="text-xs uppercase tracking-wider text-[var(--neutral-rosewood)]">Active business</p>
-              <p className="mt-2 text-xl font-semibold">{selectedBusinessName ?? 'No business selected'}</p>
+          {/* ── KPI stat cards ────────────────────────────────────────── */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {/* Active business */}
+            <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--burgundy-50)]">
+                <Building2 className="h-5 w-5 text-[var(--burgundy-600)]" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Business</p>
+                <p className="truncate text-base font-semibold">{selectedBusinessName ?? '—'}</p>
+              </div>
             </article>
-            <article className={cardClass}>
-              <p className="text-xs uppercase tracking-wider text-[var(--neutral-rosewood)]">Sales total</p>
-              <p className="mt-2 text-xl font-semibold text-[var(--accent-gold)]">{formatCurrency(salesTotal)}</p>
+
+            {/* Sales total */}
+            <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--teal-light)]">
+                <TrendingUp className="h-5 w-5 text-[var(--teal-dark)]" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Sales total</p>
+                <p className="truncate text-base font-semibold text-[var(--accent-gold)]">{formatCurrency(salesTotal)}</p>
+              </div>
             </article>
-            <article className={cardClass}>
-              <p className="text-xs uppercase tracking-wider text-[var(--neutral-rosewood)]">Expenses total</p>
-              <p className="mt-2 text-xl font-semibold text-[var(--status-danger-text)]">{formatCurrency(expenseTotal)}</p>
+
+            {/* Expenses total */}
+            <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--status-danger-bg)]">
+                <TrendingDown className="h-5 w-5 text-[var(--status-danger-text)]" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Expenses</p>
+                <p className="truncate text-base font-semibold text-[var(--status-danger-text)]">{formatCurrency(expenseTotal)}</p>
+              </div>
             </article>
-            <article className={cardClass}>
-              <p className="text-xs uppercase tracking-wider text-[var(--neutral-rosewood)]">Profit snapshot</p>
-              <p
-                className={`mt-2 text-xl font-semibold ${
-                  profitSnapshot >= 0 ? 'text-[var(--teal-mid)]' : 'text-[var(--status-danger-text)]'
+
+            {/* Profit snapshot */}
+            <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              <span
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                  profitSnapshot >= 0 ? 'bg-[var(--status-success-bg)]' : 'bg-[var(--status-danger-bg)]'
                 }`}
               >
-                {formatCurrency(profitSnapshot)}
-              </p>
-            </article>
-          </section>
-
-          {tab === 'overview' ? (
-            <section className="grid gap-4 lg:grid-cols-2">
-              <article className={cardClass}>
-                <h3 className="text-lg font-semibold">Operations snapshot</h3>
-                <ul className="mt-4 grid gap-3 text-sm text-[var(--neutral-rosewood)]">
-                  <li className="rounded-lg bg-[var(--burgundy-50)] px-3 py-2">Staff records: {staffEntries.length}</li>
-                  <li className="rounded-lg bg-[var(--status-info-bg)] px-3 py-2 text-[var(--status-info-text)]">
-                    Capital movements: {(capitalMovementsQuery.data?.data ?? []).length}
-                  </li>
-                  <li className="rounded-lg bg-[var(--status-warning-bg)] px-3 py-2 text-[var(--status-warning-text)]">
-                    Expense entries: {expenseEntries.length}
-                  </li>
-                  <li className="rounded-lg bg-[var(--status-success-bg)] px-3 py-2 text-[var(--status-success-text)]">
-                    Sales entries: {gcashEntries.length + coffeeEntries.length + printEntries.length + etherealEntries.length}
-                  </li>
-                </ul>
-              </article>
-              <article className={cardClass}>
-                <h3 className="text-lg font-semibold">Analytics-ready layout</h3>
-                <p className="mt-3 text-sm text-[var(--neutral-rosewood)]">
-                  This dashboard card area is prepared for future charts and cross-business analytics widgets.
+                <ReceiptText
+                  className={`h-5 w-5 ${profitSnapshot >= 0 ? 'text-[var(--status-success-text)]' : 'text-[var(--status-danger-text)]'}`}
+                />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Profit</p>
+                <p
+                  className={`truncate text-base font-semibold ${
+                    profitSnapshot >= 0 ? 'text-[var(--teal-mid)]' : 'text-[var(--status-danger-text)]'
+                  }`}
+                >
+                  {formatCurrency(profitSnapshot)}
                 </p>
-                <div className="mt-6 grid gap-3">
-                  <div className="h-2 rounded-full bg-[var(--neutral-linen)]">
-                    <div className="h-2 w-2/3 rounded-full bg-[var(--burgundy-600)]" />
+              </div>
+            </article>
+          </div>
+
+          {/* ── Tab content ──────────────────────────────────────────────── */}
+
+          {/* OVERVIEW */}
+          {tab === 'overview' && (
+            <section className="grid gap-4 lg:grid-cols-2">
+              {/* Operations snapshot */}
+              <article className={cardClass}>
+                <SectionHeading icon={LayoutDashboard} title="Operations snapshot" />
+                <div className="mt-5 grid gap-2">
+                  {[
+                    { label: 'Staff records', value: staffEntries.length, colorBg: 'bg-[var(--burgundy-50)]', colorText: 'text-[var(--burgundy-800)]' },
+                    { label: 'Capital movements', value: (capitalMovementsQuery.data?.data ?? []).length, colorBg: 'bg-[var(--status-info-bg)]', colorText: 'text-[var(--status-info-text)]' },
+                    { label: 'Expense entries', value: expenseEntries.length, colorBg: 'bg-[var(--status-warning-bg)]', colorText: 'text-[var(--status-warning-text)]' },
+                    { label: 'Sales entries', value: gcashEntries.length + coffeeEntries.length + printEntries.length + etherealEntries.length, colorBg: 'bg-[var(--status-success-bg)]', colorText: 'text-[var(--status-success-text)]' },
+                  ].map(({ label, value, colorBg, colorText }) => (
+                    <div key={label} className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${colorBg}`}>
+                      <span className={`text-sm ${colorText}`}>{label}</span>
+                      <span className={`text-sm font-bold tabular-nums ${colorText}`}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              {/* Capital balances */}
+              <article className={cardClass}>
+                <SectionHeading icon={BanknoteArrowUp} title="Capital balances" description="Computed from movement history." />
+                <div className="mt-5 grid gap-3">
+                  <div className="rounded-xl border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-info-text)]">Portfolio balance</p>
+                    <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--status-info-text)]">
+                      {formatCurrency(capitalBalances.portfolioBalance)}
+                    </p>
                   </div>
-                  <div className="h-2 rounded-full bg-[var(--neutral-linen)]">
-                    <div className="h-2 w-1/2 rounded-full bg-[var(--accent-gold)]" />
-                  </div>
-                  <div className="h-2 rounded-full bg-[var(--neutral-linen)]">
-                    <div className="h-2 w-3/4 rounded-full bg-[var(--teal-mid)]" />
+                  <div className="rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">
+                      Business balance {selectedBusinessName ? `· ${selectedBusinessName}` : ''}
+                    </p>
+                    <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--status-success-text)]">
+                      {formatCurrency(capitalBalances.businessBalance)}
+                    </p>
                   </div>
                 </div>
               </article>
+
+              {/* Preview card */}
               <article className={`${cardClass} lg:col-span-2`}>
-                <h3 className="text-lg font-semibold">Money computation overview</h3>
-                <p className="mt-2 text-sm text-[var(--neutral-rosewood)]">
-                  Portfolio and selected business balances are computed from movement history.
-                </p>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-lg bg-[var(--status-info-bg)] px-3 py-2 text-sm text-[var(--status-info-text)]">
-                    <p className="text-xs uppercase tracking-wider">Portfolio balance</p>
-                    <p className="mt-1 text-base font-semibold">{formatCurrency(capitalBalances.portfolioBalance)}</p>
+                <SectionHeading icon={ArrowRightLeft} title="Movement preview" description="Balances after current input forms are applied." />
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg bg-[var(--burgundy-50)] px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">Portfolio after preview</p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--burgundy-800)]">
+                      {formatCurrency(portfolioAfterPreview)}
+                    </p>
                   </div>
-                  <div className="rounded-lg bg-[var(--status-success-bg)] px-3 py-2 text-sm text-[var(--status-success-text)]">
-                    <p className="text-xs uppercase tracking-wider">Business balance {selectedBusinessName ? `(${selectedBusinessName})` : ''}</p>
-                    <p className="mt-1 text-base font-semibold">{formatCurrency(capitalBalances.businessBalance)}</p>
-                  </div>
-                  <div className="rounded-lg bg-[var(--burgundy-50)] px-3 py-2 text-sm text-[var(--burgundy-800)]">
-                    <p className="text-xs uppercase tracking-wider">Portfolio after current preview</p>
-                    <p className="mt-1 text-base font-semibold">{formatCurrency(portfolioAfterPreview)}</p>
-                  </div>
-                  <div className="rounded-lg bg-[var(--burgundy-50)] px-3 py-2 text-sm text-[var(--burgundy-800)]">
-                    <p className="text-xs uppercase tracking-wider">Business after current preview</p>
-                    <p className="mt-1 text-base font-semibold">{formatCurrency(businessAfterPreview)}</p>
+                  <div className="rounded-lg bg-[var(--burgundy-50)] px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">Business after preview</p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--burgundy-800)]">
+                      {formatCurrency(businessAfterPreview)}
+                    </p>
                   </div>
                 </div>
               </article>
             </section>
-          ) : null}
+          )}
 
-          {tab === 'businesses' ? (
+          {/* BUSINESSES */}
+          {tab === 'businesses' && (
             <section className={cardClass}>
-              <h3 className="text-lg font-semibold">Businesses</h3>
-              <p className="mt-1 text-sm text-[var(--neutral-rosewood)]">
-                Businesses are seeded by default and managed from backend seeders.
-              </p>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <SectionHeading
+                icon={Building2}
+                title="Businesses"
+                description="Seeded and managed from backend configuration."
+              />
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {businesses.map((business) => (
-                  <article key={business.id} className="rounded-xl border border-[var(--neutral-linen)] p-4">
-                    <p className="font-semibold">{business.name}</p>
-                    <p className="text-xs text-[var(--neutral-rosewood)]">{business.slug}</p>
+                  <article
+                    key={business.id}
+                    className="flex items-center gap-3 rounded-xl border border-[var(--neutral-linen)] p-4 hover:border-[var(--burgundy-200)] hover:bg-[var(--burgundy-50)] transition-colors"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--burgundy-50)]">
+                      <Building2 className="h-4 w-4 text-[var(--burgundy-600)]" />
+                    </span>
+                    <div>
+                      <p className="font-semibold">{business.name}</p>
+                      <p className="text-xs text-[var(--neutral-rosewood)]">{business.slug}</p>
+                    </div>
                   </article>
                 ))}
               </div>
             </section>
-          ) : null}
+          )}
 
-          {tab === 'staff' ? (
+          {/* STAFF */}
+          {tab === 'staff' && (
             <section className={cardClass}>
-              <h3 className="text-lg font-semibold">Staff</h3>
+              <SectionHeading icon={UserRound} title="Staff" description="Manage staff records for the selected business." />
               <form onSubmit={submitStaff} className={formGridClass}>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Full name<input name="full_name" required className="dashboard-input" /></label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Age<input name="age" type="number" min="16" required className="dashboard-input" /></label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Start date<input name="employment_start_date" type="date" required className="dashboard-input" /></label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">End date<input name="employment_end_date" type="date" className="dashboard-input" /></label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Employment type<input name="employment_type" required className="dashboard-input" /></label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Salary<input name="salary" type="number" step="0.01" required className="dashboard-input" /></label>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-                  <span>Status</span>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="is_active" value="1" defaultChecked className="mr-2" />active</label>
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="is_active" value="0" className="mr-2" />inactive</label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Full name
+                  <input name="full_name" required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Age
+                  <input name="age" type="number" min="16" required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Start date
+                  <input name="employment_start_date" type="date" required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  End date
+                  <input name="employment_end_date" type="date" className="dashboard-input" />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Employment type
+                  <input name="employment_type" required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Salary
+                  <input name="salary" type="number" step="100" required className="dashboard-input" />
+                </label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Status</p>
+                  <div className="flex gap-2">
+                    {(['1', '0'] as const).map((val) => (
+                      <label key={val} className={optionPillClass}>
+                        <input type="radio" name="is_active" value={val} defaultChecked={val === '1'} className="sr-only" />
+                        {val === '1' ? 'Active' : 'Inactive'}
+                      </label>
+                    ))}
                   </div>
                 </div>
                 <button type="submit" disabled={!selectedBusinessId || createStaffMutation.isPending} className="dashboard-button-primary">
-                  Add staff
+                  {createStaffMutation.isPending ? 'Adding…' : 'Add staff member'}
                 </button>
               </form>
-              <div className="mt-5 overflow-auto rounded-xl border border-[var(--neutral-linen)]">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-[var(--surface-raised)] text-left text-xs uppercase tracking-wider text-[var(--neutral-rosewood)]">
+
+              <SectionDivider label="Staff records" />
+              {staffEntries.length === 0 ? (
+                <EmptyState label="No staff records yet." />
+              ) : (
+                <div className="overflow-auto rounded-xl border border-[var(--neutral-linen)]">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-[var(--surface-raised)] text-left">
                     <tr>
-                      <th className="px-3 py-2">Name</th>
-                      <th className="px-3 py-2">Type</th>
-                      <th className="px-3 py-2">Salary</th>
+                      {['Name', 'Type', 'Salary', 'Status'].map((h) => (
+                        <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  </thead>
-                  <tbody>
+                    </thead>
+                    <tbody>
                     {staffEntries.map((staff) => (
-                      <tr key={staff.id} className="border-t border-[var(--neutral-linen)]">
-                        <td className="px-3 py-2">{staff.full_name}</td>
-                        <td className="px-3 py-2">{staff.employment_type}</td>
-                        <td className="px-3 py-2">{formatCurrency(parseAmount(staff.salary))}</td>
+                      <tr key={staff.id} className="border-t border-[var(--neutral-linen)] hover:bg-[var(--burgundy-50)] transition-colors">
+                        <td className="px-4 py-3 font-medium">{staff.full_name}</td>
+                        <td className="px-4 py-3 text-[var(--neutral-rosewood)]">{staff.employment_type}</td>
+                        <td className="px-4 py-3 tabular-nums text-[var(--accent-gold)]">{formatCurrency(parseAmount(staff.salary))}</td>
+                        <td className="px-4 py-3">
+                            <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                              staff.is_active
+                                ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                                : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
+                            }`}>
+                              {staff.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
-                {staffEntries.length === 0 ? <p className="px-3 py-4 text-sm text-[var(--neutral-rosewood)]">No staff yet.</p> : null}
-              </div>
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
-          ) : null}
+          )}
 
-          {tab === 'referenceItems' ? (
+          {/* REFERENCE ITEMS */}
+          {tab === 'referenceItems' && (
             <section className={cardClass}>
-              <h3 className="text-lg font-semibold">Business Product/Service Items</h3>
+              <SectionHeading icon={NotebookPen} title="Reference Items" description="Product and service catalog for autocomplete and pricing." />
               <form onSubmit={submitReferenceItem} className={formGridClass}>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-                  <span>Item type</span>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
-                      <input type="radio" name="item_type" value="product" defaultChecked className="mr-2" />
-                      product
-                    </label>
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
-                      <input type="radio" name="item_type" value="service" className="mr-2" />
-                      service
-                    </label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Item type</p>
+                  <div className="flex gap-2">
+                    {(['product', 'service'] as const).map((t) => (
+                      <label key={t} className={optionPillClass}>
+                        <input type="radio" name="item_type" value={t} defaultChecked={t === 'product'} className="sr-only" />
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </label>
+                    ))}
                   </div>
                 </div>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Item name
                   <input name="name" required className="dashboard-input" />
                 </label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Base price
-                  <input name="price" type="number" step="0.01" min="0" required className="dashboard-input" />
+                  <input name="price" type="number" step="50" min="0" required className="dashboard-input" />
                 </label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Description (optional)
                   <input name="description" className="dashboard-input" />
                 </label>
                 <button type="submit" disabled={!selectedBusinessId || createReferenceItemMutation.isPending} className="dashboard-button-primary">
-                  Save reference item
+                  {createReferenceItemMutation.isPending ? 'Saving…' : 'Save reference item'}
                 </button>
               </form>
-              {referenceItemsQuery.isLoading ? <p className="mt-4 text-sm text-[var(--neutral-rosewood)]">Loading reference items...</p> : null}
-              <ul className="mt-5 grid gap-2 text-sm">
-                {referenceItems.map((item) => (
-                  <li key={item.id} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2">
-                    <span className="font-medium">[{item.item_type}] {item.name}</span> — {formatCurrency(parseAmount(item.price))}
-                    {item.description ? <span className="text-[var(--neutral-rosewood)]"> · {item.description}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
 
-          {tab === 'expenses' ? (
+              <SectionDivider label="Catalog" />
+              {referenceItemsQuery.isLoading ? (
+                <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
+              ) : referenceItems.length === 0 ? (
+                <EmptyState label="No reference items yet." />
+              ) : (
+                <ul className="grid gap-2">
+                  {referenceItems.map((item) => (
+                    <li key={item.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                      <div>
+                        <span className="font-medium">{item.name}</span>
+                        {item.description ? (
+                          <span className="ml-2 text-xs text-[var(--neutral-rosewood)]">· {item.description}</span>
+                        ) : null}
+                        <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          item.item_type === 'product'
+                            ? 'bg-[var(--status-info-bg)] text-[var(--status-info-text)]'
+                            : 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                        }`}>
+                          {item.item_type}
+                        </span>
+                      </div>
+                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(item.price))}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {/* EXPENSES */}
+          {tab === 'expenses' && (
             <section className={cardClass}>
-              <h3 className="text-lg font-semibold">Expenses</h3>
+              <SectionHeading icon={ReceiptText} title="Expenses" description="Track one-time and recurring business expenses." />
               <form onSubmit={submitExpense} className={formGridClass}>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date issued
                   <input name="date_issued" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
                 </label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" step="0.01" required className="dashboard-input" />
+                  <input name="amount" type="number" step="100" required className="dashboard-input" />
                 </label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Description
                   <input name="description" required className="dashboard-input" />
                 </label>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-                  <span>Purpose</span>
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="purpose" value="business" defaultChecked className="mr-2" />business</label>
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="purpose" value="business_portfolio" className="mr-2" />business_portfolio</label>
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="purpose" value="service" className="mr-2" />service</label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Purpose</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(['business', 'business_portfolio', 'service'] as const).map((p, i) => (
+                      <label key={p} className={optionPillClass}>
+                        <input type="radio" name="purpose" value={p} defaultChecked={i === 0} className="sr-only" />
+                        {p.replace(/_/g, ' ')}
+                      </label>
+                    ))}
                   </div>
                 </div>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-                  <span>Payment type</span>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="payment_type" value="one_time" defaultChecked className="mr-2" />one_time</label>
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="payment_type" value="repeat" className="mr-2" />repeat</label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Payment type</p>
+                  <div className="flex gap-2">
+                    {(['one_time', 'repeat'] as const).map((p, i) => (
+                      <label key={p} className={optionPillClass}>
+                        <input type="radio" name="payment_type" value={p} defaultChecked={i === 0} className="sr-only" />
+                        {p.replace('_', ' ')}
+                      </label>
+                    ))}
                   </div>
                 </div>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Recurrence reference
                   <input name="recurrence_reference" className="dashboard-input" />
                 </label>
-                <button
-                  type="submit"
-                  disabled={!selectedBusinessId || createExpenseMutation.isPending}
-                  className="dashboard-button-primary"
-                >
-                  Add expense
+                <button type="submit" disabled={!selectedBusinessId || createExpenseMutation.isPending} className="dashboard-button-primary">
+                  {createExpenseMutation.isPending ? 'Adding…' : 'Add expense'}
                 </button>
               </form>
-              {expensesQuery.isLoading ? <p className="mt-4 text-sm text-[var(--neutral-rosewood)]">Loading expenses...</p> : null}
-              <ul className="mt-5 grid gap-2 text-sm">
-                {expenseEntries.map((expense) => (
-                  <li key={expense.id} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2">
-                    {formatDateTimeDisplay(expense.date_issued)} ({formatRelative(expense.date_issued)}): {expense.description} —{' '}
-                    <span className="text-[var(--status-danger-text)]">{formatCurrency(parseAmount(expense.amount))}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
 
-          {tab === 'gcash' ? (
+              <SectionDivider label={`${expenseEntries.length} expense${expenseEntries.length === 1 ? '' : 's'} · total ${formatCurrency(expenseTotal)}`} />
+              {expensesQuery.isLoading ? (
+                <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
+              ) : expenseEntries.length === 0 ? (
+                <EmptyState label="No expenses recorded yet." />
+              ) : (
+                <ul className="grid gap-2">
+                  {expenseEntries.map((expense) => (
+                    <li key={expense.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                      <div>
+                        <p className="font-medium">{expense.description}</p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">
+                          {formatDateTimeDisplay(expense.date_issued)} · {formatRelative(expense.date_issued)}
+                        </p>
+                      </div>
+                      <span className="tabular-nums font-semibold text-[var(--status-danger-text)]">
+                        {formatCurrency(parseAmount(expense.amount))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {/* GCASH */}
+          {tab === 'gcash' && (
             <section className={cardClass}>
-              <h3 className="text-lg font-semibold">GCash Sales</h3>
+              <SectionHeading icon={Wallet} title="GCash Sales" description="Manually log GCash cash-in and cash-out transactions." />
               <form onSubmit={submitGcash} className={formGridClass}>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transaction recipient (optional)
                   <input name="transaction_recipient" className="dashboard-input" />
                 </label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Moved cash
-                  <input
-                    name="amount_moved"
-                    type="number"
-                    step="0.01"
-                    required
-                    value={gcashAmountMoved}
-                    onChange={(event) => setGcashAmountMoved(event.target.value)}
-                    className="dashboard-input"
-                  />
+                  <input name="amount_moved" type="number" step="150" required value={gcashAmountMoved} onChange={(e) => setGcashAmountMoved(e.target.value)} className="dashboard-input" />
                 </label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Sales amount
-                  <input
-                    name="sales_amount"
-                    type="number"
-                    step="0.01"
-                    required
-                    value={gcashSalesAmount}
-                    onChange={(event) => setGcashSalesAmount(event.target.value)}
-                    className="dashboard-input"
-                  />
+                  <input name="sales_amount" type="number" step="150" required value={gcashSalesAmount} onChange={(e) => setGcashSalesAmount(e.target.value)} className="dashboard-input" />
                 </label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-                  Profit from transaction (computed)
-                  <input value={gcashProfitPreview.toFixed(2)} readOnly className="dashboard-input bg-[var(--surface-raised)]" />
-                </label>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-                  <span>Transaction type</span>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="transaction_type" value="cash_in" defaultChecked className="mr-2" />cash_in</label>
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="transaction_type" value="cash_out" className="mr-2" />cash_out</label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Transaction type</p>
+                  <div className="flex gap-2">
+                    {(['cash_in', 'cash_out'] as const).map((t, i) => (
+                      <label key={t} className={optionPillClass}>
+                        <input type="radio" name="transaction_type" value={t} defaultChecked={i === 0} className="sr-only" />
+                        {t.replace('_', ' ')}
+                      </label>
+                    ))}
                   </div>
                 </div>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transaction date
                   <input name="transaction_date" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
                 </label>
                 <button type="submit" disabled={!selectedBusinessId || createGcashMutation.isPending} className="dashboard-button-primary">
-                  Add GCash entry
+                  {createGcashMutation.isPending ? 'Adding…' : 'Add GCash entry'}
                 </button>
               </form>
-              <p className="mt-2 text-xs text-[var(--neutral-rosewood)]">Profit is auto-computed from sales amount and moved cash.</p>
-              {gcashQuery.isLoading ? <p className="mt-4 text-sm text-[var(--neutral-rosewood)]">Loading GCash sales...</p> : null}
-              <ul className="mt-5 grid gap-2 text-sm">
-                {gcashEntries.map((sale) => (
-                  <li key={sale.id} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2">
-                    {formatDateTimeDisplay(sale.transaction_date)} ({formatRelative(sale.transaction_date)}): {sale.transaction_recipient ?? 'n/a'} —{' '}
-                    <span className="text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.sales_amount))}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+              <LivePreview>
+                Profit from this transaction:{' '}
+                <strong className="font-semibold">{formatCurrency(gcashProfitPreview)}</strong>{' '}
+                (sales {formatCurrency(parseAmount(gcashSalesAmount))} − moved {formatCurrency(parseAmount(gcashAmountMoved))})
+              </LivePreview>
 
-          {tab === 'coffee' ? (
+              <SectionDivider label={`${gcashEntries.length} entr${gcashEntries.length === 1 ? 'y' : 'ies'}`} />
+              {gcashQuery.isLoading ? (
+                <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
+              ) : gcashEntries.length === 0 ? (
+                <EmptyState label="No GCash entries yet." />
+              ) : (
+                <ul className="grid gap-2">
+                  {gcashEntries.map((sale) => (
+                    <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                      <div>
+                        <p className="font-medium">{sale.transaction_recipient ?? 'No recipient'}</p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">
+                          {formatDateTimeDisplay(sale.transaction_date)} · {formatRelative(sale.transaction_date)}
+                        </p>
+                      </div>
+                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">
+                        {formatCurrency(parseAmount(sale.sales_amount))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {/* COFFEE */}
+          {tab === 'coffee' && (
             <section className={cardClass}>
-              <h3 className="text-lg font-semibold">Coffee Sales</h3>
+              <SectionHeading icon={Coffee} title="Coffee Sales" description="Log individual coffee orders, including add-ons." />
               <form onSubmit={submitCoffee} className={formGridClass}>
                 <datalist id="coffee-reference-items">
                   {productReferenceItems.map((item) => (
@@ -995,214 +1190,225 @@ function App() {
                 </datalist>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-3">
                   {coffeeItems.map((item, index) => (
-                    <div key={`coffee-item-${index}`} className="rounded-xl border border-[var(--neutral-linen)] p-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                    <div
+                      key={`coffee-item-${index}`}
+                      className="rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-raised)] p-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3"
+                    >
+                      <div className="md:col-span-2 lg:col-span-3 flex items-center justify-between">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                          Order #{index + 1}
+                        </p>
+                        {coffeeItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setCoffeeItems((prev) => prev.filter((_, i) => i !== index))}
+                            className="text-xs text-[var(--status-danger-text)] hover:underline"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Price
-                        <input type="number" step="0.01" required value={item.price} onChange={(event) => {
-                          setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, price: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input type="number" step="30" required value={item.price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, price: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Coffee type
-                        <input list="coffee-reference-items" required value={item.coffee_type} onChange={(event) => {
-                          setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, coffee_type: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input list="coffee-reference-items" required value={item.coffee_type} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, coffee_type: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      <div className="grid gap-1 text-xs text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-3">
-                        <span>Size</span>
-                        <div className="grid gap-2 sm:grid-cols-5">
+                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Size</p>
+                        <div className="flex flex-wrap gap-2">
                           {(['8oz', '9oz', '12oz', '16oz', '18oz'] as const).map((size) => (
-                            <label key={`${size}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
-                              <input type="radio" name={`coffee-size-${index}`} value={size} checked={item.size === size} onChange={() => {
-                                setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, size } : entry))
-                              }} className="mr-2" />
+                            <label key={`${size}-${index}`} className={optionPillClass}>
+                              <input type="radio" name={`coffee-size-${index}`} value={size} checked={item.size === size} onChange={() => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, size } : en))} className="sr-only" />
                               {size}
                             </label>
                           ))}
                         </div>
                       </div>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Add-on price
-                        <input type="number" step="0.01" min="0" required value={item.add_on_price} onChange={(event) => {
-                          setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, add_on_price: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input type="number" step="0.01" min="0" required value={item.add_on_price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, add_on_price: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Add-on description
-                        <input value={item.add_on_description} onChange={(event) => {
-                          setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, add_on_description: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input value={item.add_on_description} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, add_on_description: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sale date
-                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.sale_date} onChange={(event) => {
-                          setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, sale_date: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.sale_date} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sale_date: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      {coffeeItems.length > 1 ? (
-                        <button type="button" onClick={() => setCoffeeItems((previous) => previous.filter((_, entryIndex) => entryIndex !== index))} className="dashboard-button-secondary">
-                          Remove item
-                        </button>
-                      ) : null}
                     </div>
                   ))}
-                  <button type="button" onClick={() => setCoffeeItems((previous) => [...previous, createCoffeeDraftItem()])} className="dashboard-button-secondary">
-                    Add another coffee item
+                  <button type="button" onClick={() => setCoffeeItems((prev) => [...prev, createCoffeeDraftItem()])} className="dashboard-button-secondary">
+                    + Add another order
                   </button>
                 </div>
                 <button type="submit" disabled={!selectedBusinessId || createCoffeeMutation.isPending} className="dashboard-button-primary">
-                  Add coffee sale
+                  {createCoffeeMutation.isPending ? 'Submitting…' : 'Add coffee sale'}
                 </button>
               </form>
-              <p className="mt-2 text-xs text-[var(--neutral-rosewood)]">Live total preview: {formatCurrency(coffeeBatchPreview)}</p>
-              {coffeeQuery.isLoading ? <p className="mt-4 text-sm text-[var(--neutral-rosewood)]">Loading coffee sales...</p> : null}
-              <ul className="mt-5 grid gap-2 text-sm">
-                {coffeeEntries.map((sale) => (
-                  <li key={sale.id} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2">
-                    {formatDateTimeDisplay(sale.sale_date)} ({formatRelative(sale.sale_date)}): {sale.coffee_type} ({sale.size}) —{' '}
-                    <span className="text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.price))}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+              <LivePreview>
+                Batch total: <strong className="font-semibold">{formatCurrency(coffeeBatchPreview)}</strong> across {coffeeItems.length} order{coffeeItems.length === 1 ? '' : 's'}
+              </LivePreview>
 
-          {tab === 'print' ? (
+              <SectionDivider label={`${coffeeEntries.length} sale${coffeeEntries.length === 1 ? '' : 's'}`} />
+              {coffeeQuery.isLoading ? <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p> : coffeeEntries.length === 0 ? (
+                <EmptyState label="No coffee sales yet." />
+              ) : (
+                <ul className="grid gap-2">
+                  {coffeeEntries.map((sale) => (
+                    <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                      <div>
+                        <p className="font-medium">{sale.coffee_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.size}</span></p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
+                      </div>
+                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.price))}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {/* PRINT */}
+          {tab === 'print' && (
             <section className={cardClass}>
-              <h3 className="text-lg font-semibold">Print Sales</h3>
+              <SectionHeading icon={Printer} title="Print Sales" description="Log xerox, document, and other print jobs." />
               <form onSubmit={submitPrint} className={formGridClass}>
                 <datalist id="print-reference-items">
-                  {productReferenceItems.map((item) => (
-                    <option key={item.id} value={item.name} />
-                  ))}
+                  {productReferenceItems.map((item) => <option key={item.id} value={item.name} />)}
                 </datalist>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-3">
                   {printItems.map((item, index) => (
-                    <div key={`print-item-${index}`} className="rounded-xl border border-[var(--neutral-linen)] p-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      <div className="grid gap-1 text-xs text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-3">
-                        <span>Job type</span>
-                        <div className="grid gap-2 sm:grid-cols-3">
-                          {(['xerox', 'document', 'other'] as const).map((jobType) => (
-                            <label key={`${jobType}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
-                              <input type="radio" name={`print-job-${index}`} value={jobType} checked={item.job_type === jobType} onChange={() => {
-                                setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, job_type: jobType } : entry))
-                              }} className="mr-2" />
-                              {jobType}
+                    <div key={`print-item-${index}`} className="rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-raised)] p-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="md:col-span-2 lg:col-span-3 flex items-center justify-between">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Job #{index + 1}</p>
+                        {printItems.length > 1 && (
+                          <button type="button" onClick={() => setPrintItems((prev) => prev.filter((_, i) => i !== index))} className="text-xs text-[var(--status-danger-text)] hover:underline">
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Job type</p>
+                        <div className="flex flex-wrap gap-2">
+                          {(['xerox', 'document', 'other'] as const).map((jt) => (
+                            <label key={`${jt}-${index}`} className={optionPillClass}>
+                              <input type="radio" name={`print-job-${index}`} value={jt} checked={item.job_type === jt} onChange={() => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, job_type: jt } : en))} className="sr-only" />
+                              {jt}
                             </label>
                           ))}
                         </div>
                       </div>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Description
-                        <input list="print-reference-items" required value={item.description} onChange={(event) => {
-                          setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, description: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input list="print-reference-items" required value={item.description} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, description: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      <div className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-                        <span>Color mode</span>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {(['black', 'white'] as const).map((colorMode) => (
-                            <label key={`${colorMode}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
-                              <input type="radio" name={`print-color-${index}`} value={colorMode} checked={item.color_mode === colorMode} onChange={() => {
-                                setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, color_mode: colorMode } : entry))
-                              }} className="mr-2" />
-                              {colorMode}
+                      <div className="grid gap-1.5">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Color mode</p>
+                        <div className="flex gap-2">
+                          {(['black', 'white'] as const).map((cm) => (
+                            <label key={`${cm}-${index}`} className={optionPillClass}>
+                              <input type="radio" name={`print-color-${index}`} value={cm} checked={item.color_mode === cm} onChange={() => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, color_mode: cm } : en))} className="sr-only" />
+                              {cm}
                             </label>
                           ))}
                         </div>
                       </div>
-                      <div className="grid gap-1 text-xs text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-3">
-                        <span>Print size</span>
-                        <div className="grid gap-2 sm:grid-cols-4">
-                          {(['short', 'long', 'a4', 'legal'] as const).map((printSize) => (
-                            <label key={`${printSize}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
-                              <input type="radio" name={`print-size-${index}`} value={printSize} checked={item.print_size === printSize} onChange={() => {
-                                setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, print_size: printSize } : entry))
-                              }} className="mr-2" />
-                              {printSize}
+                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Print size</p>
+                        <div className="flex flex-wrap gap-2">
+                          {(['short', 'long', 'a4', 'legal'] as const).map((ps) => (
+                            <label key={`${ps}-${index}`} className={optionPillClass}>
+                              <input type="radio" name={`print-size-${index}`} value={ps} checked={item.print_size === ps} onChange={() => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, print_size: ps } : en))} className="sr-only" />
+                              {ps}
                             </label>
                           ))}
                         </div>
                       </div>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Paper count
-                        <input type="number" min="1" required value={item.paper_count} onChange={(event) => {
-                          setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, paper_count: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input type="number" min="1" required value={item.paper_count} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, paper_count: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sales amount
-                        <input type="number" step="0.01" required value={item.sales_amount} onChange={(event) => {
-                          setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, sales_amount: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input type="number" step="5" required value={item.sales_amount} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sales_amount: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sale date
-                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.sale_date} onChange={(event) => {
-                          setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, sale_date: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.sale_date} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sale_date: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      {printItems.length > 1 ? (
-                        <button type="button" onClick={() => setPrintItems((previous) => previous.filter((_, entryIndex) => entryIndex !== index))} className="dashboard-button-secondary">
-                          Remove item
-                        </button>
-                      ) : null}
                     </div>
                   ))}
-                  <button type="button" onClick={() => setPrintItems((previous) => [...previous, createPrintDraftItem()])} className="dashboard-button-secondary">
-                    Add another print item
+                  <button type="button" onClick={() => setPrintItems((prev) => [...prev, createPrintDraftItem()])} className="dashboard-button-secondary">
+                    + Add another print job
                   </button>
                 </div>
                 <button type="submit" disabled={!selectedBusinessId || createPrintMutation.isPending} className="dashboard-button-primary">
-                  Add print sale
+                  {createPrintMutation.isPending ? 'Submitting…' : 'Add print sale'}
                 </button>
               </form>
-              <p className="mt-2 text-xs text-[var(--neutral-rosewood)]">Live total preview: {formatCurrency(printBatchPreview)}</p>
-              {printQuery.isLoading ? <p className="mt-4 text-sm text-[var(--neutral-rosewood)]">Loading print sales...</p> : null}
-              <ul className="mt-5 grid gap-2 text-sm">
-                {printEntries.map((sale) => (
-                  <li key={sale.id} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2">
-                    {formatDateTimeDisplay(sale.sale_date)} ({formatRelative(sale.sale_date)}): {sale.job_type} ({sale.color_mode}, {sale.print_size}, {sale.paper_count}) —{' '}
-                    <span className="text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.sales_amount))}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+              <LivePreview>
+                Batch total: <strong className="font-semibold">{formatCurrency(printBatchPreview)}</strong> across {printItems.length} job{printItems.length === 1 ? '' : 's'}
+              </LivePreview>
 
-          {tab === 'ethereal' ? (
+              <SectionDivider label={`${printEntries.length} sale${printEntries.length === 1 ? '' : 's'}`} />
+              {printQuery.isLoading ? <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p> : printEntries.length === 0 ? (
+                <EmptyState label="No print sales yet." />
+              ) : (
+                <ul className="grid gap-2">
+                  {printEntries.map((sale) => (
+                    <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                      <div>
+                        <p className="font-medium">{sale.job_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.color_mode} · {sale.print_size} · {sale.paper_count}pg</span></p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
+                      </div>
+                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.sales_amount))}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {/* ETHEREAL */}
+          {tab === 'ethereal' && (
             <section className={cardClass}>
-              <h3 className="text-lg font-semibold">Ethereal Sales</h3>
+              <SectionHeading icon={Sparkles} title="Ethereal Sales" description="Beauty salon service bookings with discount and provider tracking." />
               <form onSubmit={submitEthereal} className={formGridClass}>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-3">
                   {etherealItems.map((item, index) => (
-                    <div key={`ethereal-item-${index}`} className="rounded-xl border border-[var(--neutral-linen)] p-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      <div className="grid gap-1 text-xs text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-3">
-                        <span>Service provider(s)</span>
-                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <div key={`ethereal-item-${index}`} className="rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-raised)] p-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="md:col-span-2 lg:col-span-3 flex items-center justify-between">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Service #{index + 1}</p>
+                        {etherealItems.length > 1 && (
+                          <button type="button" onClick={() => setEtherealItems((prev) => prev.filter((_, i) => i !== index))} className="text-xs text-[var(--status-danger-text)] hover:underline">
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Service provider(s)</p>
+                        <div className="flex flex-wrap gap-2">
                           {staffEntries.map((staff) => {
-                            const isChecked = item.staff_ids.includes(staff.id)
+                            const checked = item.staff_ids.includes(staff.id)
                             return (
-                              <label key={`ethereal-staff-${staff.id}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
+                              <label key={`ethereal-staff-${staff.id}-${index}`} className={optionPillClass}>
                                 <input
                                   type="checkbox"
-                                  checked={isChecked}
+                                  checked={checked}
                                   onChange={() => {
-                                    setEtherealItems((previous) =>
-                                      previous.map((entry, entryIndex) => {
-                                        if (entryIndex !== index) {
-                                          return entry
-                                        }
-
-                                        const nextStaffIds = isChecked
-                                          ? entry.staff_ids.filter((staffId) => staffId !== staff.id)
-                                          : [...entry.staff_ids, staff.id]
-
-                                        return { ...entry, staff_ids: nextStaffIds }
+                                    setEtherealItems((prev) =>
+                                      prev.map((en, ei) => {
+                                        if (ei !== index) return en
+                                        const next = checked ? en.staff_ids.filter((id) => id !== staff.id) : [...en.staff_ids, staff.id]
+                                        return { ...en, staff_ids: next }
                                       }),
                                     )
                                   }}
-                                  className="mr-2"
+                                  className="sr-only"
                                 />
                                 {staff.full_name}
                               </label>
@@ -1210,183 +1416,233 @@ function App() {
                           })}
                         </div>
                       </div>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Customer name
-                        <input value={item.customer_name} onChange={(event) => {
-                          setEtherealItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, customer_name: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input value={item.customer_name} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, customer_name: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Service cost
-                        <input
-                          type="number"
-                          step="0.01"
-                          required
-                          value={item.service_cost}
-                          onChange={(event) => {
-                            setEtherealItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, service_cost: event.target.value } : entry))
-                            if (index === 0) {
-                              setEtherealServiceCost(event.target.value)
-                            }
-                          }}
-                          className="dashboard-input"
-                        />
+                        <input type="number" step="200" required value={item.service_cost} onChange={(e) => { setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_cost: e.target.value } : en)); if (index === 0) setEtherealServiceCost(e.target.value) }} className="dashboard-input" />
                       </label>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Discount %
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="100"
-                          required
-                          value={item.discount_percentage}
-                          onChange={(event) => {
-                            setEtherealItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, discount_percentage: event.target.value } : entry))
-                            if (index === 0) {
-                              setEtherealDiscountPercentage(event.target.value)
-                            }
-                          }}
-                          className="dashboard-input"
-                        />
+                        <input type="number" step="10" min="0" max="100" required value={item.discount_percentage} onChange={(e) => { setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_percentage: e.target.value } : en)); if (index === 0) setEtherealDiscountPercentage(e.target.value) }} className="dashboard-input" />
                       </label>
-                      <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-                        <span>Discount type</span>
-                        <div className="grid gap-2 sm:grid-cols-3">
-                          {(['family/friends/church-mem', 'promo', 'new-customer'] as const).map((discountType) => (
-                            <label key={`${discountType}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
-                              <input type="radio" name={`ethereal-discount-${index}`} value={discountType} checked={item.discount_type === discountType} onChange={() => {
-                                setEtherealItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, discount_type: discountType } : entry))
-                              }} className="mr-2" />
-                              {discountType}
+                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Discount type</p>
+                        <div className="flex flex-wrap gap-2">
+                          {(['family/friends/church-mem', 'promo', 'new-customer'] as const).map((dt) => (
+                            <label key={`${dt}-${index}`} className={optionPillClass}>
+                              <input type="radio" name={`ethereal-discount-${index}`} value={dt} checked={item.discount_type === dt} onChange={() => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_type: dt } : en))} className="sr-only" />
+                              {dt}
                             </label>
                           ))}
                         </div>
                       </div>
-                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Service date
-                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.service_date} onChange={(event) => {
-                          setEtherealItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, service_date: event.target.value } : entry))
-                        }} className="dashboard-input" />
+                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.service_date} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_date: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      {etherealItems.length > 1 ? (
-                        <button type="button" onClick={() => setEtherealItems((previous) => previous.filter((_, entryIndex) => entryIndex !== index))} className="dashboard-button-secondary">
-                          Remove service
-                        </button>
-                      ) : null}
                     </div>
                   ))}
-                  <button type="button" onClick={() => setEtherealItems((previous) => [...previous, createEtherealDraftItem()])} className="dashboard-button-secondary">
-                    Add another service
+                  <button type="button" onClick={() => setEtherealItems((prev) => [...prev, createEtherealDraftItem()])} className="dashboard-button-secondary">
+                    + Add another service
                   </button>
                 </div>
-                <button
-                  type="submit"
-                  disabled={!selectedBusinessId || createEtherealMutation.isPending}
-                  className="dashboard-button-primary"
-                >
-                  Add ethereal sale
+                <button type="submit" disabled={!selectedBusinessId || createEtherealMutation.isPending} className="dashboard-button-primary">
+                  {createEtherealMutation.isPending ? 'Submitting…' : 'Add ethereal sale'}
                 </button>
               </form>
-              <p className="mt-2 text-xs text-[var(--neutral-rosewood)]">
-                Live preview — cash discount: {formatCurrency(etherealCashDiscountPreview)} | net: {formatCurrency(etherealNetPreview)}
-              </p>
-              <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
-                Service references: {serviceReferenceItems.slice(0, 3).map((item) => item.name).join(', ') || 'none'}
-              </p>
-              {etherealQuery.isLoading ? <p className="mt-4 text-sm text-[var(--neutral-rosewood)]">Loading ethereal sales...</p> : null}
-              <ul className="mt-5 grid gap-2 text-sm">
-                {etherealEntries.map((sale) => (
-                  <li key={sale.id} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2">
-                    {formatDateTimeDisplay(sale.service_date)} ({formatRelative(sale.service_date)}): net{' '}
-                    <span className="text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.net_amount))}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+              <LivePreview>
+                Cash discount: <strong className="font-semibold">{formatCurrency(etherealCashDiscountPreview)}</strong> · Net amount: <strong className="font-semibold">{formatCurrency(etherealNetPreview)}</strong>
+                {serviceReferenceItems.length > 0 && <span className="ml-2 opacity-70">· Services: {serviceReferenceItems.slice(0, 3).map((i) => i.name).join(', ')}</span>}
+              </LivePreview>
 
-          {tab === 'portfolioCapital' ? (
+              <SectionDivider label={`${etherealEntries.length} service${etherealEntries.length === 1 ? '' : 's'}`} />
+              {etherealQuery.isLoading ? <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p> : etherealEntries.length === 0 ? (
+                <EmptyState label="No ethereal sales yet." />
+              ) : (
+                <ul className="grid gap-2">
+                  {etherealEntries.map((sale) => (
+                    <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                      <div>
+                        <p className="font-medium">Service · net amount</p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.service_date)} · {formatRelative(sale.service_date)}</p>
+                      </div>
+                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.net_amount))}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {/* PORTFOLIO CAPITAL */}
+          {tab === 'portfolioCapital' && (
             <section className={cardClass}>
-              <h3 className="text-lg font-semibold">Portfolio Money</h3>
+              <SectionHeading icon={BanknoteArrowUp} title="Portfolio Money" description="Re-authentication required. Movements are permanently recorded." />
+
+              {/* Balance callout */}
+              <div className="mt-5 rounded-xl border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-5 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-info-text)]">Current portfolio balance</p>
+                <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--status-info-text)]">
+                  {formatCurrency(capitalBalances.portfolioBalance)}
+                </p>
+              </div>
+
               <form onSubmit={submitPortfolioCapital} className={formGridClass}>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" step="0.01" required value={portfolioAmountPreview} onChange={(event) => setPortfolioAmountPreview(event.target.value)} className="dashboard-input" />
+                  <input name="amount" type="number" step="1000" required value={portfolioAmountPreview} onChange={(e) => setPortfolioAmountPreview(e.target.value)} className="dashboard-input" />
                 </label>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-                  <span>Direction</span>
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="direction" value="add" checked={portfolioDirectionPreview === 'add'} onChange={() => setPortfolioDirectionPreview('add')} className="mr-2" />add</label>
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="direction" value="deduct" checked={portfolioDirectionPreview === 'deduct'} onChange={() => setPortfolioDirectionPreview('deduct')} className="mr-2" />deduct</label>
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="direction" value="transfer" checked={portfolioDirectionPreview === 'transfer'} onChange={() => setPortfolioDirectionPreview('transfer')} className="mr-2" />transfer to business</label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(['add', 'deduct', 'transfer'] as const).map((d) => (
+                      <label key={d} className={optionPillClass}>
+                        <input type="radio" name="direction" value={d} checked={portfolioDirectionPreview === d} onChange={() => setPortfolioDirectionPreview(d)} className="sr-only" />
+                        {d === 'transfer' ? 'Transfer to business' : d.charAt(0).toUpperCase() + d.slice(1)}
+                      </label>
+                    ))}
                   </div>
                 </div>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transfer target
                   <select name="target_business_id" defaultValue="" className="dashboard-input">
-                    <option value="">Transfer target (required for transfer)</option>
-                    {businesses.map((business) => (
-                      <option key={business.id} value={business.id}>
-                        {business.name}
-                      </option>
-                    ))}
+                    <option value="">Select business (required for transfer)</option>
+                    {businesses.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Date<input name="occurred_on" type="date" required className="dashboard-input" /></label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Notes<input name="notes" className="dashboard-input" /></label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Re-auth username<input name="reauth_username" required className="dashboard-input" /></label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Re-auth password<input name="reauth_password" type="password" required className="dashboard-input" /></label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Date
+                  <input name="occurred_on" type="date" required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Notes
+                  <input name="notes" className="dashboard-input" />
+                </label>
+                <div className="md:col-span-2 lg:col-span-3 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4 grid gap-3 md:grid-cols-2">
+                  <p className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-[var(--status-warning-text)]">
+                    Re-authentication required
+                  </p>
+                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--status-warning-text)]">
+                    Username
+                    <input name="reauth_username" required className="dashboard-input" />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--status-warning-text)]">
+                    Password
+                    <input name="reauth_password" type="password" required className="dashboard-input" />
+                  </label>
+                </div>
                 <button type="submit" disabled={createPortfolioCapitalMutation.isPending} className="dashboard-button-primary">
-                  Save portfolio movement
+                  {createPortfolioCapitalMutation.isPending ? 'Processing…' : 'Save portfolio movement'}
                 </button>
               </form>
-              <p className="mt-2 text-xs text-[var(--neutral-rosewood)]">
-                Live preview — current: {formatCurrency(capitalBalances.portfolioBalance)} | after action: {formatCurrency(portfolioAfterPreview)}
-              </p>
-              <ul className="mt-5 grid gap-2 text-sm">
-                {portfolioMovements.map((movement) => (
-                  <li key={movement.id} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2">
-                    {movement.occurred_on}: {movement.direction} — {formatCurrency(parseAmount(movement.amount))}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+              <LivePreview>
+                After action: <strong className="font-semibold">{formatCurrency(portfolioAfterPreview)}</strong>
+                {' '}(current {formatCurrency(capitalBalances.portfolioBalance)} {portfolioDirectionPreview === 'add' ? '+' : '−'} {formatCurrency(parseAmount(portfolioAmountPreview))})
+              </LivePreview>
 
-          {tab === 'businessCapital' ? (
+              <SectionDivider label={`${portfolioMovements.length} movement${portfolioMovements.length === 1 ? '' : 's'}`} />
+              {portfolioMovements.length === 0 ? (
+                <EmptyState label="No portfolio movements yet." />
+              ) : (
+                <ul className="grid gap-2">
+                  {portfolioMovements.map((movement) => (
+                    <li key={movement.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                      <div>
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          movement.direction === 'add'
+                            ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                            : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
+                        }`}>
+                          {movement.direction}
+                        </span>
+                        <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">{movement.occurred_on}</p>
+                      </div>
+                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {/* BUSINESS CAPITAL */}
+          {tab === 'businessCapital' && (
             <section className={cardClass}>
-              <h3 className="text-lg font-semibold">Business Money {selectedBusinessName ? `(${selectedBusinessName})` : ''}</h3>
+              <SectionHeading
+                icon={BanknoteArrowDown}
+                title={`Business Money${selectedBusinessName ? ` · ${selectedBusinessName}` : ''}`}
+                description="Record capital allocations and returns for this business."
+              />
+
+              {/* Balance callout */}
+              <div className="mt-5 rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-5 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">Current business balance</p>
+                <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--status-success-text)]">
+                  {formatCurrency(capitalBalances.businessBalance)}
+                </p>
+              </div>
+
               <form onSubmit={submitBusinessCapital} className={formGridClass}>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" step="0.01" required value={businessAmountPreview} onChange={(event) => setBusinessAmountPreview(event.target.value)} className="dashboard-input" />
+                  <input name="amount" type="number" step="500" required value={businessAmountPreview} onChange={(e) => setBusinessAmountPreview(e.target.value)} className="dashboard-input" />
                 </label>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
-                  <span>Direction</span>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="direction" value="add" checked={businessDirectionPreview === 'add'} onChange={() => setBusinessDirectionPreview('add')} className="mr-2" />add from portfolio</label>
-                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="direction" value="deduct" checked={businessDirectionPreview === 'deduct'} onChange={() => setBusinessDirectionPreview('deduct')} className="mr-2" />deduct to return portfolio</label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>
+                  <div className="flex flex-wrap gap-2">
+                    {([['add', 'Add from portfolio'], ['deduct', 'Deduct to portfolio']] as const).map(([val, label]) => (
+                      <label key={val} className={optionPillClass}>
+                        <input type="radio" name="direction" value={val} checked={businessDirectionPreview === val} onChange={() => setBusinessDirectionPreview(val)} className="sr-only" />
+                        {label}
+                      </label>
+                    ))}
                   </div>
                 </div>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Date<input name="occurred_on" type="date" required className="dashboard-input" /></label>
-                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Notes<input name="notes" className="dashboard-input" /></label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Date
+                  <input name="occurred_on" type="date" required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Notes
+                  <input name="notes" className="dashboard-input" />
+                </label>
                 <button type="submit" disabled={!selectedBusinessId || createBusinessCapitalMutation.isPending} className="dashboard-button-primary">
-                  Save business movement
+                  {createBusinessCapitalMutation.isPending ? 'Processing…' : 'Save business movement'}
                 </button>
               </form>
-              <p className="mt-2 text-xs text-[var(--neutral-rosewood)]">
-                Live preview — current: {formatCurrency(capitalBalances.businessBalance)} | after action: {formatCurrency(businessAfterPreview)}
-              </p>
-              <ul className="mt-5 grid gap-2 text-sm">
-                {businessMovements.map((movement) => (
-                  <li key={movement.id} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2">
-                    {movement.occurred_on}: {movement.direction} — {formatCurrency(parseAmount(movement.amount))}
-                  </li>
-                ))}
-              </ul>
+              <LivePreview>
+                After action: <strong className="font-semibold">{formatCurrency(businessAfterPreview)}</strong>
+                {' '}(current {formatCurrency(capitalBalances.businessBalance)} {businessDirectionPreview === 'add' ? '+' : '−'} {formatCurrency(parseAmount(businessAmountPreview))})
+              </LivePreview>
+
+              <SectionDivider label={`${businessMovements.length} movement${businessMovements.length === 1 ? '' : 's'}`} />
+              {businessMovements.length === 0 ? (
+                <EmptyState label="No business movements yet." />
+              ) : (
+                <ul className="grid gap-2">
+                  {businessMovements.map((movement) => (
+                    <li key={movement.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                      <div>
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          movement.direction === 'add'
+                            ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                            : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
+                        }`}>
+                          {movement.direction}
+                        </span>
+                        <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">{movement.occurred_on}</p>
+                      </div>
+                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
-          ) : null}
+          )}
+
         </section>
       </div>
     </main>
