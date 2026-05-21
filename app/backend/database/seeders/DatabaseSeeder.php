@@ -35,6 +35,11 @@ class DatabaseSeeder extends Seeder
                 'slug' => 'ethereal',
                 'description' => 'Beauty salon business',
             ],
+            [
+                'name' => 'GCash',
+                'slug' => 'gcash',
+                'description' => 'GCash transaction business',
+            ],
         ] as $business) {
             Business::query()->updateOrCreate(
                 ['slug' => $business['slug']],

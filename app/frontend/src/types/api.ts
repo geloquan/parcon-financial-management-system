@@ -75,6 +75,7 @@ export type CoffeeSale = {
   coffee_type: string
   size: string
   add_on_price: string
+  total_amount: string
   add_on_description: string | null
   sale_date: string
 }
@@ -127,4 +128,24 @@ export type CapitalMovement = {
   target_business_id: number | null
   occurred_on: string
   notes: string | null
+}
+
+export type SalesReportTotals = {
+  gcash_sales_total: string
+  coffee_sales_total: string
+  print_sales_total: string
+  ethereal_sales_total: string
+  sales_total: string
+  total_transactions: number
+}
+
+export type SalesReport = {
+  scope: 'portfolio' | 'business'
+  period: 'today' | 'date_range'
+  business_id: number | null
+  business_name: string | null
+  start_date: string
+  end_date: string
+  generated_at: string
+  totals: SalesReportTotals
 }

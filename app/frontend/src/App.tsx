@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLogin, useLogout, useMe } from './hooks/use-auth'
 import { useBusinesses } from './hooks/use-businesses'
 import { useCreateExpense, useExpenses } from './hooks/use-expenses'
@@ -6,6 +6,7 @@ import { useCreateGcashSale, useGcashSales } from './hooks/use-gcash-sales'
 import { useCreateCoffeeSale, useCoffeeSales } from './hooks/use-coffee-sales'
 import { useCreatePrintSale, usePrintSales } from './hooks/use-print-sales'
 import { useCreateEtherealSale, useEtherealSales } from './hooks/use-ethereal-sales'
+import { useGenerateSalesReport } from './hooks/use-sales-reports'
 import { useCreateStaff, useStaff } from './hooks/use-staff'
 import { useBusinessReferenceItems, useCreateBusinessReferenceItem } from './hooks/use-business-reference-items'
 import {
@@ -25,8 +26,10 @@ import {
   TrendingDown,
   ArrowRightLeft,
   ChevronRight,
+  FileText,
   type LucideIcon,
 } from 'lucide-react'
+import type { SalesReport } from './types/api'
 import {
   useCapitalMovements,
   useCreateBusinessCapitalMovement,
@@ -43,8 +46,14 @@ type Tab =
   | 'coffee'
   | 'print'
   | 'ethereal'
+  | 'salesReports'
   | 'portfolioCapital'
   | 'businessCapital'
+
+type MoneyReauthCredentials = {
+  reauth_username: string
+  reauth_password: string
+}
 
 type CoffeeDraftItem = {
   price: string
@@ -178,6 +187,7 @@ const navGroups: Array<{
       { value: 'coffee', label: 'Coffee', icon: Coffee },
       { value: 'print', label: 'Print', icon: Printer },
       { value: 'ethereal', label: 'Ethereal', icon: Sparkles },
+      { value: 'salesReports', label: 'Sales Reports', icon: FileText },
     ],
   },
   {
@@ -268,8 +278,6 @@ function App() {
   const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null)
   const [gcashAmountMoved, setGcashAmountMoved] = useState('0')
   const [gcashSalesAmount, setGcashSalesAmount] = useState('0')
-  const [etherealServiceCost, setEtherealServiceCost] = useState('0')
-  const [etherealDiscountPercentage, setEtherealDiscountPercentage] = useState('0')
   const [coffeeItems, setCoffeeItems] = useState<CoffeeDraftItem[]>([createCoffeeDraftItem()])
   const [printItems, setPrintItems] = useState<PrintDraftItem[]>([createPrintDraftItem()])
   const [etherealItems, setEtherealItems] = useState<EtherealDraftItem[]>([createEtherealDraftItem()])
@@ -277,6 +285,14 @@ function App() {
   const [portfolioDirectionPreview, setPortfolioDirectionPreview] = useState<'add' | 'deduct' | 'transfer'>('add')
   const [businessAmountPreview, setBusinessAmountPreview] = useState('0')
   const [businessDirectionPreview, setBusinessDirectionPreview] = useState<'add' | 'deduct'>('add')
+  const [reportScope, setReportScope] = useState<'portfolio' | 'business'>('portfolio')
+  const [reportPeriod, setReportPeriod] = useState<'today' | 'date_range'>('today')
+  const [latestSalesReport, setLatestSalesReport] = useState<SalesReport | null>(null)
+  const [moneyReauthModalOpen, setMoneyReauthModalOpen] = useState(false)
+  const [moneyReauthUsername, setMoneyReauthUsername] = useState('')
+  const [moneyReauthPassword, setMoneyReauthPassword] = useState('')
+
+  const moneyReauthResolverRef = useRef<((credentials: MoneyReauthCredentials | null) => void) | null>(null)
 
   const meQuery = useMe()
   const loginMutation = useLogin()
@@ -308,6 +324,7 @@ function App() {
   const capitalMovementsQuery = useCapitalMovements()
   const createPortfolioCapitalMutation = useCreatePortfolioCapitalMovement()
   const createBusinessCapitalMutation = useCreateBusinessCapitalMovement(selectedBusinessId)
+  const generateSalesReportMutation = useGenerateSalesReport()
 
   const selectedBusinessName = useMemo(
     () => businesses.find((b) => b.id === selectedBusinessId)?.name ?? null,
@@ -344,7 +361,7 @@ function App() {
   const salesTotal = useMemo(
     () =>
       gcashEntries.reduce((t, i) => t + parseAmount(i.sales_amount), 0) +
-      coffeeEntries.reduce((t, i) => t + parseAmount(i.price), 0) +
+      coffeeEntries.reduce((t, i) => t + parseAmount(i.total_amount), 0) +
       printEntries.reduce((t, i) => t + parseAmount(i.sales_amount), 0) +
       etherealEntries.reduce((t, i) => t + parseAmount(i.net_amount), 0),
     [coffeeEntries, etherealEntries, gcashEntries, printEntries],
@@ -357,14 +374,19 @@ function App() {
     () => parseAmount(gcashSalesAmount) - parseAmount(gcashAmountMoved),
     [gcashAmountMoved, gcashSalesAmount],
   )
-  const etherealCashDiscountPreview = useMemo(
-    () => (parseAmount(etherealServiceCost) * parseAmount(etherealDiscountPercentage)) / 100,
-    [etherealDiscountPercentage, etherealServiceCost],
-  )
-  const etherealNetPreview = useMemo(
-    () => parseAmount(etherealServiceCost) - etherealCashDiscountPreview,
-    [etherealCashDiscountPreview, etherealServiceCost],
-  )
+  const etherealCashDiscountPreview = useMemo(() => {
+    return etherealItems.reduce(
+      (total, item) => total + (parseAmount(item.service_cost) * parseAmount(item.discount_percentage)) / 100,
+      0,
+    )
+  }, [etherealItems])
+  const etherealNetPreview = useMemo(() => {
+    return etherealItems.reduce((total, item) => {
+      const serviceCost = parseAmount(item.service_cost)
+      const discount = (serviceCost * parseAmount(item.discount_percentage)) / 100
+      return total + (serviceCost - discount)
+    }, 0)
+  }, [etherealItems])
   const coffeeBatchPreview = useMemo(
     () => coffeeItems.reduce((t, i) => t + parseAmount(i.price) + parseAmount(i.add_on_price), 0),
     [coffeeItems],
@@ -411,6 +433,30 @@ function App() {
     return formatDateTimeLocal(start)
   }, [meQuery.data?.role])
 
+  useEffect(() => {
+    if (!moneyReauthModalOpen) {
+      setMoneyReauthUsername(meQuery.data?.username ?? '')
+    }
+  }, [meQuery.data?.username, moneyReauthModalOpen])
+
+  const requestMoneyReauth = async (): Promise<MoneyReauthCredentials | null> => {
+    setMoneyReauthUsername(meQuery.data?.username ?? '')
+    setMoneyReauthPassword('')
+    setMoneyReauthModalOpen(true)
+
+    return new Promise((resolve) => {
+      moneyReauthResolverRef.current = resolve
+    })
+  }
+
+  const resolveMoneyReauth = (credentials: MoneyReauthCredentials | null) => {
+    setMoneyReauthModalOpen(false)
+    setMoneyReauthPassword('')
+    const resolver = moneyReauthResolverRef.current
+    moneyReauthResolverRef.current = null
+    resolver?.(credentials)
+  }
+
   // ─── Submit handlers (unchanged) ──────────────────────────────────────────
   const submitLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -440,6 +486,8 @@ function App() {
   const submitExpense = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
     const f = new FormData(e.currentTarget)
     await createExpenseMutation.mutateAsync({
       date_issued: String(f.get('date_issued') ?? ''),
@@ -448,6 +496,7 @@ function App() {
       purpose: String(f.get('purpose') ?? 'business') as 'business' | 'business_portfolio' | 'service',
       payment_type: String(f.get('payment_type') ?? 'one_time') as 'one_time' | 'repeat',
       recurrence_reference: String(f.get('recurrence_reference') ?? ''),
+      ...reauth,
     })
     e.currentTarget.reset()
   }
@@ -468,6 +517,8 @@ function App() {
   const submitGcash = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
     const f = new FormData(e.currentTarget)
     await createGcashMutation.mutateAsync({
       transaction_recipient: String(f.get('transaction_recipient') ?? '') || undefined,
@@ -475,6 +526,7 @@ function App() {
       sales_amount: Number(f.get('sales_amount') ?? 0),
       transaction_type: String(f.get('transaction_type') ?? 'cash_in') as 'cash_in' | 'cash_out',
       transaction_date: String(f.get('transaction_date') ?? ''),
+      ...reauth,
     })
     e.currentTarget.reset()
     setGcashAmountMoved('0')
@@ -484,6 +536,8 @@ function App() {
   const submitCoffee = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
     const entries = coffeeItems.map((item) => ({
       price: Number(item.price || 0),
       coffee_type: item.coffee_type,
@@ -492,13 +546,15 @@ function App() {
       add_on_description: item.add_on_description,
       sale_date: item.sale_date,
     }))
-    await createCoffeeMutation.mutateAsync({ ...entries[0], entries })
+    await createCoffeeMutation.mutateAsync({ ...entries[0], entries, ...reauth })
     setCoffeeItems([createCoffeeDraftItem()])
   }
 
   const submitPrint = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
     const entries = printItems.map((item) => ({
       job_type: item.job_type,
       description: item.description,
@@ -508,13 +564,15 @@ function App() {
       sales_amount: Number(item.sales_amount || 0),
       sale_date: item.sale_date,
     }))
-    await createPrintMutation.mutateAsync({ ...entries[0], entries })
+    await createPrintMutation.mutateAsync({ ...entries[0], entries, ...reauth })
     setPrintItems([createPrintDraftItem()])
   }
 
   const submitEthereal = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
     const entries = etherealItems.map((item) => ({
       staff_ids: item.staff_ids,
       service_cost: Number(item.service_cost || 0),
@@ -528,14 +586,15 @@ function App() {
       staff_id: entries[0].staff_ids[0],
       staff_ids: entries[0].staff_ids,
       entries,
+      ...reauth,
     })
     setEtherealItems([createEtherealDraftItem()])
-    setEtherealServiceCost('0')
-    setEtherealDiscountPercentage('0')
   }
 
   const submitPortfolioCapital = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
     const f = new FormData(e.currentTarget)
     const direction = String(f.get('direction') ?? 'add') as 'add' | 'deduct' | 'transfer'
     const targetBusinessId = Number(f.get('target_business_id') ?? 0)
@@ -545,8 +604,7 @@ function App() {
       target_business_id: direction === 'transfer' && targetBusinessId ? targetBusinessId : undefined,
       occurred_on: String(f.get('occurred_on') ?? ''),
       notes: String(f.get('notes') ?? ''),
-      reauth_username: String(f.get('reauth_username') ?? ''),
-      reauth_password: String(f.get('reauth_password') ?? ''),
+      ...reauth,
     })
     e.currentTarget.reset()
     setPortfolioAmountPreview('0')
@@ -556,16 +614,46 @@ function App() {
   const submitBusinessCapital = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
     const f = new FormData(e.currentTarget)
     await createBusinessCapitalMutation.mutateAsync({
       amount: Number(f.get('amount') ?? 0),
       direction: String(f.get('direction') ?? 'add') as 'add' | 'deduct',
       occurred_on: String(f.get('occurred_on') ?? ''),
       notes: String(f.get('notes') ?? ''),
+      ...reauth,
     })
     e.currentTarget.reset()
     setBusinessAmountPreview('0')
     setBusinessDirectionPreview('add')
+  }
+
+  const submitSalesReport = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const f = new FormData(e.currentTarget)
+    const scope = String(f.get('scope') ?? 'portfolio') as 'portfolio' | 'business'
+    const period = String(f.get('period') ?? 'today') as 'today' | 'date_range'
+    const businessId = Number(f.get('business_id') ?? 0)
+
+    const report = await generateSalesReportMutation.mutateAsync({
+      scope,
+      period,
+      business_id: scope === 'business' && businessId > 0 ? businessId : undefined,
+      start_date: period === 'date_range' ? String(f.get('start_date') ?? '') : undefined,
+      end_date: period === 'date_range' ? String(f.get('end_date') ?? '') : undefined,
+    })
+
+    setLatestSalesReport(report)
+  }
+
+  const submitMoneyReauthModal = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    resolveMoneyReauth({
+      reauth_username: moneyReauthUsername,
+      reauth_password: moneyReauthPassword,
+    })
   }
 
   // ─── Login screen ─────────────────────────────────────────────────────────
@@ -1150,8 +1238,8 @@ function App() {
                 </button>
               </form>
               <LivePreview>
-                Profit from this transaction:{' '}
-                <strong className="font-semibold">{formatCurrency(gcashProfitPreview)}</strong>{' '}
+                Total to be paid: <strong className="font-semibold">{formatCurrency(parseAmount(gcashSalesAmount))}</strong> ·
+                {' '}Profit from this transaction: <strong className="font-semibold">{formatCurrency(gcashProfitPreview)}</strong>{' '}
                 (sales {formatCurrency(parseAmount(gcashSalesAmount))} − moved {formatCurrency(parseAmount(gcashAmountMoved))})
               </LivePreview>
 
@@ -1252,7 +1340,7 @@ function App() {
                 </button>
               </form>
               <LivePreview>
-                Batch total: <strong className="font-semibold">{formatCurrency(coffeeBatchPreview)}</strong> across {coffeeItems.length} order{coffeeItems.length === 1 ? '' : 's'}
+                Total to be paid: <strong className="font-semibold">{formatCurrency(coffeeBatchPreview)}</strong> across {coffeeItems.length} order{coffeeItems.length === 1 ? '' : 's'}
               </LivePreview>
 
               <SectionDivider label={`${coffeeEntries.length} sale${coffeeEntries.length === 1 ? '' : 's'}`} />
@@ -1266,7 +1354,7 @@ function App() {
                         <p className="font-medium">{sale.coffee_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.size}</span></p>
                         <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
                       </div>
-                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.price))}</span>
+                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.total_amount))}</span>
                     </li>
                   ))}
                 </ul>
@@ -1353,7 +1441,7 @@ function App() {
                 </button>
               </form>
               <LivePreview>
-                Batch total: <strong className="font-semibold">{formatCurrency(printBatchPreview)}</strong> across {printItems.length} job{printItems.length === 1 ? '' : 's'}
+                Total to be paid: <strong className="font-semibold">{formatCurrency(printBatchPreview)}</strong> across {printItems.length} job{printItems.length === 1 ? '' : 's'}
               </LivePreview>
 
               <SectionDivider label={`${printEntries.length} sale${printEntries.length === 1 ? '' : 's'}`} />
@@ -1424,11 +1512,11 @@ function App() {
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Service cost
-                        <input type="number" step="200" required value={item.service_cost} onChange={(e) => { setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_cost: e.target.value } : en)); if (index === 0) setEtherealServiceCost(e.target.value) }} className="dashboard-input" />
+                        <input type="number" step="200" required value={item.service_cost} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_cost: e.target.value } : en))} className="dashboard-input" />
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Discount %
-                        <input type="number" step="10" min="0" max="100" required value={item.discount_percentage} onChange={(e) => { setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_percentage: e.target.value } : en)); if (index === 0) setEtherealDiscountPercentage(e.target.value) }} className="dashboard-input" />
+                        <input type="number" step="10" min="0" max="100" required value={item.discount_percentage} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_percentage: e.target.value } : en))} className="dashboard-input" />
                       </label>
                       <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
                         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Discount type</p>
@@ -1456,7 +1544,7 @@ function App() {
                 </button>
               </form>
               <LivePreview>
-                Cash discount: <strong className="font-semibold">{formatCurrency(etherealCashDiscountPreview)}</strong> · Net amount: <strong className="font-semibold">{formatCurrency(etherealNetPreview)}</strong>
+                Cash discount: <strong className="font-semibold">{formatCurrency(etherealCashDiscountPreview)}</strong> · Total to be paid: <strong className="font-semibold">{formatCurrency(etherealNetPreview)}</strong>
                 {serviceReferenceItems.length > 0 && <span className="ml-2 opacity-70">· Services: {serviceReferenceItems.slice(0, 3).map((i) => i.name).join(', ')}</span>}
               </LivePreview>
 
@@ -1475,6 +1563,123 @@ function App() {
                     </li>
                   ))}
                 </ul>
+              )}
+            </section>
+          )}
+
+          {/* SALES REPORTS */}
+          {tab === 'salesReports' && (
+            <section className={cardClass}>
+              <SectionHeading icon={FileText} title="Sales Reports" description="Generate on-demand reports by scope and period." />
+              <form onSubmit={submitSalesReport} className={formGridClass}>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Scope</p>
+                  <div className="flex gap-2">
+                    {(['portfolio', 'business'] as const).map((scope) => (
+                      <label key={scope} className={optionPillClass}>
+                        <input
+                          type="radio"
+                          name="scope"
+                          value={scope}
+                          checked={reportScope === scope}
+                          onChange={() => setReportScope(scope)}
+                          className="sr-only"
+                        />
+                        {scope === 'portfolio' ? 'Portfolio' : 'Specific business'}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {reportScope === 'business' && (
+                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                    Business
+                    <select name="business_id" defaultValue={selectedBusinessId ?? ''} className="dashboard-input">
+                      <option value="">Select business</option>
+                      {businesses.map((business) => (
+                        <option key={business.id} value={business.id}>
+                          {business.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Period</p>
+                  <div className="flex gap-2">
+                    {(['today', 'date_range'] as const).map((period) => (
+                      <label key={period} className={optionPillClass}>
+                        <input
+                          type="radio"
+                          name="period"
+                          value={period}
+                          checked={reportPeriod === period}
+                          onChange={() => setReportPeriod(period)}
+                          className="sr-only"
+                        />
+                        {period === 'today' ? 'Today' : 'Date range'}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {reportPeriod === 'date_range' && (
+                  <>
+                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      Start date
+                      <input name="start_date" type="date" required className="dashboard-input" />
+                    </label>
+                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      End date
+                      <input name="end_date" type="date" required className="dashboard-input" />
+                    </label>
+                  </>
+                )}
+                <button type="submit" disabled={generateSalesReportMutation.isPending} className="dashboard-button-primary">
+                  {generateSalesReportMutation.isPending ? 'Generating…' : 'Generate sales report'}
+                </button>
+              </form>
+
+              {latestSalesReport && (
+                <>
+                  <SectionDivider label={`Generated ${formatDateTimeDisplay(latestSalesReport.generated_at)}`} />
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="rounded-lg border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-info-text)]">Scope</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--status-info-text)]">
+                        {latestSalesReport.scope === 'portfolio' ? 'Portfolio' : latestSalesReport.business_name ?? 'Specific business'}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">Period</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--status-success-text)]">
+                        {latestSalesReport.start_date} to {latestSalesReport.end_date}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Transactions</p>
+                      <p className="mt-1 text-sm font-semibold">{latestSalesReport.totals.total_transactions}</p>
+                    </div>
+                    <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">GCash</p>
+                      <p className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.gcash_sales_total))}</p>
+                    </div>
+                    <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Coffee</p>
+                      <p className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.coffee_sales_total))}</p>
+                    </div>
+                    <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Print</p>
+                      <p className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.print_sales_total))}</p>
+                    </div>
+                    <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Ethereal</p>
+                      <p className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.ethereal_sales_total))}</p>
+                    </div>
+                    <div className="rounded-lg border border-[var(--burgundy-200)] bg-[var(--burgundy-50)] px-4 py-3 md:col-span-2 xl:col-span-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">Sales total</p>
+                      <p className="mt-1 tabular-nums text-lg font-semibold text-[var(--burgundy-800)]">{formatCurrency(parseAmount(latestSalesReport.totals.sales_total))}</p>
+                    </div>
+                  </div>
+                </>
               )}
             </section>
           )}
@@ -1523,19 +1728,6 @@ function App() {
                   Notes
                   <input name="notes" className="dashboard-input" />
                 </label>
-                <div className="md:col-span-2 lg:col-span-3 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4 grid gap-3 md:grid-cols-2">
-                  <p className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-[var(--status-warning-text)]">
-                    Re-authentication required
-                  </p>
-                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--status-warning-text)]">
-                    Username
-                    <input name="reauth_username" required className="dashboard-input" />
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--status-warning-text)]">
-                    Password
-                    <input name="reauth_password" type="password" required className="dashboard-input" />
-                  </label>
-                </div>
                 <button type="submit" disabled={createPortfolioCapitalMutation.isPending} className="dashboard-button-primary">
                   {createPortfolioCapitalMutation.isPending ? 'Processing…' : 'Save portfolio movement'}
                 </button>
@@ -1647,6 +1839,51 @@ function App() {
 
         </section>
       </div>
+
+      {moneyReauthModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--surface-overlay)] px-4">
+          <div className="w-full max-w-md rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-5 shadow-[0_16px_40px_rgba(58,9,18,0.25)]">
+            <h3 className="text-base font-semibold text-[var(--neutral-espresso)]">Confirm password to continue</h3>
+            <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">Money transactions require re-authentication.</p>
+            <form onSubmit={submitMoneyReauthModal} className="mt-4 grid gap-3">
+              <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                Username
+                <input
+                  name="reauth_username"
+                  required
+                  value={moneyReauthUsername}
+                  onChange={(e) => setMoneyReauthUsername(e.target.value)}
+                  className="dashboard-input"
+                />
+              </label>
+              <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                Password
+                <input
+                  name="reauth_password"
+                  type="password"
+                  required
+                  value={moneyReauthPassword}
+                  onChange={(e) => setMoneyReauthPassword(e.target.value)}
+                  className="dashboard-input"
+                  autoFocus
+                />
+              </label>
+              <div className="mt-1 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => resolveMoneyReauth(null)}
+                  className="dashboard-button-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="dashboard-button-primary">
+                  Continue
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

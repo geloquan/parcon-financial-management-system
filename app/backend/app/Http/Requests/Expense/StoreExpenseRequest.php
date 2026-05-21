@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Expense;
 
+use App\Http\Requests\Concerns\HasMoneyReauthRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreExpenseRequest extends FormRequest
 {
+    use HasMoneyReauthRules;
+
     public function authorize(): bool
     {
         return true;
@@ -26,6 +29,7 @@ class StoreExpenseRequest extends FormRequest
             'purpose' => ['required', 'in:business,business_portfolio,service'],
             'payment_type' => ['required', 'in:one_time,repeat'],
             'recurrence_reference' => ['nullable', 'string', 'max:255'],
+            ...$this->moneyReauthRules(),
         ];
     }
 }

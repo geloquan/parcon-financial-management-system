@@ -7,6 +7,8 @@ export type CreateGcashSalePayload = {
   sales_amount: number
   transaction_type: 'cash_in' | 'cash_out'
   transaction_date: string
+  reauth_username: string
+  reauth_password: string
 }
 
 export const fetchGcashSales = async (businessId: number): Promise<ApiCollectionResponse<GcashSale>> => {

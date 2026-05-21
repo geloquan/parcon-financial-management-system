@@ -17,6 +17,7 @@ class CoffeeSaleResource extends JsonResource
             'coffee_type' => $this->coffee_type,
             'size' => $this->size,
             'add_on_price' => $this->add_on_price,
+            'total_amount' => round(((float) $this->price) + ((float) $this->add_on_price), 2),
             'add_on_description' => $this->add_on_description,
             'sale_date' => $this->sale_date?->toIso8601String(),
             'created_at' => $this->created_at,

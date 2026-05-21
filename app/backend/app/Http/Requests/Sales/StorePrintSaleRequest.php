@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Sales;
 
+use App\Http\Requests\Concerns\HasMoneyReauthRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePrintSaleRequest extends FormRequest
 {
+    use HasMoneyReauthRules;
+
     public function authorize(): bool
     {
         return true;
@@ -35,6 +38,7 @@ class StorePrintSaleRequest extends FormRequest
             'paper_count' => ['required_without:entries', 'integer', 'min:1'],
             'sales_amount' => ['required_without:entries', 'numeric', 'min:0'],
             'sale_date' => ['required_without:entries', ...$saleDateRules],
+            ...$this->moneyReauthRules(),
         ];
     }
 }

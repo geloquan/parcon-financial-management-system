@@ -8,6 +8,8 @@ export type CreateExpensePayload = {
   purpose: 'business' | 'business_portfolio' | 'service'
   payment_type: 'one_time' | 'repeat'
   recurrence_reference?: string
+  reauth_username: string
+  reauth_password: string
 }
 
 export const fetchExpenses = async (businessId: number): Promise<ApiCollectionResponse<Expense>> => {

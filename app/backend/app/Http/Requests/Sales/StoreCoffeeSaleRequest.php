@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Sales;
 
+use App\Http\Requests\Concerns\HasMoneyReauthRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCoffeeSaleRequest extends FormRequest
 {
+    use HasMoneyReauthRules;
+
     public function authorize(): bool
     {
         return true;
@@ -33,6 +36,7 @@ class StoreCoffeeSaleRequest extends FormRequest
             'add_on_price' => ['required_without:entries', 'numeric', 'min:0'],
             'add_on_description' => ['nullable', 'string', 'max:500'],
             'sale_date' => ['required_without:entries', ...$saleDateRules],
+            ...$this->moneyReauthRules(),
         ];
     }
 }

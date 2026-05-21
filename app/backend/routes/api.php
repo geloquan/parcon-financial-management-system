@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\EtherealSaleController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GcashSaleController;
 use App\Http\Controllers\Api\PrintSaleController;
+use App\Http\Controllers\Api\SalesReportController;
 use App\Http\Controllers\Api\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +51,8 @@ Route::middleware('auth.api')->group(function (): void {
 
   Route::post('portfolio_capital/movements', [CapitalMovementController::class, 'storePortfolio'])
     ->middleware(['role:admin,owner', 'portfolio.reauth']);
+
+  Route::post('sales_reports/generate', [SalesReportController::class, 'store']);
 
   Route::get('capital/movements', [CapitalMovementController::class, 'index']);
 });

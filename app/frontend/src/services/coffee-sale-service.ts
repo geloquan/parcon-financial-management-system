@@ -8,6 +8,8 @@ export type CreateCoffeeSalePayload = {
   add_on_price: number
   add_on_description?: string
   sale_date: string
+  reauth_username: string
+  reauth_password: string
   entries?: Array<{
     price: number
     coffee_type: string
@@ -15,6 +17,8 @@ export type CreateCoffeeSalePayload = {
     add_on_price: number
     add_on_description?: string
     sale_date: string
+    reauth_username?: string
+    reauth_password?: string
   }>
 }
 

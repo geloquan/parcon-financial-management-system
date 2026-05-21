@@ -16,6 +16,8 @@ export type CreateBusinessCapitalMovementPayload = {
   direction: 'add' | 'deduct'
   occurred_on: string
   notes?: string
+  reauth_username: string
+  reauth_password: string
 }
 
 export const fetchCapitalMovements = async (): Promise<ApiCollectionResponse<CapitalMovement>> => {

@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Sales;
 
+use App\Http\Requests\Concerns\HasMoneyReauthRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreGcashSaleRequest extends FormRequest
 {
+    use HasMoneyReauthRules;
+
     public function authorize(): bool
     {
         return true;
@@ -25,6 +28,7 @@ class StoreGcashSaleRequest extends FormRequest
             'sales_amount' => ['required', 'numeric', 'min:0.01'],
             'transaction_type' => ['required', 'in:cash_in,cash_out'],
             'transaction_date' => $transactionDateRules,
+            ...$this->moneyReauthRules(),
         ];
     }
 }

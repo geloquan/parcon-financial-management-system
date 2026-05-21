@@ -9,6 +9,8 @@ export type CreatePrintSalePayload = {
   paper_count: number
   sales_amount: number
   sale_date: string
+  reauth_username: string
+  reauth_password: string
   entries?: Array<{
     job_type: string
     description: string
@@ -17,6 +19,8 @@ export type CreatePrintSalePayload = {
     paper_count: number
     sales_amount: number
     sale_date: string
+    reauth_username?: string
+    reauth_password?: string
   }>
 }
 

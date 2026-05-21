@@ -9,6 +9,8 @@ export type CreateEtherealSalePayload = {
   customer_name?: string
   discount_type: string
   service_date: string
+  reauth_username: string
+  reauth_password: string
   entries?: Array<{
     staff_ids: number[]
     service_cost: number
@@ -16,6 +18,8 @@ export type CreateEtherealSalePayload = {
     customer_name?: string
     discount_type: string
     service_date: string
+    reauth_username?: string
+    reauth_password?: string
   }>
 }
 

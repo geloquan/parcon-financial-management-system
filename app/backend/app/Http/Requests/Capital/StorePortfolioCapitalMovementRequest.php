@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Capital;
 
+use App\Http\Requests\Concerns\HasMoneyReauthRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePortfolioCapitalMovementRequest extends FormRequest
 {
+    use HasMoneyReauthRules;
+
     public function authorize(): bool
     {
         return $this->user()?->hasAnyRole(['admin', 'owner']) ?? false;
@@ -19,8 +22,7 @@ class StorePortfolioCapitalMovementRequest extends FormRequest
             'target_business_id' => ['nullable', 'integer', 'exists:businesses,id'],
             'occurred_on' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
-            'reauth_username' => ['required', 'string'],
-            'reauth_password' => ['required', 'string'],
+            ...$this->moneyReauthRules(),
         ];
     }
 }

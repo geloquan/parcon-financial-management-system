@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Sales;
 
+use App\Http\Requests\Concerns\HasMoneyReauthRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreEtherealSaleRequest extends FormRequest
 {
+    use HasMoneyReauthRules;
+
     protected function prepareForValidation(): void
     {
         if ($this->has('staff_id') && ! $this->has('staff_ids')) {
@@ -54,6 +57,7 @@ class StoreEtherealSaleRequest extends FormRequest
             'customer_name' => ['nullable', 'string', 'max:255'],
             'discount_type' => ['required_without:entries', 'string', 'max:100'],
             'service_date' => ['required_without:entries', ...$serviceDateRules],
+            ...$this->moneyReauthRules(),
         ];
     }
 }
