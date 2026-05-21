@@ -705,7 +705,7 @@ function App() {
       size: item.size,
       add_on_price: Number(item.add_on_price || 0),
       add_on_description: item.add_on_description,
-      sale_date: item.sale_date,
+      sale_date: new Date(item.sale_date).toISOString(),
     }))
     await createCoffeeMutation.mutateAsync({ ...entries[0], entries, ...reauth })
     setCoffeeItems([createCoffeeDraftItem()])
@@ -723,7 +723,7 @@ function App() {
       print_size: item.print_size,
       paper_count: Number(item.paper_count || 1),
       sales_amount: Number(item.sales_amount || 0),
-      sale_date: item.sale_date,
+      sale_date: new Date(item.sale_date).toISOString(),
     }))
     await createPrintMutation.mutateAsync({ ...entries[0], entries, ...reauth })
     setPrintItems([createPrintDraftItem()])
