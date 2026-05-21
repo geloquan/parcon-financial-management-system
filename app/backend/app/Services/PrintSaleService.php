@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\PrintSale;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class PrintSaleService
@@ -16,6 +17,18 @@ class PrintSaleService
     public function store(Business $business, array $validated): PrintSale
     {
         return PrintSale::query()->create([...$validated, 'business_id' => $business->id]);
+    }
+
+    public function storeMany(Business $business, array $validated): Collection
+    {
+        $entries = $validated['entries'] ?? [];
+
+        return collect($entries)->map(
+            fn (array $entry): PrintSale => PrintSale::query()->create([
+                ...$entry,
+                'business_id' => $business->id,
+            ])
+        );
     }
 
     public function update(PrintSale $sale, array $validated): PrintSale

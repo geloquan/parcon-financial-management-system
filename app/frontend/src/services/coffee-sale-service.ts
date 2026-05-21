@@ -8,6 +8,14 @@ export type CreateCoffeeSalePayload = {
   add_on_price: number
   add_on_description?: string
   sale_date: string
+  entries?: Array<{
+    price: number
+    coffee_type: string
+    size: '8oz' | '9oz' | '12oz' | '16oz' | '18oz'
+    add_on_price: number
+    add_on_description?: string
+    sale_date: string
+  }>
 }
 
 export const fetchCoffeeSales = async (businessId: number): Promise<ApiCollectionResponse<CoffeeSale>> => {

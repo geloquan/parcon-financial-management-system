@@ -14,6 +14,7 @@ class EtherealSaleResource extends JsonResource
             'id' => $this->id,
             'business_id' => $this->business_id,
             'staff_id' => $this->staff_id,
+            'staff_ids' => $this->staff_ids ?? ($this->staff_id ? [$this->staff_id] : []),
             'service_cost' => $this->service_cost,
             'discount_percentage' => $this->discount_percentage,
             'customer_name' => $this->customer_name,

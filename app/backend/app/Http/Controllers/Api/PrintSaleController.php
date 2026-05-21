@@ -24,7 +24,15 @@ class PrintSaleController extends Controller
 
     public function store(StorePrintSaleRequest $request, Business $business): PrintSaleResource
     {
-        return new PrintSaleResource($this->printSaleService->store($business, $request->validated()));
+        $validated = $request->validated();
+
+        if (! empty($validated['entries'])) {
+            $created = $this->printSaleService->storeMany($business, $validated);
+
+            return new PrintSaleResource($created->last());
+        }
+
+        return new PrintSaleResource($this->printSaleService->store($business, $validated));
     }
 
     public function update(UpdatePrintSaleRequest $request, Business $business, PrintSale $printSale): PrintSaleResource

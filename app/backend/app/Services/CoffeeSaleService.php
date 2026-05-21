@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\CoffeeSale;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class CoffeeSaleService
@@ -16,6 +17,18 @@ class CoffeeSaleService
     public function store(Business $business, array $validated): CoffeeSale
     {
         return CoffeeSale::query()->create([...$validated, 'business_id' => $business->id]);
+    }
+
+    public function storeMany(Business $business, array $validated): Collection
+    {
+        $entries = $validated['entries'] ?? [];
+
+        return collect($entries)->map(
+            fn (array $entry): CoffeeSale => CoffeeSale::query()->create([
+                ...$entry,
+                'business_id' => $business->id,
+            ])
+        );
     }
 
     public function update(CoffeeSale $sale, array $validated): CoffeeSale

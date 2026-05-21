@@ -27,6 +27,64 @@ type Tab =
   | 'portfolioCapital'
   | 'businessCapital'
 
+type CoffeeDraftItem = {
+  price: string
+  coffee_type: string
+  size: '8oz' | '9oz' | '12oz' | '16oz' | '18oz'
+  add_on_price: string
+  add_on_description: string
+  sale_date: string
+}
+
+type PrintDraftItem = {
+  job_type: string
+  description: string
+  color_mode: 'black' | 'white'
+  print_size: string
+  paper_count: string
+  sales_amount: string
+  sale_date: string
+}
+
+type EtherealDraftItem = {
+  staff_ids: number[]
+  customer_name: string
+  service_cost: string
+  discount_percentage: string
+  discount_type: string
+  service_date: string
+}
+
+const makeDateTimeDefault = () => formatDateTimeLocal(new Date())
+
+const createCoffeeDraftItem = (): CoffeeDraftItem => ({
+  price: '',
+  coffee_type: '',
+  size: '8oz',
+  add_on_price: '0',
+  add_on_description: '',
+  sale_date: makeDateTimeDefault(),
+})
+
+const createPrintDraftItem = (): PrintDraftItem => ({
+  job_type: 'xerox',
+  description: '',
+  color_mode: 'black',
+  print_size: 'short',
+  paper_count: '1',
+  sales_amount: '',
+  sale_date: makeDateTimeDefault(),
+})
+
+const createEtherealDraftItem = (): EtherealDraftItem => ({
+  staff_ids: [],
+  customer_name: '',
+  service_cost: '0',
+  discount_percentage: '0',
+  discount_type: 'promo',
+  service_date: makeDateTimeDefault(),
+})
+
 const parseAmount = (value: string | number | null | undefined) => {
   const parsed = typeof value === 'number' ? value : Number(value ?? 0)
   return Number.isFinite(parsed) ? parsed : 0
@@ -115,6 +173,13 @@ function App() {
   const [gcashSalesAmount, setGcashSalesAmount] = useState('0')
   const [etherealServiceCost, setEtherealServiceCost] = useState('0')
   const [etherealDiscountPercentage, setEtherealDiscountPercentage] = useState('0')
+  const [coffeeItems, setCoffeeItems] = useState<CoffeeDraftItem[]>([createCoffeeDraftItem()])
+  const [printItems, setPrintItems] = useState<PrintDraftItem[]>([createPrintDraftItem()])
+  const [etherealItems, setEtherealItems] = useState<EtherealDraftItem[]>([createEtherealDraftItem()])
+  const [portfolioAmountPreview, setPortfolioAmountPreview] = useState('0')
+  const [portfolioDirectionPreview, setPortfolioDirectionPreview] = useState<'add' | 'deduct' | 'transfer'>('add')
+  const [businessAmountPreview, setBusinessAmountPreview] = useState('0')
+  const [businessDirectionPreview, setBusinessDirectionPreview] = useState<'add' | 'deduct'>('add')
 
   const meQuery = useMe()
   const loginMutation = useLogin()
@@ -221,6 +286,62 @@ function App() {
     () => parseAmount(etherealServiceCost) - etherealCashDiscountPreview,
     [etherealCashDiscountPreview, etherealServiceCost],
   )
+
+  const coffeeBatchPreview = useMemo(
+    () => coffeeItems.reduce((total, item) => total + parseAmount(item.price) + parseAmount(item.add_on_price), 0),
+    [coffeeItems],
+  )
+
+  const printBatchPreview = useMemo(
+    () => printItems.reduce((total, item) => total + parseAmount(item.sales_amount), 0),
+    [printItems],
+  )
+
+  const capitalBalances = useMemo(() => {
+    const allMovements = capitalMovementsQuery.data?.data ?? []
+
+    const portfolioBalance = allMovements.reduce((balance, movement) => {
+      const amount = parseAmount(movement.amount)
+      if (movement.source_type !== 'portfolio') {
+        return balance
+      }
+
+      if (movement.direction === 'add') {
+        return balance + amount
+      }
+
+      return balance - amount
+    }, 0)
+
+    const businessBalance = allMovements.reduce((balance, movement) => {
+      const amount = parseAmount(movement.amount)
+      if (movement.source_business_id !== selectedBusinessId) {
+        return balance
+      }
+
+      return movement.direction === 'add' ? balance + amount : balance - amount
+    }, 0)
+
+    return { portfolioBalance, businessBalance }
+  }, [capitalMovementsQuery.data, selectedBusinessId])
+
+  const portfolioAfterPreview = useMemo(() => {
+    const amount = parseAmount(portfolioAmountPreview)
+    if (portfolioDirectionPreview === 'add') {
+      return capitalBalances.portfolioBalance + amount
+    }
+
+    return capitalBalances.portfolioBalance - amount
+  }, [capitalBalances.portfolioBalance, portfolioAmountPreview, portfolioDirectionPreview])
+
+  const businessAfterPreview = useMemo(() => {
+    const amount = parseAmount(businessAmountPreview)
+    if (businessDirectionPreview === 'add') {
+      return capitalBalances.businessBalance + amount
+    }
+
+    return capitalBalances.businessBalance - amount
+  }, [businessAmountPreview, businessDirectionPreview, capitalBalances.businessBalance])
 
   const dateInputMax = useMemo(() => formatDateTimeLocal(new Date()), [])
   const dateInputMin = useMemo(() => {
@@ -329,18 +450,21 @@ function App() {
       return
     }
 
-    const form = new FormData(event.currentTarget)
+    const entries = coffeeItems.map((item) => ({
+      price: Number(item.price || 0),
+      coffee_type: item.coffee_type,
+      size: item.size,
+      add_on_price: Number(item.add_on_price || 0),
+      add_on_description: item.add_on_description,
+      sale_date: item.sale_date,
+    }))
 
     await createCoffeeMutation.mutateAsync({
-      price: Number(form.get('price') ?? 0),
-      coffee_type: String(form.get('coffee_type') ?? ''),
-      size: String(form.get('size') ?? '8oz') as '8oz' | '9oz' | '12oz' | '16oz' | '18oz',
-      add_on_price: Number(form.get('add_on_price') ?? 0),
-      add_on_description: String(form.get('add_on_description') ?? ''),
-      sale_date: String(form.get('sale_date') ?? ''),
+      ...entries[0],
+      entries,
     })
 
-    event.currentTarget.reset()
+    setCoffeeItems([createCoffeeDraftItem()])
   }
 
   const submitPrint = async (event: FormEvent<HTMLFormElement>) => {
@@ -349,19 +473,22 @@ function App() {
       return
     }
 
-    const form = new FormData(event.currentTarget)
+    const entries = printItems.map((item) => ({
+      job_type: item.job_type,
+      description: item.description,
+      color_mode: item.color_mode,
+      print_size: item.print_size,
+      paper_count: Number(item.paper_count || 1),
+      sales_amount: Number(item.sales_amount || 0),
+      sale_date: item.sale_date,
+    }))
 
     await createPrintMutation.mutateAsync({
-      job_type: String(form.get('job_type') ?? ''),
-      description: String(form.get('description') ?? ''),
-      color_mode: String(form.get('color_mode') ?? 'black') as 'black' | 'white',
-      print_size: String(form.get('print_size') ?? 'short'),
-      paper_count: Number(form.get('paper_count') ?? 1),
-      sales_amount: Number(form.get('sales_amount') ?? 0),
-      sale_date: String(form.get('sale_date') ?? ''),
+      ...entries[0],
+      entries,
     })
 
-    event.currentTarget.reset()
+    setPrintItems([createPrintDraftItem()])
   }
 
   const submitEthereal = async (event: FormEvent<HTMLFormElement>) => {
@@ -370,18 +497,23 @@ function App() {
       return
     }
 
-    const form = new FormData(event.currentTarget)
+    const entries = etherealItems.map((item) => ({
+      staff_ids: item.staff_ids,
+      service_cost: Number(item.service_cost || 0),
+      discount_percentage: Number(item.discount_percentage || 0),
+      customer_name: item.customer_name,
+      discount_type: item.discount_type,
+      service_date: item.service_date,
+    }))
 
     await createEtherealMutation.mutateAsync({
-      staff_id: Number(form.get('staff_id') ?? 0),
-      service_cost: Number(form.get('service_cost') ?? 0),
-      discount_percentage: Number(form.get('discount_percentage') ?? 0),
-      customer_name: String(form.get('customer_name') ?? ''),
-      discount_type: String(form.get('discount_type') ?? 'promo'),
-      service_date: String(form.get('service_date') ?? ''),
+      ...entries[0],
+      staff_id: entries[0].staff_ids[0],
+      staff_ids: entries[0].staff_ids,
+      entries,
     })
 
-    event.currentTarget.reset()
+    setEtherealItems([createEtherealDraftItem()])
     setEtherealServiceCost('0')
     setEtherealDiscountPercentage('0')
   }
@@ -404,6 +536,8 @@ function App() {
     })
 
     event.currentTarget.reset()
+    setPortfolioAmountPreview('0')
+    setPortfolioDirectionPreview('add')
   }
 
   const submitBusinessCapital = async (event: FormEvent<HTMLFormElement>) => {
@@ -422,6 +556,8 @@ function App() {
     })
 
     event.currentTarget.reset()
+    setBusinessAmountPreview('0')
+    setBusinessDirectionPreview('add')
   }
 
   if (!meQuery.data) {
@@ -592,16 +728,19 @@ function App() {
             <section className={cardClass}>
               <h3 className="text-lg font-semibold">Staff</h3>
               <form onSubmit={submitStaff} className={formGridClass}>
-                <input name="full_name" placeholder="Full name" required className="dashboard-input" />
-                <input name="age" type="number" min="16" placeholder="Age" required className="dashboard-input" />
-                <input name="employment_start_date" type="date" required className="dashboard-input" />
-                <input name="employment_end_date" type="date" className="dashboard-input" />
-                <input name="employment_type" placeholder="Employment type" required className="dashboard-input" />
-                <input name="salary" type="number" step="0.01" placeholder="Salary" required className="dashboard-input" />
-                <select name="is_active" defaultValue="1" className="dashboard-input">
-                  <option value="1">active</option>
-                  <option value="0">inactive</option>
-                </select>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Full name<input name="full_name" required className="dashboard-input" /></label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Age<input name="age" type="number" min="16" required className="dashboard-input" /></label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Start date<input name="employment_start_date" type="date" required className="dashboard-input" /></label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">End date<input name="employment_end_date" type="date" className="dashboard-input" /></label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Employment type<input name="employment_type" required className="dashboard-input" /></label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Salary<input name="salary" type="number" step="0.01" required className="dashboard-input" /></label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  <span>Status</span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="is_active" value="1" defaultChecked className="mr-2" />active</label>
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="is_active" value="0" className="mr-2" />inactive</label>
+                  </div>
+                </div>
                 <button type="submit" disabled={!selectedBusinessId || createStaffMutation.isPending} className="dashboard-button-primary">
                   Add staff
                 </button>
@@ -752,27 +891,73 @@ function App() {
             <section className={cardClass}>
               <h3 className="text-lg font-semibold">Coffee Sales</h3>
               <form onSubmit={submitCoffee} className={formGridClass}>
-                <input name="price" type="number" step="0.01" placeholder="Price" required className="dashboard-input" />
-                <input name="coffee_type" list="coffee-reference-items" placeholder="Coffee type" required className="dashboard-input" />
                 <datalist id="coffee-reference-items">
                   {productReferenceItems.map((item) => (
                     <option key={item.id} value={item.name} />
                   ))}
                 </datalist>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-2 sm:grid-cols-5">
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="size" value="8oz" defaultChecked className="mr-2" />8oz</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="size" value="9oz" className="mr-2" />9oz</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="size" value="12oz" className="mr-2" />12oz</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="size" value="16oz" className="mr-2" />16oz</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="size" value="18oz" className="mr-2" />18oz</label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-3">
+                  {coffeeItems.map((item, index) => (
+                    <div key={`coffee-item-${index}`} className="rounded-xl border border-[var(--neutral-linen)] p-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Price
+                        <input type="number" step="0.01" required value={item.price} onChange={(event) => {
+                          setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, price: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Coffee type
+                        <input list="coffee-reference-items" required value={item.coffee_type} onChange={(event) => {
+                          setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, coffee_type: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      <div className="grid gap-1 text-xs text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-3">
+                        <span>Size</span>
+                        <div className="grid gap-2 sm:grid-cols-5">
+                          {(['8oz', '9oz', '12oz', '16oz', '18oz'] as const).map((size) => (
+                            <label key={`${size}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
+                              <input type="radio" name={`coffee-size-${index}`} value={size} checked={item.size === size} onChange={() => {
+                                setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, size } : entry))
+                              }} className="mr-2" />
+                              {size}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Add-on price
+                        <input type="number" step="0.01" min="0" required value={item.add_on_price} onChange={(event) => {
+                          setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, add_on_price: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Add-on description
+                        <input value={item.add_on_description} onChange={(event) => {
+                          setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, add_on_description: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Sale date
+                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.sale_date} onChange={(event) => {
+                          setCoffeeItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, sale_date: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      {coffeeItems.length > 1 ? (
+                        <button type="button" onClick={() => setCoffeeItems((previous) => previous.filter((_, entryIndex) => entryIndex !== index))} className="dashboard-button-secondary">
+                          Remove item
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setCoffeeItems((previous) => [...previous, createCoffeeDraftItem()])} className="dashboard-button-secondary">
+                    Add another coffee item
+                  </button>
                 </div>
-                <input name="add_on_price" type="number" step="0.01" min="0" placeholder="Add-ons price" required className="dashboard-input" />
-                <input name="add_on_description" placeholder="Add-ons description (optional)" className="dashboard-input" />
-                <input name="sale_date" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
                 <button type="submit" disabled={!selectedBusinessId || createCoffeeMutation.isPending} className="dashboard-button-primary">
                   Add coffee sale
                 </button>
               </form>
+              <p className="mt-2 text-xs text-[var(--neutral-rosewood)]">Live total preview: {formatCurrency(coffeeBatchPreview)}</p>
               {coffeeQuery.isLoading ? <p className="mt-4 text-sm text-[var(--neutral-rosewood)]">Loading coffee sales...</p> : null}
               <ul className="mt-5 grid gap-2 text-sm">
                 {coffeeEntries.map((sale) => (
@@ -789,34 +974,93 @@ function App() {
             <section className={cardClass}>
               <h3 className="text-lg font-semibold">Print Sales</h3>
               <form onSubmit={submitPrint} className={formGridClass}>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-2 sm:grid-cols-3">
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="job_type" value="xerox" defaultChecked className="mr-2" />xerox</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="job_type" value="document" className="mr-2" />document</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="job_type" value="other" className="mr-2" />other</label>
-                </div>
-                <input name="description" list="print-reference-items" placeholder="Description" required className="dashboard-input" />
                 <datalist id="print-reference-items">
                   {productReferenceItems.map((item) => (
                     <option key={item.id} value={item.name} />
                   ))}
                 </datalist>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-2 sm:grid-cols-2">
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="color_mode" value="black" defaultChecked className="mr-2" />black</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="color_mode" value="white" className="mr-2" />white</label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-3">
+                  {printItems.map((item, index) => (
+                    <div key={`print-item-${index}`} className="rounded-xl border border-[var(--neutral-linen)] p-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid gap-1 text-xs text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-3">
+                        <span>Job type</span>
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          {(['xerox', 'document', 'other'] as const).map((jobType) => (
+                            <label key={`${jobType}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
+                              <input type="radio" name={`print-job-${index}`} value={jobType} checked={item.job_type === jobType} onChange={() => {
+                                setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, job_type: jobType } : entry))
+                              }} className="mr-2" />
+                              {jobType}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Description
+                        <input list="print-reference-items" required value={item.description} onChange={(event) => {
+                          setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, description: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      <div className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        <span>Color mode</span>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {(['black', 'white'] as const).map((colorMode) => (
+                            <label key={`${colorMode}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
+                              <input type="radio" name={`print-color-${index}`} value={colorMode} checked={item.color_mode === colorMode} onChange={() => {
+                                setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, color_mode: colorMode } : entry))
+                              }} className="mr-2" />
+                              {colorMode}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid gap-1 text-xs text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-3">
+                        <span>Print size</span>
+                        <div className="grid gap-2 sm:grid-cols-4">
+                          {(['short', 'long', 'a4', 'legal'] as const).map((printSize) => (
+                            <label key={`${printSize}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
+                              <input type="radio" name={`print-size-${index}`} value={printSize} checked={item.print_size === printSize} onChange={() => {
+                                setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, print_size: printSize } : entry))
+                              }} className="mr-2" />
+                              {printSize}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Paper count
+                        <input type="number" min="1" required value={item.paper_count} onChange={(event) => {
+                          setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, paper_count: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Sales amount
+                        <input type="number" step="0.01" required value={item.sales_amount} onChange={(event) => {
+                          setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, sales_amount: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Sale date
+                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.sale_date} onChange={(event) => {
+                          setPrintItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, sale_date: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      {printItems.length > 1 ? (
+                        <button type="button" onClick={() => setPrintItems((previous) => previous.filter((_, entryIndex) => entryIndex !== index))} className="dashboard-button-secondary">
+                          Remove item
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setPrintItems((previous) => [...previous, createPrintDraftItem()])} className="dashboard-button-secondary">
+                    Add another print item
+                  </button>
                 </div>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-2 sm:grid-cols-4">
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="print_size" value="short" defaultChecked className="mr-2" />short</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="print_size" value="long" className="mr-2" />long</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="print_size" value="a4" className="mr-2" />a4</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="print_size" value="legal" className="mr-2" />legal</label>
-                </div>
-                <input name="paper_count" type="number" min="1" placeholder="Paper count" required className="dashboard-input" />
-                <input name="sales_amount" type="number" step="0.01" placeholder="Sales amount" required className="dashboard-input" />
-                <input name="sale_date" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
                 <button type="submit" disabled={!selectedBusinessId || createPrintMutation.isPending} className="dashboard-button-primary">
                   Add print sale
                 </button>
               </form>
+              <p className="mt-2 text-xs text-[var(--neutral-rosewood)]">Live total preview: {formatCurrency(printBatchPreview)}</p>
               {printQuery.isLoading ? <p className="mt-4 text-sm text-[var(--neutral-rosewood)]">Loading print sales...</p> : null}
               <ul className="mt-5 grid gap-2 text-sm">
                 {printEntries.map((sale) => (
@@ -833,45 +1077,112 @@ function App() {
             <section className={cardClass}>
               <h3 className="text-lg font-semibold">Ethereal Sales</h3>
               <form onSubmit={submitEthereal} className={formGridClass}>
-                <select name="staff_id" defaultValue="" required className="dashboard-input">
-                  <option value="" disabled>
-                    Select service provider
-                  </option>
-                  {staffEntries.map((staff) => (
-                    <option key={staff.id} value={staff.id}>
-                      {staff.full_name}
-                    </option>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-3">
+                  {etherealItems.map((item, index) => (
+                    <div key={`ethereal-item-${index}`} className="rounded-xl border border-[var(--neutral-linen)] p-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid gap-1 text-xs text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-3">
+                        <span>Service provider(s)</span>
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          {staffEntries.map((staff) => {
+                            const isChecked = item.staff_ids.includes(staff.id)
+                            return (
+                              <label key={`ethereal-staff-${staff.id}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    setEtherealItems((previous) =>
+                                      previous.map((entry, entryIndex) => {
+                                        if (entryIndex !== index) {
+                                          return entry
+                                        }
+
+                                        const nextStaffIds = isChecked
+                                          ? entry.staff_ids.filter((staffId) => staffId !== staff.id)
+                                          : [...entry.staff_ids, staff.id]
+
+                                        return { ...entry, staff_ids: nextStaffIds }
+                                      }),
+                                    )
+                                  }}
+                                  className="mr-2"
+                                />
+                                {staff.full_name}
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </div>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Customer name
+                        <input value={item.customer_name} onChange={(event) => {
+                          setEtherealItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, customer_name: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Service cost
+                        <input
+                          type="number"
+                          step="0.01"
+                          required
+                          value={item.service_cost}
+                          onChange={(event) => {
+                            setEtherealItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, service_cost: event.target.value } : entry))
+                            if (index === 0) {
+                              setEtherealServiceCost(event.target.value)
+                            }
+                          }}
+                          className="dashboard-input"
+                        />
+                      </label>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Discount %
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          required
+                          value={item.discount_percentage}
+                          onChange={(event) => {
+                            setEtherealItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, discount_percentage: event.target.value } : entry))
+                            if (index === 0) {
+                              setEtherealDiscountPercentage(event.target.value)
+                            }
+                          }}
+                          className="dashboard-input"
+                        />
+                      </label>
+                      <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        <span>Discount type</span>
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          {(['family/friends/church-mem', 'promo', 'new-customer'] as const).map((discountType) => (
+                            <label key={`${discountType}-${index}`} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
+                              <input type="radio" name={`ethereal-discount-${index}`} value={discountType} checked={item.discount_type === discountType} onChange={() => {
+                                setEtherealItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, discount_type: discountType } : entry))
+                              }} className="mr-2" />
+                              {discountType}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                        Service date
+                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.service_date} onChange={(event) => {
+                          setEtherealItems((previous) => previous.map((entry, entryIndex) => entryIndex === index ? { ...entry, service_date: event.target.value } : entry))
+                        }} className="dashboard-input" />
+                      </label>
+                      {etherealItems.length > 1 ? (
+                        <button type="button" onClick={() => setEtherealItems((previous) => previous.filter((_, entryIndex) => entryIndex !== index))} className="dashboard-button-secondary">
+                          Remove service
+                        </button>
+                      ) : null}
+                    </div>
                   ))}
-                </select>
-                <input name="customer_name" placeholder="Customer name (optional)" className="dashboard-input" />
-                <input
-                  name="service_cost"
-                  type="number"
-                  step="0.01"
-                  placeholder="Service cost"
-                  required
-                  value={etherealServiceCost}
-                  onChange={(event) => setEtherealServiceCost(event.target.value)}
-                  className="dashboard-input"
-                />
-                <input
-                  name="discount_percentage"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  placeholder="Discount %"
-                  required
-                  value={etherealDiscountPercentage}
-                  onChange={(event) => setEtherealDiscountPercentage(event.target.value)}
-                  className="dashboard-input"
-                />
-                <div className="md:col-span-2 lg:col-span-3 grid gap-2 sm:grid-cols-3">
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="discount_type" value="family/friends/church-mem" className="mr-2" />family/friends/church-mem</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="discount_type" value="promo" defaultChecked className="mr-2" />promo</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="discount_type" value="new-customer" className="mr-2" />new-customer</label>
+                  <button type="button" onClick={() => setEtherealItems((previous) => [...previous, createEtherealDraftItem()])} className="dashboard-button-secondary">
+                    Add another service
+                  </button>
                 </div>
-                <input name="service_date" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
                 <button
                   type="submit"
                   disabled={!selectedBusinessId || createEtherealMutation.isPending}
@@ -902,28 +1213,40 @@ function App() {
             <section className={cardClass}>
               <h3 className="text-lg font-semibold">Portfolio Money</h3>
               <form onSubmit={submitPortfolioCapital} className={formGridClass}>
-                <input name="amount" type="number" step="0.01" placeholder="Amount" required className="dashboard-input" />
-                <select name="direction" defaultValue="add" className="dashboard-input">
-                  <option value="add">add</option>
-                  <option value="deduct">deduct</option>
-                  <option value="transfer">transfer to business</option>
-                </select>
-                <select name="target_business_id" defaultValue="" className="dashboard-input">
-                  <option value="">Transfer target (required for transfer)</option>
-                  {businesses.map((business) => (
-                    <option key={business.id} value={business.id}>
-                      {business.name}
-                    </option>
-                  ))}
-                </select>
-                <input name="occurred_on" type="date" required className="dashboard-input" />
-                <input name="notes" placeholder="Notes" className="dashboard-input" />
-                <input name="reauth_username" placeholder="Re-auth username" required className="dashboard-input" />
-                <input name="reauth_password" type="password" placeholder="Re-auth password" required className="dashboard-input" />
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Amount
+                  <input name="amount" type="number" step="0.01" required value={portfolioAmountPreview} onChange={(event) => setPortfolioAmountPreview(event.target.value)} className="dashboard-input" />
+                </label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  <span>Direction</span>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="direction" value="add" checked={portfolioDirectionPreview === 'add'} onChange={() => setPortfolioDirectionPreview('add')} className="mr-2" />add</label>
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="direction" value="deduct" checked={portfolioDirectionPreview === 'deduct'} onChange={() => setPortfolioDirectionPreview('deduct')} className="mr-2" />deduct</label>
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="direction" value="transfer" checked={portfolioDirectionPreview === 'transfer'} onChange={() => setPortfolioDirectionPreview('transfer')} className="mr-2" />transfer to business</label>
+                  </div>
+                </div>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Transfer target
+                  <select name="target_business_id" defaultValue="" className="dashboard-input">
+                    <option value="">Transfer target (required for transfer)</option>
+                    {businesses.map((business) => (
+                      <option key={business.id} value={business.id}>
+                        {business.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Date<input name="occurred_on" type="date" required className="dashboard-input" /></label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Notes<input name="notes" className="dashboard-input" /></label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Re-auth username<input name="reauth_username" required className="dashboard-input" /></label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Re-auth password<input name="reauth_password" type="password" required className="dashboard-input" /></label>
                 <button type="submit" disabled={createPortfolioCapitalMutation.isPending} className="dashboard-button-primary">
                   Save portfolio movement
                 </button>
               </form>
+              <p className="mt-2 text-xs text-[var(--neutral-rosewood)]">
+                Live preview — current: {formatCurrency(capitalBalances.portfolioBalance)} | after action: {formatCurrency(portfolioAfterPreview)}
+              </p>
               <ul className="mt-5 grid gap-2 text-sm">
                 {portfolioMovements.map((movement) => (
                   <li key={movement.id} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2">
@@ -938,17 +1261,26 @@ function App() {
             <section className={cardClass}>
               <h3 className="text-lg font-semibold">Business Money {selectedBusinessName ? `(${selectedBusinessName})` : ''}</h3>
               <form onSubmit={submitBusinessCapital} className={formGridClass}>
-                <input name="amount" type="number" step="0.01" placeholder="Amount" required className="dashboard-input" />
-                <select name="direction" defaultValue="add" className="dashboard-input">
-                  <option value="add">add from portfolio</option>
-                  <option value="deduct">deduct to return portfolio</option>
-                </select>
-                <input name="occurred_on" type="date" required className="dashboard-input" />
-                <input name="notes" placeholder="Notes" className="dashboard-input" />
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Amount
+                  <input name="amount" type="number" step="0.01" required value={businessAmountPreview} onChange={(event) => setBusinessAmountPreview(event.target.value)} className="dashboard-input" />
+                </label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  <span>Direction</span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="direction" value="add" checked={businessDirectionPreview === 'add'} onChange={() => setBusinessDirectionPreview('add')} className="mr-2" />add from portfolio</label>
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="direction" value="deduct" checked={businessDirectionPreview === 'deduct'} onChange={() => setBusinessDirectionPreview('deduct')} className="mr-2" />deduct to return portfolio</label>
+                  </div>
+                </div>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Date<input name="occurred_on" type="date" required className="dashboard-input" /></label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">Notes<input name="notes" className="dashboard-input" /></label>
                 <button type="submit" disabled={!selectedBusinessId || createBusinessCapitalMutation.isPending} className="dashboard-button-primary">
                   Save business movement
                 </button>
               </form>
+              <p className="mt-2 text-xs text-[var(--neutral-rosewood)]">
+                Live preview — current: {formatCurrency(capitalBalances.businessBalance)} | after action: {formatCurrency(businessAfterPreview)}
+              </p>
               <ul className="mt-5 grid gap-2 text-sm">
                 {businessMovements.map((movement) => (
                   <li key={movement.id} className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2">

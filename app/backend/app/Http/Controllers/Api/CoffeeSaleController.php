@@ -24,7 +24,15 @@ class CoffeeSaleController extends Controller
 
     public function store(StoreCoffeeSaleRequest $request, Business $business): CoffeeSaleResource
     {
-        return new CoffeeSaleResource($this->coffeeSaleService->store($business, $request->validated()));
+        $validated = $request->validated();
+
+        if (! empty($validated['entries'])) {
+            $created = $this->coffeeSaleService->storeMany($business, $validated);
+
+            return new CoffeeSaleResource($created->last());
+        }
+
+        return new CoffeeSaleResource($this->coffeeSaleService->store($business, $validated));
     }
 
     public function update(UpdateCoffeeSaleRequest $request, Business $business, CoffeeSale $coffeeSale): CoffeeSaleResource

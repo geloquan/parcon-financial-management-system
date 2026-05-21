@@ -9,6 +9,15 @@ export type CreatePrintSalePayload = {
   paper_count: number
   sales_amount: number
   sale_date: string
+  entries?: Array<{
+    job_type: string
+    description: string
+    color_mode: 'black' | 'white'
+    print_size: string
+    paper_count: number
+    sales_amount: number
+    sale_date: string
+  }>
 }
 
 export const fetchPrintSales = async (businessId: number): Promise<ApiCollectionResponse<PrintSale>> => {

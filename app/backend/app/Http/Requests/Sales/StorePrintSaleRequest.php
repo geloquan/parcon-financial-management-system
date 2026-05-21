@@ -20,13 +20,21 @@ class StorePrintSaleRequest extends FormRequest
         }
 
         return [
-            'job_type' => ['required', 'string', 'max:100'],
-            'description' => ['required', 'string', 'max:500'],
-            'color_mode' => ['required', 'in:black,white'],
-            'print_size' => ['required', 'string', 'max:100'],
-            'paper_count' => ['required', 'integer', 'min:1'],
-            'sales_amount' => ['required', 'numeric', 'min:0'],
-            'sale_date' => $saleDateRules,
+            'entries' => ['nullable', 'array', 'min:1'],
+            'entries.*.job_type' => ['required_with:entries', 'string', 'max:100'],
+            'entries.*.description' => ['required_with:entries', 'string', 'max:500'],
+            'entries.*.color_mode' => ['required_with:entries', 'in:black,white'],
+            'entries.*.print_size' => ['required_with:entries', 'string', 'max:100'],
+            'entries.*.paper_count' => ['required_with:entries', 'integer', 'min:1'],
+            'entries.*.sales_amount' => ['required_with:entries', 'numeric', 'min:0'],
+            'entries.*.sale_date' => $saleDateRules,
+            'job_type' => ['required_without:entries', 'string', 'max:100'],
+            'description' => ['required_without:entries', 'string', 'max:500'],
+            'color_mode' => ['required_without:entries', 'in:black,white'],
+            'print_size' => ['required_without:entries', 'string', 'max:100'],
+            'paper_count' => ['required_without:entries', 'integer', 'min:1'],
+            'sales_amount' => ['required_without:entries', 'numeric', 'min:0'],
+            'sale_date' => ['required_without:entries', ...$saleDateRules],
         ];
     }
 }

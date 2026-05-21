@@ -24,7 +24,15 @@ class EtherealSaleController extends Controller
 
     public function store(StoreEtherealSaleRequest $request, Business $business): EtherealSaleResource
     {
-        return new EtherealSaleResource($this->etherealSaleService->store($business, $request->validated()));
+        $validated = $request->validated();
+
+        if (! empty($validated['entries'])) {
+            $created = $this->etherealSaleService->storeMany($business, $validated);
+
+            return new EtherealSaleResource($created->last());
+        }
+
+        return new EtherealSaleResource($this->etherealSaleService->store($business, $validated));
     }
 
     public function update(UpdateEtherealSaleRequest $request, Business $business, EtherealSale $etherealSale): EtherealSaleResource

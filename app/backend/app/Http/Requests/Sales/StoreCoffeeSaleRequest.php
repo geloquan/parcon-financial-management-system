@@ -20,12 +20,19 @@ class StoreCoffeeSaleRequest extends FormRequest
         }
 
         return [
-            'price' => ['required', 'numeric', 'min:0'],
-            'coffee_type' => ['required', 'string', 'max:255'],
-            'size' => ['required', 'in:8oz,9oz,12oz,16oz,18oz'],
-            'add_on_price' => ['required', 'numeric', 'min:0'],
+            'entries' => ['nullable', 'array', 'min:1'],
+            'entries.*.price' => ['required_with:entries', 'numeric', 'min:0'],
+            'entries.*.coffee_type' => ['required_with:entries', 'string', 'max:255'],
+            'entries.*.size' => ['required_with:entries', 'in:8oz,9oz,12oz,16oz,18oz'],
+            'entries.*.add_on_price' => ['required_with:entries', 'numeric', 'min:0'],
+            'entries.*.add_on_description' => ['nullable', 'string', 'max:500'],
+            'entries.*.sale_date' => $saleDateRules,
+            'price' => ['required_without:entries', 'numeric', 'min:0'],
+            'coffee_type' => ['required_without:entries', 'string', 'max:255'],
+            'size' => ['required_without:entries', 'in:8oz,9oz,12oz,16oz,18oz'],
+            'add_on_price' => ['required_without:entries', 'numeric', 'min:0'],
             'add_on_description' => ['nullable', 'string', 'max:500'],
-            'sale_date' => $saleDateRules,
+            'sale_date' => ['required_without:entries', ...$saleDateRules],
         ];
     }
 }

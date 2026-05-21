@@ -13,6 +13,7 @@ class EtherealSale extends Model
     protected $fillable = [
         'business_id',
         'staff_id',
+        'staff_ids',
         'service_cost',
         'discount_percentage',
         'customer_name',
@@ -24,6 +25,7 @@ class EtherealSale extends Model
 
     protected $casts = [
         'service_date' => 'datetime',
+        'staff_ids' => 'array',
     ];
 
     public function business(): BelongsTo

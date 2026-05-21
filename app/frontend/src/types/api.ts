@@ -95,6 +95,7 @@ export type EtherealSale = {
   id: number
   business_id: number
   staff_id: number
+  staff_ids: number[]
   service_cost: string
   discount_percentage: string
   customer_name: string | null
