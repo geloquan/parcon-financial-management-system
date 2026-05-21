@@ -23,8 +23,8 @@ class StoreCoffeeSaleRequest extends FormRequest
     $saleDateRules = [
       'required',
       'date',
-      'before_or_equal:' . $now->toDateTimeString(),                  // must not exceed now()
-      'before_or_equal:' . $now->copy()->subMinutes(30)->toDateTimeString(), // minimum 30 min before now
+//      'before_or_equal:' . $now->toDateTimeString(),                  // must not exceed now()
+//      'before_or_equal:' . $now->copy()->subMinutes(30)->toDateTimeString(), // minimum 30 min before now
     ];
 
     if (! ($this->user()?->hasAnyRole(['admin', 'owner']) ?? false)) {
