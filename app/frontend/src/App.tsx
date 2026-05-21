@@ -307,6 +307,9 @@ function App() {
   const [portfolioDirectionPreview, setPortfolioDirectionPreview] = useState<'add' | 'deduct' | 'transfer'>('add')
   const [businessAmountPreview, setBusinessAmountPreview] = useState('0')
   const [businessDirectionPreview, setBusinessDirectionPreview] = useState<'add' | 'deduct'>('add')
+  const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(formatDateOnly(new Date()))
+  const [compensationMode, setCompensationMode] = useState<'by_days' | 'up_to_date'>('by_days')
+  const [salesReportPage, setSalesReportPage] = useState(1)
   const [reportScope, setReportScope] = useState<'portfolio' | 'business'>('portfolio')
   const [reportPeriod, setReportPeriod] = useState<'today' | 'date_range'>('today')
   const [latestSalesReport, setLatestSalesReport] = useState<SalesReport | null>(null)
@@ -315,9 +318,6 @@ function App() {
   const [moneyReauthPassword, setMoneyReauthPassword] = useState('')
 
   const moneyReauthResolverRef = useRef<((credentials: MoneyReauthCredentials | null) => void) | null>(null)
-  const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(formatDateOnly(new Date()))
-  const [compensationMode, setCompensationMode] = useState<'by_days' | 'up_to_date'>('by_days')
-  const [salesReportPage, setSalesReportPage] = useState(1)
 
   const meQuery = useMe()
   const loginMutation = useLogin()
@@ -354,10 +354,10 @@ function App() {
   const capitalMovementsQuery = useCapitalMovements()
   const createPortfolioCapitalMutation = useCreatePortfolioCapitalMovement()
   const createBusinessCapitalMutation = useCreateBusinessCapitalMovement(selectedBusinessId)
+  const generateSalesReportMutation = useGenerateSalesReport()
   const salesReportsQuery = useSalesReports(selectedBusinessId, salesReportPage)
   const createSalesReportMutation = useCreateSalesReport(selectedBusinessId, salesReportPage)
   const downloadSalesReportMutation = useDownloadSalesReport(selectedBusinessId)
-  const generateSalesReportMutation = useGenerateSalesReport()
 
   const selectedBusinessName = useMemo(
     () => businesses.find((b) => b.id === selectedBusinessId)?.name ?? null,
