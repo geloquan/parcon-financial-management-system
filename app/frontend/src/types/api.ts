@@ -115,6 +115,7 @@ export type Staff = {
   employment_end_date: string | null
   employment_type: string
   salary: string
+  commission_rate_percent: string
   is_active: boolean
 }
 
@@ -165,8 +166,14 @@ export type CompensationBreakdownItem = {
   staff_id: number
   staff_name: string
   salary: string
+  day_off_days: number
+  absent_days: number
   present_days: number
   payable_days: number
+  base_pay: number
+  commission_rate_percent: number
+  commissionable_sales_total: number
+  commission_amount: number
   gross_pay: number
   deductions: number
   net_pay: number

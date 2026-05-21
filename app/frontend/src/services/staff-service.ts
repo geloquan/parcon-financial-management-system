@@ -8,6 +8,7 @@ export type CreateStaffPayload = {
   employment_end_date?: string
   employment_type: string
   salary: number
+  commission_rate_percent: number
   is_active: boolean
 }
 

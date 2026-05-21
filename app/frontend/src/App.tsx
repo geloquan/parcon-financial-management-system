@@ -210,7 +210,7 @@ const navGroups: Array<{
       { value: 'coffee', label: 'Coffee', icon: Coffee },
       { value: 'print', label: 'Print', icon: Printer },
       { value: 'ethereal', label: 'Ethereal', icon: Sparkles },
-      { value: 'salesReports', label: 'Sales Reports', icon: FileText },
+      { value: 'salesReports', label: 'Quick Report', icon: FileText },
     ],
   },
   {
@@ -218,7 +218,7 @@ const navGroups: Array<{
     items: [
       { value: 'portfolioCapital', label: 'Portfolio Money', icon: BanknoteArrowUp },
       { value: 'businessCapital', label: 'Business Money', icon: BanknoteArrowDown },
-      { value: 'pdfSalesReports', label: 'PDF Sales Reports', icon: FileText },
+      { value: 'pdfSalesReports', label: 'Sales Reports', icon: FileText },
     ],
   },
 ]
@@ -578,6 +578,7 @@ function App() {
       employment_end_date: String(f.get('employment_end_date') ?? ''),
       employment_type: String(f.get('employment_type') ?? ''),
       salary: Number(f.get('salary') ?? 0),
+      commission_rate_percent: Number(f.get('commission_rate_percent') ?? 0),
       is_active: String(f.get('is_active') ?? '1') === '1',
     })
     e.currentTarget.reset()
@@ -1191,8 +1192,12 @@ function App() {
                   <input name="employment_type" required className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                  Salary
+                  Salary (per day)
                   <input name="salary" type="number" step="100" required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Commission (% per service)
+                  <input name="commission_rate_percent" type="number" min="0" max="100" step="0.01" defaultValue="0" required className="dashboard-input" />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Status</p>
@@ -1218,7 +1223,7 @@ function App() {
                   <table className="min-w-full text-sm">
                     <thead className="bg-[var(--surface-raised)] text-left">
                     <tr>
-                      {['Name', 'Type', 'Salary', 'Status'].map((h) => (
+                      {['Name', 'Type', 'Daily salary', 'Commission %', 'Status'].map((h) => (
                         <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                           {h}
                         </th>
@@ -1231,6 +1236,7 @@ function App() {
                         <td className="px-4 py-3 font-medium">{staff.full_name}</td>
                         <td className="px-4 py-3 text-[var(--neutral-rosewood)]">{staff.employment_type}</td>
                         <td className="px-4 py-3 tabular-nums text-[var(--accent-gold)]">{formatCurrency(parseAmount(staff.salary))}</td>
+                        <td className="px-4 py-3 tabular-nums text-[var(--neutral-rosewood)]">{Number(staff.commission_rate_percent).toFixed(2)}%</td>
                         <td className="px-4 py-3">
                             <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                               staff.is_active
@@ -1255,7 +1261,7 @@ function App() {
               <SectionHeading
                 icon={CalendarCheck2}
                 title="Schedule & Attendance"
-                description="Plot staff schedules and mark attendance anytime within the day."
+                description="Assume present by default; mark day-off or absent when staff should not be paid."
               />
               <form onSubmit={submitStaffSchedule} className={formGridClass}>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
@@ -1276,7 +1282,7 @@ function App() {
                 <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Attendance</p>
                   <div className="flex gap-2">
-                    {(['pending', 'present', 'absent'] as const).map((status, index) => (
+                    {(['present', 'pending', 'absent'] as const).map((status, index) => (
                       <label key={status} className={optionPillClass}>
                         <input
                           type="radio"
@@ -1285,7 +1291,7 @@ function App() {
                           defaultChecked={index === 0}
                           className="sr-only"
                         />
-                        {status}
+                        {status === 'pending' ? 'day-off' : status}
                       </label>
                     ))}
                   </div>
@@ -1402,7 +1408,7 @@ function App() {
               <SectionHeading
                 icon={BanknoteArrowUp}
                 title="Compensation"
-                description="Compute compensation by days or up to cutoff date with attendance and cash-advance deductions."
+                description="Compute per-day salary plus commission, then apply attendance and cash-advance deductions."
               />
               <form onSubmit={submitCompensationRun} className={formGridClass}>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
@@ -2007,7 +2013,7 @@ function App() {
           {/* SALES REPORTS */}
           {tab === 'salesReports' && (
             <section className={cardClass}>
-              <SectionHeading icon={FileText} title="Sales Reports" description="Generate on-demand reports by scope and period." />
+              <SectionHeading icon={FileText} title="Quick Report" description="On-screen sales snapshot by scope and period (no document export)." />
               <form onSubmit={submitSalesReport} className={formGridClass}>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Scope</p>
@@ -2279,7 +2285,7 @@ function App() {
             <section className={cardClass}>
               <SectionHeading
                 icon={FileText}
-                title="PDF Sales Reports"
+                title="Sales Reports"
                 description="Generate versioned PDF 8.5x13 sales reports with metadata headers/footers."
               />
               {meQuery.data.role !== 'admin' && meQuery.data.role !== 'owner' ? (
