@@ -149,3 +149,78 @@ export type SalesReport = {
   generated_at: string
   totals: SalesReportTotals
 }
+
+export type StaffSchedule = {
+  id: number
+  business_id: number
+  staff_id: number
+  staff_name: string | null
+  scheduled_on: string
+  attendance_status: 'pending' | 'present' | 'absent'
+  attendance_marked_at: string | null
+  notes: string | null
+}
+
+export type CompensationBreakdownItem = {
+  staff_id: number
+  staff_name: string
+  salary: string
+  present_days: number
+  payable_days: number
+  gross_pay: number
+  deductions: number
+  net_pay: number
+}
+
+export type CompensationRun = {
+  id: number
+  business_id: number
+  computed_by_user_id: number
+  computation_mode: 'by_days' | 'up_to_date'
+  number_of_days: number | null
+  cutoff_date: string
+  period_start: string
+  period_end: string
+  gross_pay: string
+  total_deductions: string
+  net_pay: string
+  employee_breakdown: CompensationBreakdownItem[]
+}
+
+export type SalesReportVersion = {
+  id: number
+  business_id: number
+  generated_by_user_id: number
+  version: number
+  start_date: string
+  end_date: string
+  document_title: string
+  document_format: string
+  metadata: {
+    page_size: string
+    generated_at: string
+    generated_by: string
+    business_name: string
+  }
+  details: {
+    range: {
+      start_date: string
+      end_date: string
+    }
+    totals: {
+      gcash_sales: number
+      gcash_profit: number
+      coffee_sales: number
+      print_sales: number
+      ethereal_sales: number
+      overall_sales: number
+    }
+    counts: {
+      gcash_entries: number
+      coffee_entries: number
+      print_entries: number
+      ethereal_entries: number
+    }
+  }
+  download_url: string
+}
