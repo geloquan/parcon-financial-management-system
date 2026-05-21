@@ -4,6 +4,9 @@ import { apiRequest } from './api-client'
 export type CreatePrintSalePayload = {
   job_type: string
   description: string
+  color_mode: 'black' | 'white'
+  print_size: string
+  paper_count: number
   sales_amount: number
   sale_date: string
 }

@@ -18,7 +18,7 @@ class GcashSaleResource extends JsonResource
             'sales_amount' => $this->sales_amount,
             'profit_amount' => $this->profit_amount,
             'transaction_type' => $this->transaction_type,
-            'transaction_date' => $this->transaction_date?->toDateString(),
+            'transaction_date' => $this->transaction_date?->toIso8601String(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

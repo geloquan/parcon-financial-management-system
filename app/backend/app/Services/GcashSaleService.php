@@ -15,12 +15,22 @@ class GcashSaleService
 
     public function store(Business $business, array $validated): GcashSale
     {
-        return GcashSale::query()->create([...$validated, 'business_id' => $business->id]);
+        $profitAmount = round($validated['sales_amount'] - $validated['amount_moved'], 2);
+
+        return GcashSale::query()->create([
+            ...$validated,
+            'business_id' => $business->id,
+            'profit_amount' => $profitAmount,
+        ]);
     }
 
     public function update(GcashSale $sale, array $validated): GcashSale
     {
-        $sale->update($validated);
+        $profitAmount = round($validated['sales_amount'] - $validated['amount_moved'], 2);
+        $sale->update([
+            ...$validated,
+            'profit_amount' => $profitAmount,
+        ]);
 
         return $sale->refresh();
     }

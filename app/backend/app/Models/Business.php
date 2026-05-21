@@ -25,4 +25,9 @@ class Business extends Model
     {
         return $this->hasMany(Expense::class);
     }
+
+    public function referenceItems(): HasMany
+    {
+        return $this->hasMany(BusinessReferenceItem::class);
+    }
 }

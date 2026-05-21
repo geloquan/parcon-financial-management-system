@@ -5,20 +5,18 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\CoffeeSale */
-class CoffeeSaleResource extends JsonResource
+/** @mixin \App\Models\BusinessReferenceItem */
+class BusinessReferenceItemResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
             'business_id' => $this->business_id,
+            'item_type' => $this->item_type,
+            'name' => $this->name,
             'price' => $this->price,
-            'coffee_type' => $this->coffee_type,
-            'size' => $this->size,
-            'add_on_price' => $this->add_on_price,
-            'add_on_description' => $this->add_on_description,
-            'sale_date' => $this->sale_date?->toIso8601String(),
+            'description' => $this->description,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

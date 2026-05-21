@@ -15,8 +15,11 @@ class PrintSaleResource extends JsonResource
             'business_id' => $this->business_id,
             'job_type' => $this->job_type,
             'description' => $this->description,
+            'color_mode' => $this->color_mode,
+            'print_size' => $this->print_size,
+            'paper_count' => $this->paper_count,
             'sales_amount' => $this->sales_amount,
-            'sale_date' => $this->sale_date?->toDateString(),
+            'sale_date' => $this->sale_date?->toIso8601String(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -48,10 +48,19 @@ export type Expense = {
   recurrence_reference: string | null
 }
 
+export type BusinessReferenceItem = {
+  id: number
+  business_id: number
+  item_type: 'product' | 'service'
+  name: string
+  price: string
+  description: string | null
+}
+
 export type GcashSale = {
   id: number
   business_id: number
-  transaction_recipient: string
+  transaction_recipient: string | null
   amount_moved: string
   sales_amount: string
   profit_amount: string
@@ -65,7 +74,8 @@ export type CoffeeSale = {
   price: string
   coffee_type: string
   size: string
-  add_ons: string | null
+  add_on_price: string
+  add_on_description: string | null
   sale_date: string
 }
 
@@ -74,6 +84,9 @@ export type PrintSale = {
   business_id: number
   job_type: string
   description: string
+  color_mode: 'black' | 'white'
+  print_size: string
+  paper_count: number
   sales_amount: string
   sale_date: string
 }
@@ -84,6 +97,8 @@ export type EtherealSale = {
   staff_id: number
   service_cost: string
   discount_percentage: string
+  customer_name: string | null
+  discount_type: string
   cash_discount: string
   net_amount: string
   service_date: string

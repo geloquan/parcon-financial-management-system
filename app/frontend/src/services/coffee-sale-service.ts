@@ -4,8 +4,9 @@ import { apiRequest } from './api-client'
 export type CreateCoffeeSalePayload = {
   price: number
   coffee_type: string
-  size: string
-  add_ons?: string
+  size: '8oz' | '9oz' | '12oz' | '16oz' | '18oz'
+  add_on_price: number
+  add_on_description?: string
   sale_date: string
 }
 

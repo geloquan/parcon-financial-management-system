@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\BusinessController;
+use App\Http\Controllers\Api\BusinessReferenceItemController;
 use App\Http\Controllers\Api\CapitalMovementController;
 use App\Http\Controllers\Api\CoffeeSaleController;
 use App\Http\Controllers\Api\EtherealSaleController;
@@ -30,6 +31,9 @@ Route::middleware('auth.api')->group(function (): void {
         ->middleware('role:admin,owner');
       Route::apiResource('staff', StaffController::class)->only(['index', 'store', 'update', 'destroy']);
       Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
+      Route::apiResource('reference_items', BusinessReferenceItemController::class)
+        ->parameters(['reference_items' => 'businessReferenceItem'])
+        ->only(['index', 'store', 'update', 'destroy']);
       Route::apiResource('gcash_sales', GcashSaleController::class)
         ->parameters(['gcash_sales' => 'gcashSale'])
         ->only(['index', 'store', 'update', 'destroy']);

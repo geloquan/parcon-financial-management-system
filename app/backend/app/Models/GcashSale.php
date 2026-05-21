@@ -21,7 +21,7 @@ class GcashSale extends Model
     ];
 
     protected $casts = [
-        'transaction_date' => 'date',
+        'transaction_date' => 'datetime',
     ];
 
     public function business(): BelongsTo

@@ -6,22 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class CoffeeSale extends Model
+class BusinessReferenceItem extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
         'business_id',
+        'item_type',
+        'name',
         'price',
-        'coffee_type',
-        'size',
-        'add_on_price',
-        'add_on_description',
-        'sale_date',
-    ];
-
-    protected $casts = [
-        'sale_date' => 'datetime',
+        'description',
     ];
 
     public function business(): BelongsTo

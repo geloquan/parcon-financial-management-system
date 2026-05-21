@@ -13,7 +13,7 @@ class ExpenseResource extends JsonResource
         return [
             'id' => $this->id,
             'business_id' => $this->business_id,
-            'date_issued' => $this->date_issued?->toDateString(),
+            'date_issued' => $this->date_issued?->toIso8601String(),
             'amount' => $this->amount,
             'description' => $this->description,
             'purpose' => $this->purpose,

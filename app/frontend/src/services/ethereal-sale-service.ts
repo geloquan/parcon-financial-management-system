@@ -5,6 +5,8 @@ export type CreateEtherealSalePayload = {
   staff_id: number
   service_cost: number
   discount_percentage: number
+  customer_name?: string
+  discount_type: string
   service_date: string
 }
 

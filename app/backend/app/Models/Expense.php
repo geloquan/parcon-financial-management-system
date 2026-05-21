@@ -21,7 +21,7 @@ class Expense extends Model
     ];
 
     protected $casts = [
-        'date_issued' => 'date',
+        'date_issued' => 'datetime',
     ];
 
     public function business(): BelongsTo

@@ -15,13 +15,15 @@ class EtherealSale extends Model
         'staff_id',
         'service_cost',
         'discount_percentage',
+        'customer_name',
+        'discount_type',
         'cash_discount',
         'net_amount',
         'service_date',
     ];
 
     protected $casts = [
-        'service_date' => 'date',
+        'service_date' => 'datetime',
     ];
 
     public function business(): BelongsTo

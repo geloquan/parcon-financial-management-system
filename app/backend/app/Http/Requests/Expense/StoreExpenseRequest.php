@@ -13,8 +13,14 @@ class StoreExpenseRequest extends FormRequest
 
     public function rules(): array
     {
+        $dateIssuedRules = ['required', 'date', 'before_or_equal:now'];
+
+        if (! ($this->user()?->hasAnyRole(['admin', 'owner']) ?? false)) {
+            $dateIssuedRules[] = 'after_or_equal:today';
+        }
+
         return [
-            'date_issued' => ['required', 'date'],
+            'date_issued' => $dateIssuedRules,
             'amount' => ['required', 'numeric', 'min:0'],
             'description' => ['required', 'string', 'max:500'],
             'purpose' => ['required', 'in:business,business_portfolio,service'],
