@@ -32,3 +32,9 @@ export const createCoffeeSale = async (businessId: number, payload: CreateCoffee
     body: JSON.stringify(payload),
   })
 }
+
+export const deleteCoffeeSale = async (businessId: number, saleId: number): Promise<{ message: string }> => {
+  return apiRequest<{ message: string }>(`/businesses/${businessId}/coffee_sales/${saleId}`, {
+    method: 'DELETE',
+  })
+}

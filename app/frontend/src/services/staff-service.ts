@@ -12,6 +12,8 @@ export type CreateStaffPayload = {
   is_active: boolean
 }
 
+export type UpdateStaffPayload = Partial<CreateStaffPayload>
+
 export const fetchStaff = async (businessId: number): Promise<ApiCollectionResponse<Staff>> => {
   return apiRequest<ApiCollectionResponse<Staff>>(`/businesses/${businessId}/staff`)
 }
@@ -19,6 +21,17 @@ export const fetchStaff = async (businessId: number): Promise<ApiCollectionRespo
 export const createStaff = async (businessId: number, payload: CreateStaffPayload): Promise<Staff> => {
   return apiRequest<Staff>(`/businesses/${businessId}/staff`, {
     method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export const updateStaff = async (
+  businessId: number,
+  staffId: number,
+  payload: UpdateStaffPayload,
+): Promise<Staff> => {
+  return apiRequest<Staff>(`/businesses/${businessId}/staff/${staffId}`, {
+    method: 'PUT',
     body: JSON.stringify(payload),
   })
 }

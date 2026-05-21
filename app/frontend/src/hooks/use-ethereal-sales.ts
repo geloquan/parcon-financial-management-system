@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createEtherealSale,
+  deleteEtherealSale,
   fetchEtherealSales,
   type CreateEtherealSalePayload,
 } from '../services/ethereal-sale-service'
@@ -18,6 +19,17 @@ export const useCreateEtherealSale = (businessId: number | null) => {
 
   return useMutation({
     mutationFn: async (payload: CreateEtherealSalePayload) => createEtherealSale(businessId as number, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['ethereal-sales', businessId] })
+    },
+  })
+}
+
+export const useDeleteEtherealSale = (businessId: number | null) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (saleId: number) => deleteEtherealSale(businessId as number, saleId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['ethereal-sales', businessId] })
     },

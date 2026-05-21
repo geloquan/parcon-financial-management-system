@@ -21,3 +21,9 @@ export const createGcashSale = async (businessId: number, payload: CreateGcashSa
     body: JSON.stringify(payload),
   })
 }
+
+export const deleteGcashSale = async (businessId: number, saleId: number): Promise<{ message: string }> => {
+  return apiRequest<{ message: string }>(`/businesses/${businessId}/gcash_sales/${saleId}`, {
+    method: 'DELETE',
+  })
+}

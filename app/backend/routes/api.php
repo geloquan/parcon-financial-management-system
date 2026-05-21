@@ -11,7 +11,9 @@ use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GcashSaleController;
 use App\Http\Controllers\Api\PrintSaleController;
 use App\Http\Controllers\Api\SalesReportController;
+use App\Http\Controllers\Api\StaffAbsenceController;
 use App\Http\Controllers\Api\StaffController;
+use App\Http\Controllers\Api\StaffDayOffController;
 use App\Http\Controllers\Api\StaffScheduleController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,8 +37,13 @@ Route::middleware('auth.api')->group(function (): void {
       Route::apiResource('staff', StaffController::class)->only(['index', 'store', 'update', 'destroy']);
       Route::apiResource('staff_schedules', StaffScheduleController::class)
         ->parameters(['staff_schedules' => 'staffSchedule'])
-        ->only(['index', 'store', 'update', 'destroy']);
-      Route::post('staff_schedules/swap', [StaffScheduleController::class, 'swap']);
+        ->only(['index', 'update', 'destroy']);
+      Route::apiResource('staff_day_offs', StaffDayOffController::class)
+        ->parameters(['staff_day_offs' => 'staffDayOff'])
+        ->only(['index', 'store', 'destroy']);
+      Route::apiResource('staff_absences', StaffAbsenceController::class)
+        ->parameters(['staff_absences' => 'staffAbsence'])
+        ->only(['index', 'store', 'destroy']);
       Route::apiResource('compensation_runs', CompensationRunController::class)
         ->parameters(['compensation_runs' => 'compensationRun'])
         ->only(['index', 'store', 'destroy']);

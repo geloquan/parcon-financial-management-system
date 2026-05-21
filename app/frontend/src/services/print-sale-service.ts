@@ -34,3 +34,9 @@ export const createPrintSale = async (businessId: number, payload: CreatePrintSa
     body: JSON.stringify(payload),
   })
 }
+
+export const deletePrintSale = async (businessId: number, saleId: number): Promise<{ message: string }> => {
+  return apiRequest<{ message: string }>(`/businesses/${businessId}/print_sales/${saleId}`, {
+    method: 'DELETE',
+  })
+}

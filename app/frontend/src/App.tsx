@@ -2,18 +2,14 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLogin, useLogout, useMe } from './hooks/use-auth'
 import { useBusinesses } from './hooks/use-businesses'
 import { useCreateExpense, useExpenses } from './hooks/use-expenses'
-import { useCreateGcashSale, useGcashSales } from './hooks/use-gcash-sales'
-import { useCreateCoffeeSale, useCoffeeSales } from './hooks/use-coffee-sales'
-import { useCreatePrintSale, usePrintSales } from './hooks/use-print-sales'
-import { useCreateEtherealSale, useEtherealSales } from './hooks/use-ethereal-sales'
+import { useCreateGcashSale, useDeleteGcashSale, useGcashSales } from './hooks/use-gcash-sales'
+import { useCreateCoffeeSale, useDeleteCoffeeSale, useCoffeeSales } from './hooks/use-coffee-sales'
+import { useCreatePrintSale, useDeletePrintSale, usePrintSales } from './hooks/use-print-sales'
+import { useCreateEtherealSale, useDeleteEtherealSale, useEtherealSales } from './hooks/use-ethereal-sales'
 import { useGenerateSalesReport } from './hooks/use-sales-reports'
-import { useCreateStaff, useStaff } from './hooks/use-staff'
-import {
-  useCreateStaffSchedule,
-  useSwapStaffSchedules,
-  useStaffSchedules,
-  useUpdateStaffSchedule,
-} from './hooks/use-staff-schedules'
+import { useCreateStaff, useStaff, useUpdateStaff } from './hooks/use-staff'
+import { useCreateStaffDayOff, useDeleteStaffDayOff, useStaffDayOffs } from './hooks/use-staff-day-offs'
+import { useCreateStaffAbsence, useDeleteStaffAbsence, useStaffAbsences } from './hooks/use-staff-absences'
 import { useBusinessReferenceItems, useCreateBusinessReferenceItem } from './hooks/use-business-reference-items'
 import { useCompensationRuns, useCreateCompensationRun, useFinalizeCompensationRun } from './hooks/use-compensation-runs'
 import { useCreateSalesReport, useDownloadSalesReport, useSalesReports } from './hooks/use-sales-reports'
@@ -310,8 +306,6 @@ function App() {
   const [businessAmountPreview, setBusinessAmountPreview] = useState('0')
   const [businessDirectionPreview, setBusinessDirectionPreview] = useState<'add' | 'deduct'>('add')
   const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(formatDateOnly(new Date()))
-  const [sourceScheduleId, setSourceScheduleId] = useState('')
-  const [targetScheduleId, setTargetScheduleId] = useState('')
   const [compensationMode, setCompensationMode] = useState<'by_days' | 'up_to_date'>('by_days')
   const [salesReportPage, setSalesReportPage] = useState(1)
   const [reportScope, setReportScope] = useState<'portfolio' | 'business'>('portfolio')
@@ -338,11 +332,13 @@ function App() {
 
   const staffQuery = useStaff(selectedBusinessId)
   const createStaffMutation = useCreateStaff(selectedBusinessId)
-  const allStaffSchedulesQuery = useStaffSchedules(selectedBusinessId)
-  const staffSchedulesQuery = useStaffSchedules(selectedBusinessId, scheduleDateFilter)
-  const createStaffScheduleMutation = useCreateStaffSchedule(selectedBusinessId, scheduleDateFilter)
-  const updateStaffScheduleMutation = useUpdateStaffSchedule(selectedBusinessId, scheduleDateFilter)
-  const swapStaffSchedulesMutation = useSwapStaffSchedules(selectedBusinessId, scheduleDateFilter)
+  const updateStaffMutation = useUpdateStaff(selectedBusinessId)
+  const staffDayOffsQuery = useStaffDayOffs(selectedBusinessId, scheduleDateFilter)
+  const createStaffDayOffMutation = useCreateStaffDayOff(selectedBusinessId, scheduleDateFilter)
+  const deleteStaffDayOffMutation = useDeleteStaffDayOff(selectedBusinessId, scheduleDateFilter)
+  const staffAbsencesQuery = useStaffAbsences(selectedBusinessId, scheduleDateFilter)
+  const createStaffAbsenceMutation = useCreateStaffAbsence(selectedBusinessId, scheduleDateFilter)
+  const deleteStaffAbsenceMutation = useDeleteStaffAbsence(selectedBusinessId, scheduleDateFilter)
   const compensationRunsQuery = useCompensationRuns(selectedBusinessId)
   const createCompensationRunMutation = useCreateCompensationRun(selectedBusinessId)
   const finalizeCompensationRunMutation = useFinalizeCompensationRun(selectedBusinessId)
@@ -350,12 +346,16 @@ function App() {
   const createExpenseMutation = useCreateExpense(selectedBusinessId)
   const gcashQuery = useGcashSales(selectedBusinessId)
   const createGcashMutation = useCreateGcashSale(selectedBusinessId)
+  const deleteGcashMutation = useDeleteGcashSale(selectedBusinessId)
   const coffeeQuery = useCoffeeSales(selectedBusinessId)
   const createCoffeeMutation = useCreateCoffeeSale(selectedBusinessId)
+  const deleteCoffeeMutation = useDeleteCoffeeSale(selectedBusinessId)
   const printQuery = usePrintSales(selectedBusinessId)
   const createPrintMutation = useCreatePrintSale(selectedBusinessId)
+  const deletePrintMutation = useDeletePrintSale(selectedBusinessId)
   const etherealQuery = useEtherealSales(selectedBusinessId)
   const createEtherealMutation = useCreateEtherealSale(selectedBusinessId)
+  const deleteEtherealMutation = useDeleteEtherealSale(selectedBusinessId)
   const referenceItemsQuery = useBusinessReferenceItems(selectedBusinessId)
   const createReferenceItemMutation = useCreateBusinessReferenceItem(selectedBusinessId)
   const capitalMovementsQuery = useCapitalMovements()
@@ -385,8 +385,8 @@ function App() {
   )
 
   const staffEntries = useMemo(() => staffQuery.data?.data ?? [], [staffQuery.data])
-  const allStaffScheduleEntries = useMemo(() => allStaffSchedulesQuery.data?.data ?? [], [allStaffSchedulesQuery.data])
-  const staffScheduleEntries = useMemo(() => staffSchedulesQuery.data?.data ?? [], [staffSchedulesQuery.data])
+  const staffDayOffEntries = useMemo(() => staffDayOffsQuery.data?.data ?? [], [staffDayOffsQuery.data])
+  const staffAbsenceEntries = useMemo(() => staffAbsencesQuery.data?.data ?? [], [staffAbsencesQuery.data])
   const compensationRuns = useMemo(() => compensationRunsQuery.data?.data ?? [], [compensationRunsQuery.data])
   const expenseEntries = useMemo(() => expensesQuery.data?.data ?? [], [expensesQuery.data])
   const gcashEntries = useMemo(() => gcashQuery.data?.data ?? [], [gcashQuery.data])
@@ -397,10 +397,6 @@ function App() {
   const salesReportVersions = useMemo(() => salesReportsQuery.data?.data ?? [], [salesReportsQuery.data])
   const productReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'product'), [referenceItems])
   const serviceReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'service'), [referenceItems])
-  const unresolvedAttendanceToday = useMemo(
-    () => staffScheduleEntries.filter((schedule) => schedule.attendance_status === 'pending'),
-    [staffScheduleEntries],
-  )
 
   const expenseTotal = useMemo(
     () => expenseEntries.reduce((t, i) => t + parseAmount(i.amount), 0),
@@ -584,39 +580,61 @@ function App() {
     e.currentTarget.reset()
   }
 
-  const submitStaffSchedule = async (e: FormEvent<HTMLFormElement>) => {
+  const setStaffInactive = async (staffId: number) => {
+    if (!selectedBusinessId) return
+    await updateStaffMutation.mutateAsync({
+      staffId,
+      payload: {
+        is_active: false,
+      },
+    })
+  }
+
+  const endStaffEmployment = async (staffId: number) => {
+    if (!selectedBusinessId) return
+    await updateStaffMutation.mutateAsync({
+      staffId,
+      payload: {
+        employment_end_date: formatDateOnly(new Date()),
+        is_active: false,
+      },
+    })
+  }
+
+  const submitStaffDayOff = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
     const f = new FormData(e.currentTarget)
-    await createStaffScheduleMutation.mutateAsync({
+    await createStaffDayOffMutation.mutateAsync({
       staff_id: Number(f.get('staff_id') ?? 0),
-      scheduled_on: String(f.get('scheduled_on') ?? ''),
-      attendance_status: String(f.get('attendance_status') ?? 'pending') as 'pending' | 'present' | 'absent',
+      day_off_date: String(f.get('day_off_date') ?? ''),
       notes: String(f.get('notes') ?? ''),
     })
     e.currentTarget.reset()
-    setScheduleDateFilter(formatDateOnly(new Date()))
+    setScheduleDateFilter(String(f.get('day_off_date') ?? formatDateOnly(new Date())))
   }
 
-  const submitSwapStaffSchedule = async (e: FormEvent<HTMLFormElement>) => {
+  const submitStaffAbsence = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId || !sourceScheduleId || !targetScheduleId) return
-
-    await swapStaffSchedulesMutation.mutateAsync({
-      source_schedule_id: Number(sourceScheduleId),
-      target_schedule_id: Number(targetScheduleId),
+    if (!selectedBusinessId) return
+    const f = new FormData(e.currentTarget)
+    await createStaffAbsenceMutation.mutateAsync({
+      staff_id: Number(f.get('staff_id') ?? 0),
+      absence_date: String(f.get('absence_date') ?? ''),
+      notes: String(f.get('notes') ?? ''),
     })
-
-    setSourceScheduleId('')
-    setTargetScheduleId('')
+    e.currentTarget.reset()
+    setScheduleDateFilter(String(f.get('absence_date') ?? formatDateOnly(new Date())))
   }
 
-  const markAttendance = async (scheduleId: number, attendanceStatus: 'present' | 'absent') => {
+  const deleteStaffDayOffRecord = async (recordId: number) => {
     if (!selectedBusinessId) return
-    await updateStaffScheduleMutation.mutateAsync({
-      scheduleId,
-      payload: { attendance_status: attendanceStatus },
-    })
+    await deleteStaffDayOffMutation.mutateAsync(recordId)
+  }
+
+  const deleteStaffAbsenceRecord = async (recordId: number) => {
+    if (!selectedBusinessId) return
+    await deleteStaffAbsenceMutation.mutateAsync(recordId)
   }
 
   const submitCompensationRun = async (e: FormEvent<HTMLFormElement>) => {
@@ -696,6 +714,11 @@ function App() {
     setGcashSalesAmount('0')
   }
 
+  const voidGcashSale = async (saleId: number) => {
+    if (!selectedBusinessId) return
+    await deleteGcashMutation.mutateAsync(saleId)
+  }
+
   const submitCoffee = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
@@ -711,6 +734,11 @@ function App() {
     }))
     await createCoffeeMutation.mutateAsync({ ...entries[0], entries, ...reauth })
     setCoffeeItems([createCoffeeDraftItem()])
+  }
+
+  const voidCoffeeSale = async (saleId: number) => {
+    if (!selectedBusinessId) return
+    await deleteCoffeeMutation.mutateAsync(saleId)
   }
 
   const submitPrint = async (e: FormEvent<HTMLFormElement>) => {
@@ -729,6 +757,11 @@ function App() {
     }))
     await createPrintMutation.mutateAsync({ ...entries[0], entries, ...reauth })
     setPrintItems([createPrintDraftItem()])
+  }
+
+  const voidPrintSale = async (saleId: number) => {
+    if (!selectedBusinessId) return
+    await deletePrintMutation.mutateAsync(saleId)
   }
 
   const submitEthereal = async (e: FormEvent<HTMLFormElement>) => {
@@ -752,6 +785,11 @@ function App() {
       ...reauth,
     })
     setEtherealItems([createEtherealDraftItem()])
+  }
+
+  const voidEtherealSale = async (saleId: number) => {
+    if (!selectedBusinessId) return
+    await deleteEtherealMutation.mutateAsync(saleId)
   }
 
   const submitPortfolioCapital = async (e: FormEvent<HTMLFormElement>) => {

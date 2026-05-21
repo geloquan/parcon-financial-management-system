@@ -162,6 +162,24 @@ export type StaffSchedule = {
   notes: string | null
 }
 
+export type StaffDayOff = {
+  id: number
+  business_id: number
+  staff_id: number
+  staff_name: string | null
+  day_off_date: string
+  notes: string | null
+}
+
+export type StaffAbsence = {
+  id: number
+  business_id: number
+  staff_id: number
+  staff_name: string | null
+  absence_date: string
+  notes: string | null
+}
+
 export type CompensationBreakdownItem = {
   staff_id: number
   staff_name: string
