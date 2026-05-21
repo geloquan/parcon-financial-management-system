@@ -31,6 +31,16 @@ class SalesReportController extends Controller
     );
   }
 
+  public function generate(GenerateSalesReportRequest $request): JsonResponse
+  {
+    $validated = $request->validated();
+    $this->ensureReportAccess($request->user(), $validated);
+
+    return response()->json(
+      $this->salesReportService->generate($validated)
+    );
+  }
+
   private function ensureReportAccess($user, array $validated): void
   {
     if ($user->hasAnyRole(['admin', 'owner'])) {

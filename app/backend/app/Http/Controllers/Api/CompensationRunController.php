@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Compensation\FinalizeCompensationRunRequest;
 use App\Http\Requests\Compensation\StoreCompensationRunRequest;
 use App\Http\Resources\CompensationRunResource;
 use App\Models\Business;
@@ -35,5 +36,17 @@ class CompensationRunController extends Controller
         $this->compensationRunService->delete($compensationRun);
 
         return ['message' => 'Compensation run deleted successfully.'];
+    }
+
+    public function finalize(
+        FinalizeCompensationRunRequest $request,
+        Business $business,
+        CompensationRun $compensationRun
+    ): CompensationRunResource {
+        abort_if($compensationRun->business_id !== $business->id, 404);
+
+        return new CompensationRunResource(
+            $this->compensationRunService->finalize($compensationRun, $request->user())
+        );
     }
 }

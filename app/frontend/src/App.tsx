@@ -10,11 +10,12 @@ import { useGenerateSalesReport } from './hooks/use-sales-reports'
 import { useCreateStaff, useStaff } from './hooks/use-staff'
 import {
   useCreateStaffSchedule,
+  useSwapStaffSchedules,
   useStaffSchedules,
   useUpdateStaffSchedule,
 } from './hooks/use-staff-schedules'
 import { useBusinessReferenceItems, useCreateBusinessReferenceItem } from './hooks/use-business-reference-items'
-import { useCompensationRuns, useCreateCompensationRun } from './hooks/use-compensation-runs'
+import { useCompensationRuns, useCreateCompensationRun, useFinalizeCompensationRun } from './hooks/use-compensation-runs'
 import { useCreateSalesReport, useDownloadSalesReport, useSalesReports } from './hooks/use-sales-reports'
 import {
   CalendarCheck2,
@@ -308,6 +309,8 @@ function App() {
   const [businessAmountPreview, setBusinessAmountPreview] = useState('0')
   const [businessDirectionPreview, setBusinessDirectionPreview] = useState<'add' | 'deduct'>('add')
   const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(formatDateOnly(new Date()))
+  const [sourceScheduleId, setSourceScheduleId] = useState('')
+  const [targetScheduleId, setTargetScheduleId] = useState('')
   const [compensationMode, setCompensationMode] = useState<'by_days' | 'up_to_date'>('by_days')
   const [salesReportPage, setSalesReportPage] = useState(1)
   const [reportScope, setReportScope] = useState<'portfolio' | 'business'>('portfolio')
@@ -334,11 +337,14 @@ function App() {
 
   const staffQuery = useStaff(selectedBusinessId)
   const createStaffMutation = useCreateStaff(selectedBusinessId)
+  const allStaffSchedulesQuery = useStaffSchedules(selectedBusinessId)
   const staffSchedulesQuery = useStaffSchedules(selectedBusinessId, scheduleDateFilter)
   const createStaffScheduleMutation = useCreateStaffSchedule(selectedBusinessId, scheduleDateFilter)
   const updateStaffScheduleMutation = useUpdateStaffSchedule(selectedBusinessId, scheduleDateFilter)
+  const swapStaffSchedulesMutation = useSwapStaffSchedules(selectedBusinessId, scheduleDateFilter)
   const compensationRunsQuery = useCompensationRuns(selectedBusinessId)
   const createCompensationRunMutation = useCreateCompensationRun(selectedBusinessId)
+  const finalizeCompensationRunMutation = useFinalizeCompensationRun(selectedBusinessId)
   const expensesQuery = useExpenses(selectedBusinessId)
   const createExpenseMutation = useCreateExpense(selectedBusinessId)
   const gcashQuery = useGcashSales(selectedBusinessId)
@@ -378,6 +384,7 @@ function App() {
   )
 
   const staffEntries = useMemo(() => staffQuery.data?.data ?? [], [staffQuery.data])
+  const allStaffScheduleEntries = useMemo(() => allStaffSchedulesQuery.data?.data ?? [], [allStaffSchedulesQuery.data])
   const staffScheduleEntries = useMemo(() => staffSchedulesQuery.data?.data ?? [], [staffSchedulesQuery.data])
   const compensationRuns = useMemo(() => compensationRunsQuery.data?.data ?? [], [compensationRunsQuery.data])
   const expenseEntries = useMemo(() => expensesQuery.data?.data ?? [], [expensesQuery.data])
@@ -589,6 +596,19 @@ function App() {
     setScheduleDateFilter(formatDateOnly(new Date()))
   }
 
+  const submitSwapStaffSchedule = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId || !sourceScheduleId || !targetScheduleId) return
+
+    await swapStaffSchedulesMutation.mutateAsync({
+      source_schedule_id: Number(sourceScheduleId),
+      target_schedule_id: Number(targetScheduleId),
+    })
+
+    setSourceScheduleId('')
+    setTargetScheduleId('')
+  }
+
   const markAttendance = async (scheduleId: number, attendanceStatus: 'present' | 'absent') => {
     if (!selectedBusinessId) return
     await updateStaffScheduleMutation.mutateAsync({
@@ -607,6 +627,11 @@ function App() {
       number_of_days: mode === 'by_days' ? Number(f.get('number_of_days') ?? 0) : undefined,
       cutoff_date: String(f.get('cutoff_date') ?? formatDateOnly(new Date())),
     })
+  }
+
+  const finalizeCompensationRun = async (runId: number) => {
+    if (!selectedBusinessId) return
+    await finalizeCompensationRunMutation.mutateAsync(runId)
   }
 
   const triggerDownloadSalesReport = async (reportId: number) => {
@@ -1277,6 +1302,49 @@ function App() {
                 </button>
               </form>
 
+              <SectionDivider label="Swap plotted dates" />
+              <form onSubmit={submitSwapStaffSchedule} className={formGridClass}>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Source schedule
+                  <select
+                    value={sourceScheduleId}
+                    onChange={(e) => setSourceScheduleId(e.target.value)}
+                    required
+                    className="dashboard-input"
+                  >
+                    <option value="">Select source schedule</option>
+                    {allStaffScheduleEntries.map((schedule) => (
+                      <option key={`source-${schedule.id}`} value={schedule.id}>
+                        {schedule.staff_name ?? 'Unknown staff'} · {schedule.scheduled_on}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Target schedule
+                  <select
+                    value={targetScheduleId}
+                    onChange={(e) => setTargetScheduleId(e.target.value)}
+                    required
+                    className="dashboard-input"
+                  >
+                    <option value="">Select target schedule</option>
+                    {allStaffScheduleEntries.map((schedule) => (
+                      <option key={`target-${schedule.id}`} value={schedule.id}>
+                        {schedule.staff_name ?? 'Unknown staff'} · {schedule.scheduled_on}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="submit"
+                  disabled={!selectedBusinessId || swapStaffSchedulesMutation.isPending || sourceScheduleId === targetScheduleId}
+                  className="dashboard-button-primary"
+                >
+                  {swapStaffSchedulesMutation.isPending ? 'Swapping…' : 'Swap schedules'}
+                </button>
+              </form>
+
               <SectionDivider label={`Attendance prompts (${scheduleDateFilter})`} />
               <div className="mb-3 w-full max-w-xs">
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
@@ -1390,13 +1458,42 @@ function App() {
                           {run.computation_mode === 'by_days' ? `By days (${run.number_of_days ?? 0})` : 'Up to date'} ·{' '}
                           {run.period_start} to {run.period_end}
                         </p>
-                        <span className="text-sm font-semibold text-[var(--teal-mid)]">
-                          Net {formatCurrency(parseAmount(run.net_pay))}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                            run.payment_status === 'finalized'
+                              ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                              : 'bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
+                          }`}>
+                            {run.payment_status}
+                          </span>
+                          <span className="text-sm font-semibold text-[var(--teal-mid)]">
+                            Net {formatCurrency(parseAmount(run.net_pay))}
+                          </span>
+                        </div>
                       </div>
                       <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
                         Gross {formatCurrency(parseAmount(run.gross_pay))} · Deductions {formatCurrency(parseAmount(run.total_deductions))}
                       </p>
+                      {run.payment_status === 'finalized' ? (
+                        <p className="mt-1 text-xs text-[var(--status-success-text)]">
+                          Finalized {run.finalized_at ? formatDateTimeDisplay(run.finalized_at) : ''} by {run.finalized_by_name ?? 'Unknown'}
+                        </p>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => finalizeCompensationRun(run.id)}
+                          disabled={finalizeCompensationRunMutation.isPending}
+                          className="mt-2 rounded-lg bg-[var(--burgundy-600)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--burgundy-800)] disabled:opacity-60"
+                        >
+                          {finalizeCompensationRunMutation.isPending ? 'Finalizing…' : 'Finalize payout'}
+                        </button>
+                      )}
+                      {run.payment_history.length > 0 && (
+                        <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
+                          Payment events: {run.payment_history.length} · Last settled deductions:{' '}
+                          {run.payment_history[run.payment_history.length - 1]?.settled_deductions.length ?? 0}
+                        </p>
+                      )}
                     </li>
                   ))}
                 </ul>

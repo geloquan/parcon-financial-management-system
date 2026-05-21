@@ -170,6 +170,28 @@ export type CompensationBreakdownItem = {
   gross_pay: number
   deductions: number
   net_pay: number
+  cash_advance_settlements: {
+    cash_advance_id: number
+    deducted_amount: number
+    remaining_balance_before: number
+  }[]
+}
+
+export type CompensationPaymentHistoryItem = {
+  action: 'finalized'
+  finalized_at: string
+  finalized_by_user_id: number
+  finalized_by_name: string
+  settled_deductions: {
+    staff_id: number
+    staff_name: string
+    cash_advance_id: number
+    deducted_amount: number
+    settled_amount: number
+    remaining_balance_before: number
+    remaining_balance_after: number
+    status: 'pending' | 'settled'
+  }[]
 }
 
 export type CompensationRun = {
@@ -185,6 +207,11 @@ export type CompensationRun = {
   total_deductions: string
   net_pay: string
   employee_breakdown: CompensationBreakdownItem[]
+  payment_status: 'pending' | 'finalized'
+  finalized_by_user_id: number | null
+  finalized_by_name: string | null
+  finalized_at: string | null
+  payment_history: CompensationPaymentHistoryItem[]
 }
 
 export type SalesReportVersion = {

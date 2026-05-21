@@ -9,6 +9,10 @@ export type CreateStaffSchedulePayload = {
 }
 
 export type UpdateStaffSchedulePayload = Partial<CreateStaffSchedulePayload>
+export type SwapStaffSchedulesPayload = {
+  source_schedule_id: number
+  target_schedule_id: number
+}
 
 export const fetchStaffSchedules = async (
   businessId: number,
@@ -35,6 +39,22 @@ export const updateStaffSchedule = async (
 ): Promise<StaffSchedule> => {
   return apiRequest<StaffSchedule>(`/businesses/${businessId}/staff_schedules/${scheduleId}`, {
     method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export const swapStaffSchedules = async (
+  businessId: number,
+  payload: SwapStaffSchedulesPayload,
+): Promise<{
+  message: string
+  data: {
+    source_schedule: StaffSchedule
+    target_schedule: StaffSchedule
+  }
+}> => {
+  return apiRequest(`/businesses/${businessId}/staff_schedules/swap`, {
+    method: 'POST',
     body: JSON.stringify(payload),
   })
 }

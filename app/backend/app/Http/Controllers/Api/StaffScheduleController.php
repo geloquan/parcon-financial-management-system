@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Schedule\SwapStaffScheduleRequest;
 use App\Http\Requests\Schedule\StoreStaffScheduleRequest;
 use App\Http\Requests\Schedule\UpdateStaffScheduleRequest;
 use App\Http\Resources\StaffScheduleResource;
 use App\Models\Business;
 use App\Models\StaffSchedule;
 use App\Services\StaffScheduleService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -44,5 +46,18 @@ class StaffScheduleController extends Controller
         $this->staffScheduleService->delete($staffSchedule);
 
         return ['message' => 'Staff schedule deleted successfully.'];
+    }
+
+    public function swap(SwapStaffScheduleRequest $request, Business $business): JsonResponse
+    {
+        $swappedSchedules = $this->staffScheduleService->swap($business, $request->validated());
+
+        return response()->json([
+            'message' => 'Staff schedules swapped successfully.',
+            'data' => [
+                'source_schedule' => (new StaffScheduleResource($swappedSchedules['source']))->toArray($request),
+                'target_schedule' => (new StaffScheduleResource($swappedSchedules['target']))->toArray($request),
+            ],
+        ]);
     }
 }

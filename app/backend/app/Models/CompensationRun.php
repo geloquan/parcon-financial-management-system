@@ -22,6 +22,10 @@ class CompensationRun extends Model
         'total_deductions',
         'net_pay',
         'employee_breakdown',
+        'payment_status',
+        'finalized_by_user_id',
+        'finalized_at',
+        'payment_history',
     ];
 
     protected $casts = [
@@ -29,6 +33,8 @@ class CompensationRun extends Model
         'period_start' => 'date',
         'period_end' => 'date',
         'employee_breakdown' => 'array',
+        'finalized_at' => 'datetime',
+        'payment_history' => 'array',
     ];
 
     public function business(): BelongsTo
@@ -39,5 +45,10 @@ class CompensationRun extends Model
     public function computedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'computed_by_user_id');
+    }
+
+    public function finalizedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'finalized_by_user_id');
     }
 }

@@ -20,3 +20,12 @@ export const createCompensationRun = async (
     body: JSON.stringify(payload),
   })
 }
+
+export const finalizeCompensationRun = async (
+  businessId: number,
+  runId: number,
+): Promise<CompensationRun> => {
+  return apiRequest<CompensationRun>(`/businesses/${businessId}/compensation_runs/${runId}/finalize`, {
+    method: 'POST',
+  })
+}

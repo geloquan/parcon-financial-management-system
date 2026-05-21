@@ -36,9 +36,11 @@ Route::middleware('auth.api')->group(function (): void {
       Route::apiResource('staff_schedules', StaffScheduleController::class)
         ->parameters(['staff_schedules' => 'staffSchedule'])
         ->only(['index', 'store', 'update', 'destroy']);
+      Route::post('staff_schedules/swap', [StaffScheduleController::class, 'swap']);
       Route::apiResource('compensation_runs', CompensationRunController::class)
         ->parameters(['compensation_runs' => 'compensationRun'])
         ->only(['index', 'store', 'destroy']);
+      Route::post('compensation_runs/{compensationRun}/finalize', [CompensationRunController::class, 'finalize']);
       Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
       Route::apiResource('reference_items', BusinessReferenceItemController::class)
         ->parameters(['reference_items' => 'businessReferenceItem'])
@@ -66,7 +68,7 @@ Route::middleware('auth.api')->group(function (): void {
   Route::post('portfolio_capital/movements', [CapitalMovementController::class, 'storePortfolio'])
     ->middleware(['role:admin,owner', 'portfolio.reauth']);
 
-  Route::post('sales_reports/generate', [SalesReportController::class, 'store']);
+  Route::post('sales_reports/generate', [SalesReportController::class, 'generate']);
 
   Route::get('capital/movements', [CapitalMovementController::class, 'index']);
 });

@@ -23,6 +23,11 @@ class CompensationRunResource extends JsonResource
             'total_deductions' => $this->total_deductions,
             'net_pay' => $this->net_pay,
             'employee_breakdown' => $this->employee_breakdown,
+            'payment_status' => $this->payment_status,
+            'finalized_by_user_id' => $this->finalized_by_user_id,
+            'finalized_by_name' => $this->finalizedBy?->name,
+            'finalized_at' => $this->finalized_at?->toIso8601String(),
+            'payment_history' => $this->payment_history ?? [],
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
