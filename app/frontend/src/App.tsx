@@ -8,8 +8,16 @@ import { useCreatePrintSale, usePrintSales } from './hooks/use-print-sales'
 import { useCreateEtherealSale, useEtherealSales } from './hooks/use-ethereal-sales'
 import { useGenerateSalesReport } from './hooks/use-sales-reports'
 import { useCreateStaff, useStaff } from './hooks/use-staff'
-import { useBusinessReferenceItems, useCreateBusinessReferenceItem } from './hooks/use-business-reference-items'
 import {
+  useCreateStaffSchedule,
+  useStaffSchedules,
+  useUpdateStaffSchedule,
+} from './hooks/use-staff-schedules'
+import { useBusinessReferenceItems, useCreateBusinessReferenceItem } from './hooks/use-business-reference-items'
+import { useCompensationRuns, useCreateCompensationRun } from './hooks/use-compensation-runs'
+import { useCreateSalesReport, useDownloadSalesReport, useSalesReports } from './hooks/use-sales-reports'
+import {
+  CalendarCheck2,
   BanknoteArrowDown,
   BanknoteArrowUp,
   Building2,
@@ -40,6 +48,8 @@ type Tab =
   | 'overview'
   | 'businesses'
   | 'staff'
+  | 'scheduleAttendance'
+  | 'compensation'
   | 'referenceItems'
   | 'expenses'
   | 'gcash'
@@ -49,6 +59,7 @@ type Tab =
   | 'salesReports'
   | 'portfolioCapital'
   | 'businessCapital'
+  | 'pdfSalesReports'
 
 type MoneyReauthCredentials = {
   reauth_username: string
@@ -135,6 +146,14 @@ const formatDateTimeLocal = (value: string | Date) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
+const formatDateOnly = (value: string | Date) => {
+  const date = value instanceof Date ? value : new Date(value)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const formatDateTimeDisplay = (value: string) => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
@@ -176,6 +195,8 @@ const navGroups: Array<{
     label: 'Management',
     items: [
       { value: 'staff', label: 'Staff', icon: UserRound },
+      { value: 'scheduleAttendance', label: 'Schedule & Attendance', icon: CalendarCheck2 },
+      { value: 'compensation', label: 'Compensation', icon: BanknoteArrowUp },
       { value: 'referenceItems', label: 'Reference Items', icon: NotebookPen },
       { value: 'expenses', label: 'Expenses', icon: ReceiptText },
     ],
@@ -195,6 +216,7 @@ const navGroups: Array<{
     items: [
       { value: 'portfolioCapital', label: 'Portfolio Money', icon: BanknoteArrowUp },
       { value: 'businessCapital', label: 'Business Money', icon: BanknoteArrowDown },
+      { value: 'pdfSalesReports', label: 'PDF Sales Reports', icon: FileText },
     ],
   },
 ]
@@ -293,6 +315,9 @@ function App() {
   const [moneyReauthPassword, setMoneyReauthPassword] = useState('')
 
   const moneyReauthResolverRef = useRef<((credentials: MoneyReauthCredentials | null) => void) | null>(null)
+  const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(formatDateOnly(new Date()))
+  const [compensationMode, setCompensationMode] = useState<'by_days' | 'up_to_date'>('by_days')
+  const [salesReportPage, setSalesReportPage] = useState(1)
 
   const meQuery = useMe()
   const loginMutation = useLogin()
@@ -309,6 +334,11 @@ function App() {
 
   const staffQuery = useStaff(selectedBusinessId)
   const createStaffMutation = useCreateStaff(selectedBusinessId)
+  const staffSchedulesQuery = useStaffSchedules(selectedBusinessId, scheduleDateFilter)
+  const createStaffScheduleMutation = useCreateStaffSchedule(selectedBusinessId, scheduleDateFilter)
+  const updateStaffScheduleMutation = useUpdateStaffSchedule(selectedBusinessId, scheduleDateFilter)
+  const compensationRunsQuery = useCompensationRuns(selectedBusinessId)
+  const createCompensationRunMutation = useCreateCompensationRun(selectedBusinessId)
   const expensesQuery = useExpenses(selectedBusinessId)
   const createExpenseMutation = useCreateExpense(selectedBusinessId)
   const gcashQuery = useGcashSales(selectedBusinessId)
@@ -324,6 +354,9 @@ function App() {
   const capitalMovementsQuery = useCapitalMovements()
   const createPortfolioCapitalMutation = useCreatePortfolioCapitalMovement()
   const createBusinessCapitalMutation = useCreateBusinessCapitalMovement(selectedBusinessId)
+  const salesReportsQuery = useSalesReports(selectedBusinessId, salesReportPage)
+  const createSalesReportMutation = useCreateSalesReport(selectedBusinessId, salesReportPage)
+  const downloadSalesReportMutation = useDownloadSalesReport(selectedBusinessId)
   const generateSalesReportMutation = useGenerateSalesReport()
 
   const selectedBusinessName = useMemo(
@@ -345,14 +378,21 @@ function App() {
   )
 
   const staffEntries = useMemo(() => staffQuery.data?.data ?? [], [staffQuery.data])
+  const staffScheduleEntries = useMemo(() => staffSchedulesQuery.data?.data ?? [], [staffSchedulesQuery.data])
+  const compensationRuns = useMemo(() => compensationRunsQuery.data?.data ?? [], [compensationRunsQuery.data])
   const expenseEntries = useMemo(() => expensesQuery.data?.data ?? [], [expensesQuery.data])
   const gcashEntries = useMemo(() => gcashQuery.data?.data ?? [], [gcashQuery.data])
   const coffeeEntries = useMemo(() => coffeeQuery.data?.data ?? [], [coffeeQuery.data])
   const printEntries = useMemo(() => printQuery.data?.data ?? [], [printQuery.data])
   const etherealEntries = useMemo(() => etherealQuery.data?.data ?? [], [etherealQuery.data])
   const referenceItems = useMemo(() => referenceItemsQuery.data?.data ?? [], [referenceItemsQuery.data])
+  const salesReportVersions = useMemo(() => salesReportsQuery.data?.data ?? [], [salesReportsQuery.data])
   const productReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'product'), [referenceItems])
   const serviceReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'service'), [referenceItems])
+  const unresolvedAttendanceToday = useMemo(
+    () => staffScheduleEntries.filter((schedule) => schedule.attendance_status === 'pending'),
+    [staffScheduleEntries],
+  )
 
   const expenseTotal = useMemo(
     () => expenseEntries.reduce((t, i) => t + parseAmount(i.amount), 0),
@@ -425,6 +465,58 @@ function App() {
       : capitalBalances.businessBalance - amt
   }, [businessAmountPreview, businessDirectionPreview, capitalBalances.businessBalance])
 
+  const overviewAnomalies = useMemo(() => {
+    const anomalies: string[] = []
+
+    if (capitalBalances.portfolioBalance < 0) {
+      anomalies.push(`Portfolio capital is negative (${formatCurrency(capitalBalances.portfolioBalance)}).`)
+    }
+
+    if (capitalBalances.businessBalance < 0) {
+      anomalies.push(`Business capital is negative (${formatCurrency(capitalBalances.businessBalance)}).`)
+    }
+
+    if (profitSnapshot < 0) {
+      anomalies.push(`Profit snapshot is negative (${formatCurrency(profitSnapshot)}).`)
+    }
+
+    const getDateKey = (value: string) => value.slice(0, 10)
+    const today = formatDateOnly(new Date())
+    const yesterdayDate = new Date()
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+    const yesterday = formatDateOnly(yesterdayDate)
+
+    const salesByDay = new Map<string, number>()
+    for (const entry of gcashEntries) {
+      salesByDay.set(getDateKey(entry.transaction_date), (salesByDay.get(getDateKey(entry.transaction_date)) ?? 0) + parseAmount(entry.sales_amount))
+    }
+    for (const entry of coffeeEntries) {
+      salesByDay.set(getDateKey(entry.sale_date), (salesByDay.get(getDateKey(entry.sale_date)) ?? 0) + parseAmount(entry.price))
+    }
+    for (const entry of printEntries) {
+      salesByDay.set(getDateKey(entry.sale_date), (salesByDay.get(getDateKey(entry.sale_date)) ?? 0) + parseAmount(entry.sales_amount))
+    }
+    for (const entry of etherealEntries) {
+      salesByDay.set(getDateKey(entry.service_date), (salesByDay.get(getDateKey(entry.service_date)) ?? 0) + parseAmount(entry.net_amount))
+    }
+
+    const todaySales = salesByDay.get(today) ?? 0
+    const yesterdaySales = salesByDay.get(yesterday) ?? 0
+    if (todaySales < yesterdaySales) {
+      anomalies.push(`Sales relapsed vs yesterday (${formatCurrency(todaySales)} vs ${formatCurrency(yesterdaySales)}).`)
+    }
+
+    return anomalies
+  }, [
+    capitalBalances.businessBalance,
+    capitalBalances.portfolioBalance,
+    coffeeEntries,
+    etherealEntries,
+    gcashEntries,
+    printEntries,
+    profitSnapshot,
+  ])
+
   const dateInputMax = useMemo(() => formatDateTimeLocal(new Date()), [])
   const dateInputMin = useMemo(() => {
     if (meQuery.data?.role === 'admin' || meQuery.data?.role === 'owner') return undefined
@@ -481,6 +573,50 @@ function App() {
       is_active: String(f.get('is_active') ?? '1') === '1',
     })
     e.currentTarget.reset()
+  }
+
+  const submitStaffSchedule = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId) return
+    const f = new FormData(e.currentTarget)
+    await createStaffScheduleMutation.mutateAsync({
+      staff_id: Number(f.get('staff_id') ?? 0),
+      scheduled_on: String(f.get('scheduled_on') ?? ''),
+      attendance_status: String(f.get('attendance_status') ?? 'pending') as 'pending' | 'present' | 'absent',
+      notes: String(f.get('notes') ?? ''),
+    })
+    e.currentTarget.reset()
+    setScheduleDateFilter(formatDateOnly(new Date()))
+  }
+
+  const markAttendance = async (scheduleId: number, attendanceStatus: 'present' | 'absent') => {
+    if (!selectedBusinessId) return
+    await updateStaffScheduleMutation.mutateAsync({
+      scheduleId,
+      payload: { attendance_status: attendanceStatus },
+    })
+  }
+
+  const submitCompensationRun = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedBusinessId) return
+    const f = new FormData(e.currentTarget)
+    const mode = String(f.get('computation_mode') ?? 'by_days') as 'by_days' | 'up_to_date'
+    await createCompensationRunMutation.mutateAsync({
+      computation_mode: mode,
+      number_of_days: mode === 'by_days' ? Number(f.get('number_of_days') ?? 0) : undefined,
+      cutoff_date: String(f.get('cutoff_date') ?? formatDateOnly(new Date())),
+    })
+  }
+
+  const triggerDownloadSalesReport = async (reportId: number) => {
+    const download = await downloadSalesReportMutation.mutateAsync(reportId)
+    const url = URL.createObjectURL(download.blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = download.filename
+    anchor.click()
+    URL.revokeObjectURL(url)
   }
 
   const submitExpense = async (e: FormEvent<HTMLFormElement>) => {
@@ -831,7 +967,8 @@ function App() {
           </header>
 
           {/* ── KPI stat cards ────────────────────────────────────────── */}
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {tab === 'overview' && (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {/* Active business */}
             <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--burgundy-50)]">
@@ -887,7 +1024,8 @@ function App() {
                 </p>
               </div>
             </article>
-          </div>
+            </div>
+          )}
 
           {/* ── Tab content ──────────────────────────────────────────────── */}
 
@@ -950,6 +1088,26 @@ function App() {
                     </p>
                   </div>
                 </div>
+              </article>
+
+              <article className={`${cardClass} lg:col-span-2`}>
+                <SectionHeading icon={TrendingDown} title="Anomalies to address" description="Negative values and relapsed day-over-day trends." />
+                {overviewAnomalies.length === 0 ? (
+                  <div className="mt-5 rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3 text-sm text-[var(--status-success-text)]">
+                    No anomalies detected for current data.
+                  </div>
+                ) : (
+                  <ul className="mt-5 grid gap-2">
+                    {overviewAnomalies.map((anomaly) => (
+                      <li
+                        key={anomaly}
+                        className="rounded-lg border border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] px-4 py-3 text-sm text-[var(--status-danger-text)]"
+                      >
+                        {anomaly}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </article>
             </section>
           )}
@@ -1061,6 +1219,187 @@ function App() {
                     </tbody>
                   </table>
                 </div>
+              )}
+            </section>
+          )}
+
+          {/* SCHEDULE & ATTENDANCE */}
+          {tab === 'scheduleAttendance' && (
+            <section className={cardClass}>
+              <SectionHeading
+                icon={CalendarCheck2}
+                title="Schedule & Attendance"
+                description="Plot staff schedules and mark attendance anytime within the day."
+              />
+              <form onSubmit={submitStaffSchedule} className={formGridClass}>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Staff
+                  <select name="staff_id" required className="dashboard-input">
+                    <option value="">Select staff</option>
+                    {staffEntries.map((staff) => (
+                      <option key={staff.id} value={staff.id}>
+                        {staff.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Scheduled date
+                  <input name="scheduled_on" type="date" defaultValue={scheduleDateFilter} required className="dashboard-input" />
+                </label>
+                <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Attendance</p>
+                  <div className="flex gap-2">
+                    {(['pending', 'present', 'absent'] as const).map((status, index) => (
+                      <label key={status} className={optionPillClass}>
+                        <input
+                          type="radio"
+                          name="attendance_status"
+                          value={status}
+                          defaultChecked={index === 0}
+                          className="sr-only"
+                        />
+                        {status}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-3">
+                  Notes (optional)
+                  <input name="notes" className="dashboard-input" />
+                </label>
+                <button
+                  type="submit"
+                  disabled={!selectedBusinessId || createStaffScheduleMutation.isPending}
+                  className="dashboard-button-primary"
+                >
+                  {createStaffScheduleMutation.isPending ? 'Saving…' : 'Save schedule'}
+                </button>
+              </form>
+
+              <SectionDivider label={`Attendance prompts (${scheduleDateFilter})`} />
+              <div className="mb-3 w-full max-w-xs">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Prompt date
+                  <input
+                    type="date"
+                    value={scheduleDateFilter}
+                    onChange={(e) => setScheduleDateFilter(e.target.value)}
+                    className="dashboard-input"
+                  />
+                </label>
+              </div>
+              {staffSchedulesQuery.isLoading ? (
+                <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
+              ) : unresolvedAttendanceToday.length === 0 ? (
+                <EmptyState label="No pending attendance prompts for the selected date." />
+              ) : (
+                <ul className="grid gap-2">
+                  {unresolvedAttendanceToday.map((schedule) => (
+                    <li
+                      key={schedule.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--neutral-linen)] px-4 py-3"
+                    >
+                      <div>
+                        <p className="font-medium">{schedule.staff_name ?? 'Unknown staff'}</p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">{schedule.scheduled_on}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => markAttendance(schedule.id, 'present')}
+                          className="rounded-lg bg-[var(--status-success-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--status-success-text)]"
+                        >
+                          Present
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => markAttendance(schedule.id, 'absent')}
+                          className="rounded-lg bg-[var(--status-danger-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--status-danger-text)]"
+                        >
+                          Absent
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {/* COMPENSATION */}
+          {tab === 'compensation' && (
+            <section className={cardClass}>
+              <SectionHeading
+                icon={BanknoteArrowUp}
+                title="Compensation"
+                description="Compute compensation by days or up to cutoff date with attendance and cash-advance deductions."
+              />
+              <form onSubmit={submitCompensationRun} className={formGridClass}>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Computation mode</p>
+                  <div className="flex gap-2">
+                    {([
+                      { value: 'by_days', label: 'By number of days' },
+                      { value: 'up_to_date', label: 'Up to specific date' },
+                    ] as const).map((mode) => (
+                      <label key={mode.value} className={optionPillClass}>
+                        <input
+                          type="radio"
+                          name="computation_mode"
+                          value={mode.value}
+                          checked={compensationMode === mode.value}
+                          onChange={() => setCompensationMode(mode.value)}
+                          className="sr-only"
+                        />
+                        {mode.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {compensationMode === 'by_days' && (
+                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                    Number of days
+                    <input name="number_of_days" type="number" min="1" defaultValue="1" required className="dashboard-input" />
+                  </label>
+                )}
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Cutoff date
+                  <input name="cutoff_date" type="date" defaultValue={formatDateOnly(new Date())} required className="dashboard-input" />
+                </label>
+                <button
+                  type="submit"
+                  disabled={!selectedBusinessId || createCompensationRunMutation.isPending}
+                  className="dashboard-button-primary"
+                >
+                  {createCompensationRunMutation.isPending ? 'Computing…' : 'Run compensation'}
+                </button>
+              </form>
+
+              <SectionDivider label="Compensation runs" />
+              {compensationRunsQuery.isLoading ? (
+                <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
+              ) : compensationRuns.length === 0 ? (
+                <EmptyState label="No compensation runs yet." />
+              ) : (
+                <ul className="grid gap-3">
+                  {compensationRuns.map((run) => (
+                    <li key={run.id} className="rounded-xl border border-[var(--neutral-linen)] px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-semibold">
+                          {run.computation_mode === 'by_days' ? `By days (${run.number_of_days ?? 0})` : 'Up to date'} ·{' '}
+                          {run.period_start} to {run.period_end}
+                        </p>
+                        <span className="text-sm font-semibold text-[var(--teal-mid)]">
+                          Net {formatCurrency(parseAmount(run.net_pay))}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
+                        Gross {formatCurrency(parseAmount(run.gross_pay))} · Deductions {formatCurrency(parseAmount(run.total_deductions))}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
               )}
             </section>
           )}
@@ -1833,6 +2172,99 @@ function App() {
                     </li>
                   ))}
                 </ul>
+              )}
+            </section>
+          )}
+
+          {/* PDF SALES REPORTS */}
+          {tab === 'pdfSalesReports' && (
+            <section className={cardClass}>
+              <SectionHeading
+                icon={FileText}
+                title="PDF Sales Reports"
+                description="Generate versioned PDF 8.5x13 sales reports with metadata headers/footers."
+              />
+              {meQuery.data.role !== 'admin' && meQuery.data.role !== 'owner' ? (
+                <div className="mt-5 rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-4 py-3 text-sm text-[var(--status-warning-text)]">
+                  Only admin and owner can view and download exported report files.
+                </div>
+              ) : (
+                <>
+                  <form onSubmit={submitSalesReport} className={formGridClass}>
+                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      Start date
+                      <input name="start_date" type="date" required className="dashboard-input" />
+                    </label>
+                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      End date
+                      <input name="end_date" type="date" required className="dashboard-input" />
+                    </label>
+                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      Document title (optional)
+                      <input name="document_title" className="dashboard-input" />
+                    </label>
+                    <button
+                      type="submit"
+                      disabled={!selectedBusinessId || createSalesReportMutation.isPending}
+                      className="dashboard-button-primary"
+                    >
+                      {createSalesReportMutation.isPending ? 'Generating…' : 'Generate report version'}
+                    </button>
+                  </form>
+
+                  <SectionDivider label="Generated versions" />
+                  {salesReportsQuery.isLoading ? (
+                    <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
+                  ) : salesReportVersions.length === 0 ? (
+                    <EmptyState label="No report versions generated yet." />
+                  ) : (
+                    <div className="grid gap-3">
+                      {salesReportVersions.map((report) => (
+                        <article key={report.id} className="rounded-xl border border-[var(--neutral-linen)] px-4 py-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="font-semibold">
+                              v{report.version} · {report.document_title}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => triggerDownloadSalesReport(report.id)}
+                              disabled={downloadSalesReportMutation.isPending}
+                              className="dashboard-button-secondary"
+                            >
+                              Download PDF
+                            </button>
+                          </div>
+                          <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
+                            Range {report.start_date} to {report.end_date} · {report.metadata.generated_by} ·{' '}
+                            {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
+                            Overall sales: {formatCurrency(parseAmount(report.details.totals.overall_sales))}
+                          </p>
+                        </article>
+                      ))}
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSalesReportPage((prev) => Math.max(prev - 1, 1))}
+                          disabled={salesReportPage <= 1}
+                          className="dashboard-button-secondary"
+                        >
+                          Prev
+                        </button>
+                        <span className="text-xs text-[var(--neutral-rosewood)]">Page {salesReportPage}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSalesReportPage((prev) => prev + 1)}
+                          disabled={!salesReportsQuery.data?.links?.next}
+                          className="dashboard-button-secondary"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           )}
