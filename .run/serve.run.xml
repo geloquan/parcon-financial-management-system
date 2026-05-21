@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="servee" type="PhpLocalRunConfigurationType" factoryName="PHP Console" path="$PROJECT_DIR$/app/backend/artisan" scriptParameters="serve">
+  <configuration default="false" name="serve" type="PhpLocalRunConfigurationType" factoryName="PHP Console" path="$PROJECT_DIR$/app/backend/artisan" scriptParameters="serve">
     <CommandLine>
       <envFiles>
         <find>$PROJECT_DIR$/app/backend/.env</find>
