@@ -685,7 +685,7 @@ function App() {
           {/* Top header */}
           <header className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-5 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
 
-              {/* User Greeting */}
+            {/* User Greeting */}
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 {/* Avatar initial */}
