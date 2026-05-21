@@ -9,6 +9,21 @@ import { useCreateEtherealSale, useEtherealSales } from './hooks/use-ethereal-sa
 import { useCreateStaff, useStaff } from './hooks/use-staff'
 import { useBusinessReferenceItems, useCreateBusinessReferenceItem } from './hooks/use-business-reference-items'
 import {
+  BanknoteArrowDown,
+  BanknoteArrowUp,
+  Building2,
+  Coffee,
+  LayoutDashboard,
+  LogIn,
+  NotebookPen,
+  Printer,
+  ReceiptText,
+  Sparkles,
+  UserRound,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react'
+import {
   useCapitalMovements,
   useCreateBusinessCapitalMovement,
   useCreatePortfolioCapitalMovement,
@@ -147,18 +162,18 @@ const formatRelative = (value: string) => {
   return `${days} day${days === 1 ? '' : 's'} ago`
 }
 
-const navItems: Array<{ value: Tab; label: string }> = [
-  { value: 'overview', label: 'Overview' },
-  { value: 'businesses', label: 'Businesses' },
-  { value: 'staff', label: 'Staff' },
-  { value: 'referenceItems', label: 'Reference Items' },
-  { value: 'expenses', label: 'Expenses' },
-  { value: 'gcash', label: 'GCash' },
-  { value: 'coffee', label: 'Coffee' },
-  { value: 'print', label: 'Print' },
-  { value: 'ethereal', label: 'Ethereal' },
-  { value: 'portfolioCapital', label: 'Portfolio Money' },
-  { value: 'businessCapital', label: 'Business Money' },
+const navItems: Array<{ value: Tab; label: string; icon: LucideIcon }> = [
+  { value: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { value: 'businesses', label: 'Businesses', icon: Building2 },
+  { value: 'staff', label: 'Staff', icon: UserRound },
+  { value: 'referenceItems', label: 'Reference Items', icon: NotebookPen },
+  { value: 'expenses', label: 'Expenses', icon: ReceiptText },
+  { value: 'gcash', label: 'GCash', icon: Wallet },
+  { value: 'coffee', label: 'Coffee', icon: Coffee },
+  { value: 'print', label: 'Print', icon: Printer },
+  { value: 'ethereal', label: 'Ethereal', icon: Sparkles },
+  { value: 'portfolioCapital', label: 'Portfolio Money', icon: BanknoteArrowUp },
+  { value: 'businessCapital', label: 'Business Money', icon: BanknoteArrowDown },
 ]
 
 const cardClass =
@@ -567,10 +582,19 @@ function App() {
           <h1 className="text-2xl font-semibold">Parcon FMS</h1>
           <p className="mt-2 text-sm text-[var(--neutral-rosewood)]">Login with your backend user credentials.</p>
           <form onSubmit={submitLogin} className="mt-6 grid gap-3">
-            <input name="username" placeholder="Username" required className="dashboard-input" />
-            <input name="password" type="password" placeholder="Password" required className="dashboard-input" />
+            <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+              Username
+              <input name="username" required className="dashboard-input" />
+            </label>
+            <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+              Password
+              <input name="password" type="password" required className="dashboard-input" />
+            </label>
             <button type="submit" disabled={loginMutation.isPending} className="dashboard-button-primary">
-              {loginMutation.isPending ? 'Logging in...' : 'Login'}
+              <span className="inline-flex items-center gap-2">
+                <LogIn className="h-4 w-4" />
+                {loginMutation.isPending ? 'Logging in...' : 'Login'}
+              </span>
             </button>
           </form>
           {loginMutation.error ? <p className="mt-3 text-sm text-[var(--status-danger-text)]">{loginMutation.error.message}</p> : null}
@@ -587,9 +611,9 @@ function App() {
             <h1 className="text-lg font-semibold text-[var(--burgundy-800)]">Parcon FMS</h1>
             <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">Dashboard workspace</p>
           </div>
-          <nav className="mt-4 grid gap-1">
-            {navItems.map((item) => (
-              <button
+            <nav className="mt-4 grid gap-1">
+              {navItems.map((item) => (
+                <button
                 key={item.value}
                 type="button"
                 onClick={() => setTab(item.value)}
@@ -598,12 +622,15 @@ function App() {
                     ? 'bg-[var(--burgundy-600)] text-white'
                     : 'text-[var(--neutral-rosewood)] hover:bg-[var(--burgundy-50)] hover:text-[var(--burgundy-800)]'
                 }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
-        </aside>
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </nav>
+          </aside>
 
         <section className="grid gap-6">
           <header className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-5 shadow-[0_8px_24px_rgba(58,9,18,0.07)]">
@@ -704,6 +731,30 @@ function App() {
                   </div>
                 </div>
               </article>
+              <article className={`${cardClass} lg:col-span-2`}>
+                <h3 className="text-lg font-semibold">Money computation overview</h3>
+                <p className="mt-2 text-sm text-[var(--neutral-rosewood)]">
+                  Portfolio and selected business balances are computed from movement history.
+                </p>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-lg bg-[var(--status-info-bg)] px-3 py-2 text-sm text-[var(--status-info-text)]">
+                    <p className="text-xs uppercase tracking-wider">Portfolio balance</p>
+                    <p className="mt-1 text-base font-semibold">{formatCurrency(capitalBalances.portfolioBalance)}</p>
+                  </div>
+                  <div className="rounded-lg bg-[var(--status-success-bg)] px-3 py-2 text-sm text-[var(--status-success-text)]">
+                    <p className="text-xs uppercase tracking-wider">Business balance {selectedBusinessName ? `(${selectedBusinessName})` : ''}</p>
+                    <p className="mt-1 text-base font-semibold">{formatCurrency(capitalBalances.businessBalance)}</p>
+                  </div>
+                  <div className="rounded-lg bg-[var(--burgundy-50)] px-3 py-2 text-sm text-[var(--burgundy-800)]">
+                    <p className="text-xs uppercase tracking-wider">Portfolio after current preview</p>
+                    <p className="mt-1 text-base font-semibold">{formatCurrency(portfolioAfterPreview)}</p>
+                  </div>
+                  <div className="rounded-lg bg-[var(--burgundy-50)] px-3 py-2 text-sm text-[var(--burgundy-800)]">
+                    <p className="text-xs uppercase tracking-wider">Business after current preview</p>
+                    <p className="mt-1 text-base font-semibold">{formatCurrency(businessAfterPreview)}</p>
+                  </div>
+                </div>
+              </article>
             </section>
           ) : null}
 
@@ -773,19 +824,31 @@ function App() {
             <section className={cardClass}>
               <h3 className="text-lg font-semibold">Business Product/Service Items</h3>
               <form onSubmit={submitReferenceItem} className={formGridClass}>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-2 sm:grid-cols-2">
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
-                    <input type="radio" name="item_type" value="product" defaultChecked className="mr-2" />
-                    product
-                  </label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
-                    <input type="radio" name="item_type" value="service" className="mr-2" />
-                    service
-                  </label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  <span>Item type</span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
+                      <input type="radio" name="item_type" value="product" defaultChecked className="mr-2" />
+                      product
+                    </label>
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm">
+                      <input type="radio" name="item_type" value="service" className="mr-2" />
+                      service
+                    </label>
+                  </div>
                 </div>
-                <input name="name" placeholder="Item name" required className="dashboard-input" />
-                <input name="price" type="number" step="0.01" min="0" placeholder="Base price" required className="dashboard-input" />
-                <input name="description" placeholder="Description (optional)" className="dashboard-input" />
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Item name
+                  <input name="name" required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Base price
+                  <input name="price" type="number" step="0.01" min="0" required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Description (optional)
+                  <input name="description" className="dashboard-input" />
+                </label>
                 <button type="submit" disabled={!selectedBusinessId || createReferenceItemMutation.isPending} className="dashboard-button-primary">
                   Save reference item
                 </button>
@@ -806,19 +869,37 @@ function App() {
             <section className={cardClass}>
               <h3 className="text-lg font-semibold">Expenses</h3>
               <form onSubmit={submitExpense} className={formGridClass}>
-                <input name="date_issued" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
-                <input name="amount" type="number" step="0.01" placeholder="Amount" required className="dashboard-input" />
-                <input name="description" placeholder="Description" required className="dashboard-input" />
-                <div className="md:col-span-2 lg:col-span-3 grid gap-2 sm:grid-cols-3">
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="purpose" value="business" defaultChecked className="mr-2" />business</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="purpose" value="business_portfolio" className="mr-2" />business_portfolio</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="purpose" value="service" className="mr-2" />service</label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Date issued
+                  <input name="date_issued" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Amount
+                  <input name="amount" type="number" step="0.01" required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Description
+                  <input name="description" required className="dashboard-input" />
+                </label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  <span>Purpose</span>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="purpose" value="business" defaultChecked className="mr-2" />business</label>
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="purpose" value="business_portfolio" className="mr-2" />business_portfolio</label>
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="purpose" value="service" className="mr-2" />service</label>
+                  </div>
                 </div>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-2 sm:grid-cols-2">
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="payment_type" value="one_time" defaultChecked className="mr-2" />one_time</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="payment_type" value="repeat" className="mr-2" />repeat</label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  <span>Payment type</span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="payment_type" value="one_time" defaultChecked className="mr-2" />one_time</label>
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="payment_type" value="repeat" className="mr-2" />repeat</label>
+                  </div>
                 </div>
-                <input name="recurrence_reference" placeholder="Recurrence reference" className="dashboard-input" />
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Recurrence reference
+                  <input name="recurrence_reference" className="dashboard-input" />
+                </label>
                 <button
                   type="submit"
                   disabled={!selectedBusinessId || createExpenseMutation.isPending}
@@ -843,33 +924,49 @@ function App() {
             <section className={cardClass}>
               <h3 className="text-lg font-semibold">GCash Sales</h3>
               <form onSubmit={submitGcash} className={formGridClass}>
-                <input name="transaction_recipient" placeholder="Recipient (optional)" className="dashboard-input" />
-                <input
-                  name="amount_moved"
-                  type="number"
-                  step="0.01"
-                  placeholder="Moved cash"
-                  required
-                  value={gcashAmountMoved}
-                  onChange={(event) => setGcashAmountMoved(event.target.value)}
-                  className="dashboard-input"
-                />
-                <input
-                  name="sales_amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="Sales amount"
-                  required
-                  value={gcashSalesAmount}
-                  onChange={(event) => setGcashSalesAmount(event.target.value)}
-                  className="dashboard-input"
-                />
-                <input value={gcashProfitPreview.toFixed(2)} readOnly className="dashboard-input bg-[var(--surface-raised)]" />
-                <div className="md:col-span-2 lg:col-span-3 grid gap-2 sm:grid-cols-2">
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="transaction_type" value="cash_in" defaultChecked className="mr-2" />cash_in</label>
-                  <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="transaction_type" value="cash_out" className="mr-2" />cash_out</label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Transaction recipient (optional)
+                  <input name="transaction_recipient" className="dashboard-input" />
+                </label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Moved cash
+                  <input
+                    name="amount_moved"
+                    type="number"
+                    step="0.01"
+                    required
+                    value={gcashAmountMoved}
+                    onChange={(event) => setGcashAmountMoved(event.target.value)}
+                    className="dashboard-input"
+                  />
+                </label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Sales amount
+                  <input
+                    name="sales_amount"
+                    type="number"
+                    step="0.01"
+                    required
+                    value={gcashSalesAmount}
+                    onChange={(event) => setGcashSalesAmount(event.target.value)}
+                    className="dashboard-input"
+                  />
+                </label>
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Profit from transaction (computed)
+                  <input value={gcashProfitPreview.toFixed(2)} readOnly className="dashboard-input bg-[var(--surface-raised)]" />
+                </label>
+                <div className="md:col-span-2 lg:col-span-3 grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  <span>Transaction type</span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="transaction_type" value="cash_in" defaultChecked className="mr-2" />cash_in</label>
+                    <label className="rounded-lg border border-[var(--neutral-linen)] px-3 py-2 text-sm"><input type="radio" name="transaction_type" value="cash_out" className="mr-2" />cash_out</label>
+                  </div>
                 </div>
-                <input name="transaction_date" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
+                <label className="grid gap-1 text-xs text-[var(--neutral-rosewood)]">
+                  Transaction date
+                  <input name="transaction_date" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
+                </label>
                 <button type="submit" disabled={!selectedBusinessId || createGcashMutation.isPending} className="dashboard-button-primary">
                   Add GCash entry
                 </button>
