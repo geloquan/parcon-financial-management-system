@@ -44,6 +44,7 @@ import {
   useCreateBusinessCapitalMovement,
   useCreatePortfolioCapitalMovement,
 } from './hooks/use-capital-movements'
+import {formatCompactDate, formatScheduleDate} from "./services/formatDate.ts";
 
 type Tab =
   | 'overview'
@@ -1315,7 +1316,7 @@ function App() {
                     <option value="">Select source schedule</option>
                     {allStaffScheduleEntries.map((schedule) => (
                       <option key={`source-${schedule.id}`} value={schedule.id}>
-                        {schedule.staff_name ?? 'Unknown staff'} · {schedule.scheduled_on}
+                        {schedule.staff_name ?? 'Unknown staff'} · {formatScheduleDate(schedule.scheduled_on)}
                       </option>
                     ))}
                   </select>
@@ -1331,7 +1332,7 @@ function App() {
                     <option value="">Select target schedule</option>
                     {allStaffScheduleEntries.map((schedule) => (
                       <option key={`target-${schedule.id}`} value={schedule.id}>
-                        {schedule.staff_name ?? 'Unknown staff'} · {schedule.scheduled_on}
+                        {schedule.staff_name ?? 'Unknown staff'} · {formatScheduleDate(schedule.scheduled_on)}
                       </option>
                     ))}
                   </select>
@@ -1370,7 +1371,7 @@ function App() {
                     >
                       <div>
                         <p className="font-medium">{schedule.staff_name ?? 'Unknown staff'}</p>
-                        <p className="text-xs text-[var(--neutral-rosewood)]">{schedule.scheduled_on}</p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatScheduleDate(schedule.scheduled_on)}</p>
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -1456,7 +1457,7 @@ function App() {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="font-semibold">
                           {run.computation_mode === 'by_days' ? `By days (${run.number_of_days ?? 0})` : 'Up to date'} ·{' '}
-                          {run.period_start} to {run.period_end}
+                          {formatCompactDate(run.period_start)} – {formatCompactDate(run.period_end)}
                         </p>
                         <div className="flex items-center gap-2">
                           <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
@@ -2087,7 +2088,7 @@ function App() {
                     <div className="rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">Period</p>
                       <p className="mt-1 text-sm font-semibold text-[var(--status-success-text)]">
-                        {latestSalesReport.start_date} to {latestSalesReport.end_date}
+                        {formatDateTimeDisplay(latestSalesReport.start_date)} to {formatDateTimeDisplay(latestSalesReport.end_date)}
                       </p>
                     </div>
                     <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-4 py-3">
@@ -2188,7 +2189,7 @@ function App() {
                         }`}>
                           {movement.direction}
                         </span>
-                        <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">{movement.occurred_on}</p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatCompactDate(movement.occurred_on)}</p>
                       </div>
                       <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
                     </li>
@@ -2263,7 +2264,7 @@ function App() {
                         }`}>
                           {movement.direction}
                         </span>
-                        <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">{movement.occurred_on}</p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatCompactDate(movement.occurred_on)}</p>
                       </div>
                       <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
                     </li>
@@ -2332,7 +2333,7 @@ function App() {
                             </button>
                           </div>
                           <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
-                            Range {report.start_date} to {report.end_date} · {report.metadata.generated_by} ·{' '}
+                            Range {formatCompactDate(report.start_date)} – {formatCompactDate(report.end_date)}
                             {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
                           </p>
                           <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
