@@ -19,6 +19,7 @@ class StaffResource extends JsonResource
             'employment_end_date' => $this->employment_end_date?->toDateString(),
             'employment_type' => $this->employment_type,
             'salary' => $this->salary,
+            'commission_rate_percent' => $this->commission_rate_percent,
             'is_active' => $this->is_active,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

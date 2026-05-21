@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\CompensationRun;
+use App\Models\EtherealSale;
 use App\Models\Staff;
 use App\Models\StaffCashAdvance;
 use App\Models\StaffSchedule;
@@ -46,12 +47,16 @@ class CompensationRunService
         $staff = Staff::query()
             ->where('business_id', $business->id)
             ->where('is_active', true)
-            ->get(['id', 'full_name', 'salary']);
+            ->get(['id', 'full_name', 'salary', 'commission_rate_percent']);
 
         $schedules = StaffSchedule::query()
             ->where('business_id', $business->id)
             ->whereBetween('scheduled_on', [$periodStart->toDateString(), $periodEnd->toDateString()])
             ->get(['staff_id', 'attendance_status']);
+        $etherealSales = EtherealSale::query()
+            ->where('business_id', $business->id)
+            ->whereBetween('service_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->get(['staff_id', 'staff_ids', 'net_amount']);
 
         $cashAdvances = StaffCashAdvance::query()
             ->whereIn('staff_id', $staff->pluck('id'))
@@ -61,16 +66,37 @@ class CompensationRunService
         $breakdown = [];
         $grossPay = 0.0;
         $totalDeductions = 0.0;
+        $periodDaysCount = max($periodStart->diffInDays($periodEnd) + 1, 0);
 
         foreach ($staff as $member) {
             $memberSchedules = $schedules->where('staff_id', $member->id);
-            $presentDays = $memberSchedules->where('attendance_status', '!=', 'absent')->count();
+            $dayOffDays = $memberSchedules->where('attendance_status', 'pending')->count();
+            $absentDays = $memberSchedules->where('attendance_status', 'absent')->count();
+            $unpaidDays = $dayOffDays + $absentDays;
+            $targetDays = $mode === 'by_days'
+                ? max((int) ($validated['number_of_days'] ?? 0), 0)
+                : $periodDaysCount;
             $payableDays = $mode === 'by_days'
-                ? max(min($presentDays, (int) ($validated['number_of_days'] ?? 0)), 0)
-                : $presentDays;
+                ? max($targetDays - min($unpaidDays, $targetDays), 0)
+                : max($targetDays - min($unpaidDays, $targetDays), 0);
+            $presentDays = $payableDays;
 
-            $dailyRate = ((float) $member->salary) / 30;
-            $memberGross = round($dailyRate * $payableDays, 2);
+            $dailyRate = (float) $member->salary;
+            $basePay = round($dailyRate * $payableDays, 2);
+            $commissionRatePercent = round((float) $member->commission_rate_percent, 2);
+            $commissionableSalesTotal = round((float) $etherealSales
+                ->filter(function (EtherealSale $sale) use ($member): bool {
+                    $staffIds = collect($sale->staff_ids ?? [$sale->staff_id])
+                        ->filter(static fn ($id): bool => is_numeric($id))
+                        ->map(static fn ($id): int => (int) $id)
+                        ->values()
+                        ->all();
+
+                    return in_array($member->id, $staffIds, true);
+                })
+                ->sum('net_amount'), 2);
+            $commissionAmount = round(($commissionableSalesTotal * $commissionRatePercent) / 100, 2);
+            $memberGross = round($basePay + $commissionAmount, 2);
             $memberCashAdvances = $cashAdvances->where('staff_id', $member->id);
             $settlements = $memberCashAdvances
                 ->map(static fn (StaffCashAdvance $advance): array => [
@@ -90,8 +116,14 @@ class CompensationRunService
                 'staff_id' => $member->id,
                 'staff_name' => $member->full_name,
                 'salary' => $member->salary,
+                'day_off_days' => $dayOffDays,
+                'absent_days' => $absentDays,
                 'present_days' => $presentDays,
                 'payable_days' => $payableDays,
+                'base_pay' => $basePay,
+                'commission_rate_percent' => $commissionRatePercent,
+                'commissionable_sales_total' => $commissionableSalesTotal,
+                'commission_amount' => $commissionAmount,
                 'gross_pay' => $memberGross,
                 'deductions' => $memberDeduction,
                 'net_pay' => $memberNet,

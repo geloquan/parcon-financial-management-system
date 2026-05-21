@@ -20,6 +20,7 @@ class StoreStaffRequest extends FormRequest
             'employment_end_date' => ['nullable', 'date', 'after_or_equal:employment_start_date'],
             'employment_type' => ['required', 'string', 'max:100'],
             'salary' => ['required', 'numeric', 'min:0'],
+            'commission_rate_percent' => ['required', 'numeric', 'min:0', 'max:100'],
             'is_active' => ['required', 'boolean'],
         ];
     }

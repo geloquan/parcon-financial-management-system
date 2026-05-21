@@ -19,6 +19,7 @@ class Staff extends Model
         'employment_end_date',
         'employment_type',
         'salary',
+        'commission_rate_percent',
         'is_active',
     ];
 
@@ -26,6 +27,7 @@ class Staff extends Model
         'employment_start_date' => 'date',
         'employment_end_date' => 'date',
         'is_active' => 'boolean',
+        'commission_rate_percent' => 'decimal:2',
     ];
 
     public function business(): BelongsTo
