@@ -4,42 +4,42 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\CoffeeSale;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class CoffeeSaleService
 {
-    public function paginate(Business $business): LengthAwarePaginator
-    {
-        return CoffeeSale::query()->where('business_id', $business->id)->latest('id')->paginate(15);
-    }
+  public function paginate(Business $business): LengthAwarePaginator
+  {
+    return CoffeeSale::query()->where('business_id', $business->id)->latest('id')->paginate(15);
+  }
 
-    public function store(Business $business, array $validated): CoffeeSale
-    {
-        return CoffeeSale::query()->create([...$validated, 'business_id' => $business->id]);
-    }
+  public function store(Business $business, array $validated): CoffeeSale
+  {
+    return CoffeeSale::query()->create([...$validated, 'business_id' => $business->id]);
+  }
 
-    public function storeMany(Business $business, array $validated): Collection
-    {
-        $entries = $validated['entries'] ?? [];
+  public function storeMany(Business $business, array $validated): Collection
+  {
+    $entries = $validated['entries'] ?? [];
 
-        return collect($entries)->map(
-            fn (array $entry): CoffeeSale => CoffeeSale::query()->create([
-                ...$entry,
-                'business_id' => $business->id,
-            ])
-        );
-    }
+    return collect($entries)->map(
+      fn(array $entry): CoffeeSale => CoffeeSale::query()->create([
+        ...$entry,
+        'business_id' => $business->id,
+      ])
+    );
+  }
 
-    public function update(CoffeeSale $sale, array $validated): CoffeeSale
-    {
-        $sale->update($validated);
+  public function update(CoffeeSale $sale, array $validated): CoffeeSale
+  {
+    $sale->update($validated);
 
-        return $sale->refresh();
-    }
+    return $sale->refresh();
+  }
 
-    public function delete(CoffeeSale $sale): void
-    {
-        $sale->delete();
-    }
+  public function delete(CoffeeSale $sale): void
+  {
+    $sale->delete();
+  }
 }
