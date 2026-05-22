@@ -2905,132 +2905,133 @@ function App() {
                 title="Detail Reports"
                 description="Generate versioned PDF 8.5x13 detail reports (sales, compensation, or combined) with metadata."
               />
-              {meQuery.data.role !== 'admin' && meQuery.data.role !== 'owner' ? (
-                <div className="mt-5 rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-4 py-3 text-sm text-[var(--status-warning-text)]">
-                  Only admin and owner can view and download exported report files.
-                </div>
-              ) : (
-                <>
-                  <form onSubmit={submitPdfSalesReport} className={formGridClass}>
-                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                      Start date
-                      <input name="start_date" type="date" required className="dashboard-input" />
-                    </label>
-                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                      End date
-                      <input name="end_date" type="date" required className="dashboard-input" />
-                    </label>
-                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                      Document title (optional)
-                      <input name="document_title" className="dashboard-input" />
-                    </label>
-                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                      Report type
-                      <select name="report_type" defaultValue="sales" className="dashboard-input">
-                        <option value="sales">Sales</option>
-                        <option value="compensation">Compensation</option>
-                        <option value="combined">Combined</option>
-                      </select>
-                    </label>
-                    <button
-                      type="submit"
-                      disabled={!selectedBusinessId || createSalesReportMutation.isPending}
-                      className="dashboard-button-primary"
-                    >
-                      {createSalesReportMutation.isPending ? 'Generating…' : 'Generate report version'}
-                    </button>
-                  </form>
+              <>
+                <form onSubmit={submitPdfSalesReport} className={formGridClass}>
+                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                    Start date
+                    <input name="start_date" type="date" required className="dashboard-input" />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                    End date
+                    <input name="end_date" type="date" required className="dashboard-input" />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                    Document title (optional)
+                    <input name="document_title" className="dashboard-input" />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                    Report type
+                    <select name="report_type" defaultValue="sales" className="dashboard-input">
+                      <option value="sales">Sales</option>
+                      <option value="compensation">Compensation</option>
+                      <option value="combined">Combined</option>
+                    </select>
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={!selectedBusinessId || createSalesReportMutation.isPending}
+                    className="dashboard-button-primary"
+                  >
+                    {createSalesReportMutation.isPending ? 'Generating…' : 'Generate report version'}
+                  </button>
+                </form>
 
-                  <SectionDivider label="Generated versions" />
-                  {salesReportsQuery.isLoading ? (
-                    <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
-                  ) : salesReportVersions.length === 0 ? (
-                    <EmptyState label="No report versions generated yet." />
-                  ) : (
-                    <div className="grid gap-3">
-                      {salesReportVersions.map((report) => (
-                        <article key={report.id} className="rounded-xl border border-[var(--neutral-linen)] px-4 py-3">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="font-semibold">
-                              v{report.version} · {report.document_title}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => triggerDownloadSalesReport(report.id)}
-                              disabled={downloadSalesReportMutation.isPending}
-                              className="dashboard-button-secondary"
-                            >
-                              Download PDF
-                            </button>
-                          </div>
-                          <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
-                            Range {formatCompactDate(report.start_date)} – {formatCompactDate(report.end_date)}
-                            {' · '}
-                            {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
+                <SectionDivider label="Generated versions" />
+                {salesReportsQuery.isLoading ? (
+                  <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
+                ) : salesReportVersions.length === 0 ? (
+                  <EmptyState label="No report versions generated yet." />
+                ) : (
+                  <div className="grid gap-3">
+                    {salesReportVersions.map((report) => (
+                      <article key={report.id} className="rounded-xl border border-[var(--neutral-linen)] px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-semibold">
+                            v{report.version} · {report.document_title}
                           </p>
-                          <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
-                            Type: {report.report_type}
-                            {report.report_type !== 'compensation' && (
-                              <>
-                                {' · '}Overall sales: {formatCurrency(parseAmount(report.details.totals.overall_sales))}
-                              </>
-                            )}
-                            {report.report_type !== 'sales' && (
-                              <>
-                                {' · '}Net pay: {formatCurrency(parseAmount(report.details.compensation_totals?.net_pay ?? 0))}
-                              </>
-                            )}
-                          </p>
-                          {report.pdf_verification && (
-                            <div className="mt-2 grid gap-1 text-xs">
-                              <p className={`font-semibold uppercase tracking-wide ${
-                                report.pdf_verification.status === 'verified'
-                                  ? 'text-[var(--status-success-text)]'
-                                  : report.pdf_verification.status === 'missing_file'
-                                    ? 'text-[var(--status-warning-text)]'
-                                    : 'text-[var(--status-danger-text)]'
-                              }`}>
-                                PDF verification: {report.pdf_verification.status.replace('_', ' ')}
-                              </p>
-                              <p className="text-[var(--neutral-rosewood)]">
-                                Module checks · GCash: {report.pdf_verification.module_checks.gcash ? 'ok' : 'failed'}
-                                {' · '}Coffee: {report.pdf_verification.module_checks.coffee ? 'ok' : 'failed'}
-                                {' · '}Print: {report.pdf_verification.module_checks.print ? 'ok' : 'failed'}
-                                {' · '}Ethereal: {report.pdf_verification.module_checks.ethereal ? 'ok' : 'failed'}
-                              </p>
-                              <p className="text-[var(--neutral-rosewood)]">
-                                Metadata checks · Business: {report.pdf_verification.metadata_checks.business_name ? 'ok' : 'failed'}
-                                {' · '}Generated at: {report.pdf_verification.metadata_checks.generated_at ? 'ok' : 'failed'}
-                                {' · '}Generated by: {report.pdf_verification.metadata_checks.generated_by ? 'ok' : 'failed'}
-                                {' · '}Stored file: {report.pdf_verification.metadata_checks.stored_file_name ? 'ok' : 'failed'}
-                              </p>
-                            </div>
+                          <button
+                            type="button"
+                            onClick={() => triggerDownloadSalesReport(report.id)}
+                            disabled={downloadSalesReportMutation.isPending}
+                            className="dashboard-button-secondary"
+                          >
+                            Download PDF
+                          </button>
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
+                          Range {formatCompactDate(report.start_date)} – {formatCompactDate(report.end_date)}
+                          {' · '}
+                          {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
+                          Type: {report.report_type}
+                          {report.report_type !== 'compensation' && (
+                            <>
+                              {' · '}Overall sales: {formatCurrency(parseAmount(report.details.totals.overall_sales))}
+                            </>
                           )}
-                        </article>
-                      ))}
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSalesReportPage((prev) => Math.max(prev - 1, 1))}
-                          disabled={salesReportPage <= 1}
-                          className="dashboard-button-secondary"
-                        >
-                          Prev
-                        </button>
-                        <span className="text-xs text-[var(--neutral-rosewood)]">Page {salesReportPage}</span>
-                        <button
-                          type="button"
-                          onClick={() => setSalesReportPage((prev) => prev + 1)}
-                          disabled={!salesReportsQuery.data?.links?.next}
-                          className="dashboard-button-secondary"
-                        >
-                          Next
-                        </button>
-                      </div>
+                          {report.report_type !== 'sales' && (
+                            <>
+                              {' · '}Net pay: {formatCurrency(parseAmount(report.details.compensation_totals?.net_pay ?? 0))}
+                            </>
+                          )}
+                        </p>
+                        {report.pdf_verification && (
+                          <div className="mt-2 grid gap-1 text-xs">
+                            <p className={`font-semibold uppercase tracking-wide ${
+                              report.pdf_verification.status === 'verified'
+                                ? 'text-[var(--status-success-text)]'
+                                : report.pdf_verification.status === 'missing_file'
+                                  ? 'text-[var(--status-warning-text)]'
+                                  : 'text-[var(--status-danger-text)]'
+                            }`}>
+                              PDF verification: {report.pdf_verification.status.replace('_', ' ')}
+                            </p>
+                            <p className="text-[var(--neutral-rosewood)]">
+                              Module checks · GCash: {report.pdf_verification.module_checks.gcash ? 'ok' : 'failed'}
+                              {' · '}Coffee: {report.pdf_verification.module_checks.coffee ? 'ok' : 'failed'}
+                              {' · '}Print: {report.pdf_verification.module_checks.print ? 'ok' : 'failed'}
+                              {' · '}Ethereal: {report.pdf_verification.module_checks.ethereal ? 'ok' : 'failed'}
+                            </p>
+                            <p className="text-[var(--neutral-rosewood)]">
+                              Metadata checks · Business: {report.pdf_verification.metadata_checks.business_name ? 'ok' : 'failed'}
+                              {' · '}Generated at: {report.pdf_verification.metadata_checks.generated_at ? 'ok' : 'failed'}
+                              {' · '}Generated by: {report.pdf_verification.metadata_checks.generated_by ? 'ok' : 'failed'}
+                              {' · '}Stored file: {report.pdf_verification.metadata_checks.stored_file_name ? 'ok' : 'failed'}
+                            </p>
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSalesReportPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={salesReportPage <= 1}
+                        className="dashboard-button-secondary"
+                      >
+                        Prev
+                      </button>
+                      <span className="text-xs text-[var(--neutral-rosewood)]">Page {salesReportPage}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSalesReportPage((prev) => prev + 1)}
+                        disabled={!salesReportsQuery.data?.links?.next}
+                        className="dashboard-button-secondary"
+                      >
+                        Next
+                      </button>
                     </div>
-                  )}
-                </>
-              )}
+                  </div>
+                )}
+              </>
+
+              {/*{meQuery.data.role !== 'admin' && meQuery.data.role !== 'owner' ? (*/}
+              {/*  <div className="mt-5 rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-4 py-3 text-sm text-[var(--status-warning-text)]">*/}
+              {/*    Only admin and owner can view and download exported report files.*/}
+              {/*  </div>*/}
+              {/*) : (*/}
+              {/*)}*/}
             </section>
           )}
 
