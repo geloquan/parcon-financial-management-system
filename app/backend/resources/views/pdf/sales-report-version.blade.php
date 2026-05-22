@@ -165,28 +165,47 @@
         <tr>
           <th>#</th>
           <th>Module</th>
+          <th>Item</th>
           <th>Sale Name</th>
-          <th class="num">Amount</th>
+          <th class="num">Original Price</th>
+          <th class="num">Amount Charged</th>
           <th>Date</th>
           <th>Details</th>
         </tr>
         </thead>
         <tbody>
         @foreach($salesEntries as $index => $entry)
+          @php
+            $originalPrice = (float) ($entry['reference_item_original_price'] ?? 0);
+            $amountCharged = (float) ($entry['amount'] ?? 0);
+            $hasVariance = $originalPrice > 0 && $amountCharged !== $originalPrice;
+          @endphp
           <tr>
             <td>{{ $index + 1 }}</td>
-            <td>{{ $entry['module'] ?? '' }}</td>
-            <td>{{ $entry['sale_name'] ?? '' }}</td>
-            <td class="num">{{ number_format((float) ($entry['amount'] ?? 0), 2) }}</td>
-            <td>{{ isset($entry['sale_date']) && $entry['sale_date']
-              ? \Carbon\Carbon::parse($entry['sale_date'])->format('M j, Y, g:i A')
-              : '—' }}
+            <td>{{ $entry['module'] ?? '—' }}</td>
+            <td>{{ $entry['reference_item_name'] ?? '—' }}</td>
+            <td>{{ $entry['sale_name'] ?? '—' }}</td>
+            <td class="num">
+              {{ $originalPrice > 0 ? number_format($originalPrice, 2) : '—' }}
             </td>
+            <td class="num {{ $hasVariance ? 'loss' : '' }}">
+              {{ number_format($amountCharged, 2) }}
+              @if($hasVariance)
+                <div style="font-size:10px; font-weight:400;">
+                  {{ $amountCharged < $originalPrice ? '▼' : '▲' }}
+                  {{ number_format(abs($amountCharged - $originalPrice), 2) }}
+                </div>
+              @endif
+            </td>
+            <td>{{ isset($entry['sale_date']) && $entry['sale_date']
+                ? \Carbon\Carbon::parse($entry['sale_date'])->format('M j, Y, g:i A')
+                : '—' }}</td>
             <td>
-              @php($entryMetadata = $entry['metadata'] ?? [])
-              @forelse($entryMetadata as $label => $value)
+              @forelse($entry['metadata'] ?? [] as $label => $value)
                 @if($value !== null && $value !== '')
-                  <div><span class="muted">{{ ucwords(str_replace('_', ' ', (string) $label)) }}:</span> {{ is_numeric($value) ? number_format((float) $value, 2) : $value }}</div>
+                  <div><span
+                      class="muted">{{ ucwords(str_replace('_', ' ', (string) $label)) }}:</span> {{ is_numeric($value) ? number_format((float) $value, 2) : $value }}
+                  </div>
                 @endif
               @empty
                 <span class="muted">—</span>
@@ -267,9 +286,15 @@
             </td>
             <td class="num">{{ number_format((float) ($entry['amount'] ?? 0), 2) }}</td>
             <td>
-              <div><span class="muted">Computation Mode:</span> {{ ucwords(str_replace('_', ' ', $entry['metadata']['computation_mode'] ?? '—')) }}</div>
-              <div><span class="muted">Gross Pay:</span> {{ number_format((float) ($entry['metadata']['gross_pay'] ?? 0), 2) }}</div>
-              <div><span class="muted">Total Deductions:</span> {{ number_format((float) ($entry['metadata']['total_deductions'] ?? 0), 2) }}</div>
+              <div><span
+                  class="muted">Computation Mode:</span> {{ ucwords(str_replace('_', ' ', $entry['metadata']['computation_mode'] ?? '—')) }}
+              </div>
+              <div><span
+                  class="muted">Gross Pay:</span> {{ number_format((float) ($entry['metadata']['gross_pay'] ?? 0), 2) }}
+              </div>
+              <div><span
+                  class="muted">Total Deductions:</span> {{ number_format((float) ($entry['metadata']['total_deductions'] ?? 0), 2) }}
+              </div>
               <div><span class="muted">No. of Employees:</span> {{ $entry['metadata']['employee_count'] ?? 0 }}</div>
             </td>
           </tr>
