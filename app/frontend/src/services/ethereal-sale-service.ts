@@ -33,3 +33,9 @@ export const createEtherealSale = async (businessId: number, payload: CreateEthe
     body: JSON.stringify(payload),
   })
 }
+
+export const deleteEtherealSale = async (businessId: number, saleId: number): Promise<{ message: string }> => {
+  return apiRequest<{ message: string }>(`/businesses/${businessId}/ethereal_sales/${saleId}`, {
+    method: 'DELETE',
+  })
+}

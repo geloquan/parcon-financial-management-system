@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createPrintSale, fetchPrintSales, type CreatePrintSalePayload } from '../services/print-sale-service'
+import {
+  createPrintSale,
+  deletePrintSale,
+  fetchPrintSales,
+  type CreatePrintSalePayload,
+} from '../services/print-sale-service'
 
 export const usePrintSales = (businessId: number | null) => {
   return useQuery({
@@ -14,6 +19,17 @@ export const useCreatePrintSale = (businessId: number | null) => {
 
   return useMutation({
     mutationFn: async (payload: CreatePrintSalePayload) => createPrintSale(businessId as number, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['print-sales', businessId] })
+    },
+  })
+}
+
+export const useDeletePrintSale = (businessId: number | null) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (saleId: number) => deletePrintSale(businessId as number, saleId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['print-sales', businessId] })
     },

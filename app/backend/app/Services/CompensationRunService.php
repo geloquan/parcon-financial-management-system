@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Models\Business;
+use App\Models\CapitalMovement;
 use App\Models\CompensationRun;
 use App\Models\EtherealSale;
+use App\Models\StaffAbsence;
 use App\Models\Staff;
 use App\Models\StaffCashAdvance;
-use App\Models\StaffSchedule;
+use App\Models\StaffDayOff;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
@@ -49,10 +51,14 @@ class CompensationRunService
             ->where('is_active', true)
             ->get(['id', 'full_name', 'salary', 'commission_rate_percent']);
 
-        $schedules = StaffSchedule::query()
+        $dayOffs = StaffDayOff::query()
             ->where('business_id', $business->id)
-            ->whereBetween('scheduled_on', [$periodStart->toDateString(), $periodEnd->toDateString()])
-            ->get(['staff_id', 'attendance_status']);
+            ->whereBetween('day_off_on', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->get(['staff_id', 'day_off_on']);
+        $absences = StaffAbsence::query()
+            ->where('business_id', $business->id)
+            ->whereBetween('absent_on', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->get(['staff_id', 'absent_on']);
         $etherealSales = EtherealSale::query()
             ->where('business_id', $business->id)
             ->whereBetween('service_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
@@ -69,16 +75,26 @@ class CompensationRunService
         $periodDaysCount = max($periodStart->diffInDays($periodEnd) + 1, 0);
 
         foreach ($staff as $member) {
-            $memberSchedules = $schedules->where('staff_id', $member->id);
-            $dayOffDays = $memberSchedules->where('attendance_status', 'pending')->count();
-            $absentDays = $memberSchedules->where('attendance_status', 'absent')->count();
-            $unpaidDays = $dayOffDays + $absentDays;
+            $memberAbsentDates = $absences
+                ->where('staff_id', $member->id)
+                ->map(static fn (StaffAbsence $absence): string => (string) $absence->absent_on?->toDateString())
+                ->filter()
+                ->unique();
+
+            $memberDayOffDates = $dayOffs
+                ->where('staff_id', $member->id)
+                ->map(static fn (StaffDayOff $dayOff): string => (string) $dayOff->day_off_on?->toDateString())
+                ->filter()
+                ->reject(static fn (string $date) => $memberAbsentDates->contains($date))
+                ->unique();
+
+            $dayOffDays = $memberDayOffDates->count();
+            $absentDays = $memberAbsentDates->count();
+            $unpaidDays = $memberDayOffDates->merge($memberAbsentDates)->unique()->count();
             $targetDays = $mode === 'by_days'
                 ? max((int) ($validated['number_of_days'] ?? 0), 0)
                 : $periodDaysCount;
-            $payableDays = $mode === 'by_days'
-                ? max($targetDays - min($unpaidDays, $targetDays), 0)
-                : max($targetDays - min($unpaidDays, $targetDays), 0);
+            $payableDays = max($targetDays - min($unpaidDays, $targetDays), 0);
             $presentDays = $payableDays;
 
             $dailyRate = (float) $member->salary;
@@ -209,12 +225,31 @@ class CompensationRunService
             }
 
             $history = $run->payment_history ?? [];
+            $portfolioDeduction = CapitalMovement::query()->create([
+                'initiated_by_user_id' => $user->id,
+                'amount' => round((float) $run->net_pay, 2),
+                'direction' => 'deduct',
+                'source_type' => 'portfolio',
+                'source_business_id' => null,
+                'target_business_id' => null,
+                'occurred_on' => now()->toDateString(),
+                'notes' => sprintf(
+                    'Payroll finalized for business %d (run #%d).',
+                    $run->business_id,
+                    $run->id
+                ),
+            ]);
             $history[] = [
                 'action' => 'finalized',
                 'finalized_at' => now()->toIso8601String(),
                 'finalized_by_user_id' => $user->id,
                 'finalized_by_name' => $user->name,
                 'settled_deductions' => $settledDeductions,
+                'portfolio_deduction' => [
+                    'capital_movement_id' => $portfolioDeduction->id,
+                    'amount' => $portfolioDeduction->amount,
+                    'occurred_on' => $portfolioDeduction->occurred_on?->toDateString(),
+                ],
             ];
 
             $run->update([

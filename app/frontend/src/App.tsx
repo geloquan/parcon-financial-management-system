@@ -2,18 +2,14 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLogin, useLogout, useMe } from './hooks/use-auth'
 import { useBusinesses } from './hooks/use-businesses'
 import { useCreateExpense, useExpenses } from './hooks/use-expenses'
-import { useCreateGcashSale, useGcashSales } from './hooks/use-gcash-sales'
-import { useCreateCoffeeSale, useCoffeeSales } from './hooks/use-coffee-sales'
-import { useCreatePrintSale, usePrintSales } from './hooks/use-print-sales'
-import { useCreateEtherealSale, useEtherealSales } from './hooks/use-ethereal-sales'
+import { useCreateGcashSale, useDeleteGcashSale, useGcashSales } from './hooks/use-gcash-sales'
+import { useCreateCoffeeSale, useDeleteCoffeeSale, useCoffeeSales } from './hooks/use-coffee-sales'
+import { useCreatePrintSale, useDeletePrintSale, usePrintSales } from './hooks/use-print-sales'
+import { useCreateEtherealSale, useDeleteEtherealSale, useEtherealSales } from './hooks/use-ethereal-sales'
 import { useGenerateSalesReport } from './hooks/use-sales-reports'
-import { useCreateStaff, useStaff } from './hooks/use-staff'
-import {
-  useCreateStaffSchedule,
-  useSwapStaffSchedules,
-  useStaffSchedules,
-  useUpdateStaffSchedule,
-} from './hooks/use-staff-schedules'
+import { useCreateStaff, useDeleteStaff, useStaff, useUpdateStaff } from './hooks/use-staff'
+import { useCreateStaffDayOff, useDeleteStaffDayOff, useStaffDayOffs } from './hooks/use-staff-day-offs'
+import { useCreateStaffAbsence, useDeleteStaffAbsence, useStaffAbsences } from './hooks/use-staff-absences'
 import { useBusinessReferenceItems, useCreateBusinessReferenceItem } from './hooks/use-business-reference-items'
 import { useCompensationRuns, useCreateCompensationRun, useFinalizeCompensationRun } from './hooks/use-compensation-runs'
 import { useCreateSalesReport, useDownloadSalesReport, useSalesReports } from './hooks/use-sales-reports'
@@ -44,7 +40,7 @@ import {
   useCreateBusinessCapitalMovement,
   useCreatePortfolioCapitalMovement,
 } from './hooks/use-capital-movements'
-import {formatCompactDate, formatScheduleDate} from "./services/formatDate.ts";
+import { formatCompactDate } from './services/formatDate.ts'
 
 type Tab =
   | 'overview'
@@ -310,8 +306,6 @@ function App() {
   const [businessAmountPreview, setBusinessAmountPreview] = useState('0')
   const [businessDirectionPreview, setBusinessDirectionPreview] = useState<'add' | 'deduct'>('add')
   const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(formatDateOnly(new Date()))
-  const [sourceScheduleId, setSourceScheduleId] = useState('')
-  const [targetScheduleId, setTargetScheduleId] = useState('')
   const [compensationMode, setCompensationMode] = useState<'by_days' | 'up_to_date'>('by_days')
   const [salesReportPage, setSalesReportPage] = useState(1)
   const [reportScope, setReportScope] = useState<'portfolio' | 'business'>('portfolio')
@@ -338,11 +332,14 @@ function App() {
 
   const staffQuery = useStaff(selectedBusinessId)
   const createStaffMutation = useCreateStaff(selectedBusinessId)
-  const allStaffSchedulesQuery = useStaffSchedules(selectedBusinessId)
-  const staffSchedulesQuery = useStaffSchedules(selectedBusinessId, scheduleDateFilter)
-  const createStaffScheduleMutation = useCreateStaffSchedule(selectedBusinessId, scheduleDateFilter)
-  const updateStaffScheduleMutation = useUpdateStaffSchedule(selectedBusinessId, scheduleDateFilter)
-  const swapStaffSchedulesMutation = useSwapStaffSchedules(selectedBusinessId, scheduleDateFilter)
+  const updateStaffMutation = useUpdateStaff(selectedBusinessId)
+  const deleteStaffMutation = useDeleteStaff(selectedBusinessId)
+  const staffDayOffsQuery = useStaffDayOffs(selectedBusinessId, scheduleDateFilter)
+  const createStaffDayOffMutation = useCreateStaffDayOff(selectedBusinessId, scheduleDateFilter)
+  const deleteStaffDayOffMutation = useDeleteStaffDayOff(selectedBusinessId, scheduleDateFilter)
+  const staffAbsencesQuery = useStaffAbsences(selectedBusinessId, scheduleDateFilter)
+  const createStaffAbsenceMutation = useCreateStaffAbsence(selectedBusinessId, scheduleDateFilter)
+  const deleteStaffAbsenceMutation = useDeleteStaffAbsence(selectedBusinessId, scheduleDateFilter)
   const compensationRunsQuery = useCompensationRuns(selectedBusinessId)
   const createCompensationRunMutation = useCreateCompensationRun(selectedBusinessId)
   const finalizeCompensationRunMutation = useFinalizeCompensationRun(selectedBusinessId)
@@ -350,12 +347,16 @@ function App() {
   const createExpenseMutation = useCreateExpense(selectedBusinessId)
   const gcashQuery = useGcashSales(selectedBusinessId)
   const createGcashMutation = useCreateGcashSale(selectedBusinessId)
+  const deleteGcashMutation = useDeleteGcashSale(selectedBusinessId)
   const coffeeQuery = useCoffeeSales(selectedBusinessId)
   const createCoffeeMutation = useCreateCoffeeSale(selectedBusinessId)
+  const deleteCoffeeMutation = useDeleteCoffeeSale(selectedBusinessId)
   const printQuery = usePrintSales(selectedBusinessId)
   const createPrintMutation = useCreatePrintSale(selectedBusinessId)
+  const deletePrintMutation = useDeletePrintSale(selectedBusinessId)
   const etherealQuery = useEtherealSales(selectedBusinessId)
   const createEtherealMutation = useCreateEtherealSale(selectedBusinessId)
+  const deleteEtherealMutation = useDeleteEtherealSale(selectedBusinessId)
   const referenceItemsQuery = useBusinessReferenceItems(selectedBusinessId)
   const createReferenceItemMutation = useCreateBusinessReferenceItem(selectedBusinessId)
   const capitalMovementsQuery = useCapitalMovements()
@@ -385,8 +386,8 @@ function App() {
   )
 
   const staffEntries = useMemo(() => staffQuery.data?.data ?? [], [staffQuery.data])
-  const allStaffScheduleEntries = useMemo(() => allStaffSchedulesQuery.data?.data ?? [], [allStaffSchedulesQuery.data])
-  const staffScheduleEntries = useMemo(() => staffSchedulesQuery.data?.data ?? [], [staffSchedulesQuery.data])
+  const staffDayOffEntries = useMemo(() => staffDayOffsQuery.data?.data ?? [], [staffDayOffsQuery.data])
+  const staffAbsenceEntries = useMemo(() => staffAbsencesQuery.data?.data ?? [], [staffAbsencesQuery.data])
   const compensationRuns = useMemo(() => compensationRunsQuery.data?.data ?? [], [compensationRunsQuery.data])
   const expenseEntries = useMemo(() => expensesQuery.data?.data ?? [], [expensesQuery.data])
   const gcashEntries = useMemo(() => gcashQuery.data?.data ?? [], [gcashQuery.data])
@@ -397,10 +398,6 @@ function App() {
   const salesReportVersions = useMemo(() => salesReportsQuery.data?.data ?? [], [salesReportsQuery.data])
   const productReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'product'), [referenceItems])
   const serviceReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'service'), [referenceItems])
-  const unresolvedAttendanceToday = useMemo(
-    () => staffScheduleEntries.filter((schedule) => schedule.attendance_status === 'pending'),
-    [staffScheduleEntries],
-  )
 
   const expenseTotal = useMemo(
     () => expenseEntries.reduce((t, i) => t + parseAmount(i.amount), 0),
@@ -584,39 +581,59 @@ function App() {
     e.currentTarget.reset()
   }
 
-  const submitStaffSchedule = async (e: FormEvent<HTMLFormElement>) => {
+  const markStaffInactive = async (staffId: number) => {
+    if (!selectedBusinessId) return
+    await updateStaffMutation.mutateAsync({
+      staffId,
+      payload: { is_active: false },
+    })
+  }
+
+  const endStaffEmployment = async (staffId: number) => {
+    if (!selectedBusinessId) return
+    await updateStaffMutation.mutateAsync({
+      staffId,
+      payload: { is_active: false, employment_end_date: formatDateOnly(new Date()) },
+    })
+  }
+
+  const voidStaffRecord = async (staffId: number) => {
+    if (!selectedBusinessId) return
+    await deleteStaffMutation.mutateAsync(staffId)
+  }
+
+  const submitStaffDayOff = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
     const f = new FormData(e.currentTarget)
-    await createStaffScheduleMutation.mutateAsync({
+    await createStaffDayOffMutation.mutateAsync({
       staff_id: Number(f.get('staff_id') ?? 0),
-      scheduled_on: String(f.get('scheduled_on') ?? ''),
-      attendance_status: String(f.get('attendance_status') ?? 'pending') as 'pending' | 'present' | 'absent',
+      day_off_on: String(f.get('attendance_date') ?? ''),
       notes: String(f.get('notes') ?? ''),
     })
-    e.currentTarget.reset()
-    setScheduleDateFilter(formatDateOnly(new Date()))
+    setScheduleDateFilter(String(f.get('attendance_date') ?? formatDateOnly(new Date())))
   }
 
-  const submitSwapStaffSchedule = async (e: FormEvent<HTMLFormElement>) => {
+  const submitStaffAbsence = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId || !sourceScheduleId || !targetScheduleId) return
-
-    await swapStaffSchedulesMutation.mutateAsync({
-      source_schedule_id: Number(sourceScheduleId),
-      target_schedule_id: Number(targetScheduleId),
+    if (!selectedBusinessId) return
+    const f = new FormData(e.currentTarget)
+    await createStaffAbsenceMutation.mutateAsync({
+      staff_id: Number(f.get('staff_id') ?? 0),
+      absent_on: String(f.get('attendance_date') ?? ''),
+      notes: String(f.get('notes') ?? ''),
     })
-
-    setSourceScheduleId('')
-    setTargetScheduleId('')
+    setScheduleDateFilter(String(f.get('attendance_date') ?? formatDateOnly(new Date())))
   }
 
-  const markAttendance = async (scheduleId: number, attendanceStatus: 'present' | 'absent') => {
+  const removeStaffDayOff = async (dayOffId: number) => {
     if (!selectedBusinessId) return
-    await updateStaffScheduleMutation.mutateAsync({
-      scheduleId,
-      payload: { attendance_status: attendanceStatus },
-    })
+    await deleteStaffDayOffMutation.mutateAsync(dayOffId)
+  }
+
+  const removeStaffAbsence = async (absenceId: number) => {
+    if (!selectedBusinessId) return
+    await deleteStaffAbsenceMutation.mutateAsync(absenceId)
   }
 
   const submitCompensationRun = async (e: FormEvent<HTMLFormElement>) => {
@@ -633,7 +650,9 @@ function App() {
 
   const finalizeCompensationRun = async (runId: number) => {
     if (!selectedBusinessId) return
-    await finalizeCompensationRunMutation.mutateAsync(runId)
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+    await finalizeCompensationRunMutation.mutateAsync({ runId, payload: reauth })
   }
 
   const triggerDownloadSalesReport = async (reportId: number) => {
@@ -696,6 +715,11 @@ function App() {
     setGcashSalesAmount('0')
   }
 
+  const voidGcashSale = async (saleId: number) => {
+    if (!selectedBusinessId) return
+    await deleteGcashMutation.mutateAsync(saleId)
+  }
+
   const submitCoffee = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
@@ -711,6 +735,11 @@ function App() {
     }))
     await createCoffeeMutation.mutateAsync({ ...entries[0], entries, ...reauth })
     setCoffeeItems([createCoffeeDraftItem()])
+  }
+
+  const voidCoffeeSale = async (saleId: number) => {
+    if (!selectedBusinessId) return
+    await deleteCoffeeMutation.mutateAsync(saleId)
   }
 
   const submitPrint = async (e: FormEvent<HTMLFormElement>) => {
@@ -729,6 +758,11 @@ function App() {
     }))
     await createPrintMutation.mutateAsync({ ...entries[0], entries, ...reauth })
     setPrintItems([createPrintDraftItem()])
+  }
+
+  const voidPrintSale = async (saleId: number) => {
+    if (!selectedBusinessId) return
+    await deletePrintMutation.mutateAsync(saleId)
   }
 
   const submitEthereal = async (e: FormEvent<HTMLFormElement>) => {
@@ -752,6 +786,11 @@ function App() {
       ...reauth,
     })
     setEtherealItems([createEtherealDraftItem()])
+  }
+
+  const voidEtherealSale = async (saleId: number) => {
+    if (!selectedBusinessId) return
+    await deleteEtherealMutation.mutateAsync(saleId)
   }
 
   const submitPortfolioCapital = async (e: FormEvent<HTMLFormElement>) => {
@@ -1223,7 +1262,7 @@ function App() {
                   <table className="min-w-full text-sm">
                     <thead className="bg-[var(--surface-raised)] text-left">
                     <tr>
-                      {['Name', 'Type', 'Daily salary', 'Commission %', 'Status'].map((h) => (
+                      {['Name', 'Type', 'Daily salary', 'Commission %', 'Status', 'Actions'].map((h) => (
                         <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                           {h}
                         </th>
@@ -1246,6 +1285,34 @@ function App() {
                               {staff.is_active ? 'Active' : 'Inactive'}
                             </span>
                         </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => markStaffInactive(staff.id)}
+                              disabled={!staff.is_active || updateStaffMutation.isPending}
+                              className="rounded-md bg-[var(--status-warning-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)] disabled:opacity-60"
+                            >
+                              Inactive
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => endStaffEmployment(staff.id)}
+                              disabled={Boolean(staff.employment_end_date) || updateStaffMutation.isPending}
+                              className="rounded-md bg-[var(--status-danger-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger-text)] disabled:opacity-60"
+                            >
+                              End
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => voidStaffRecord(staff.id)}
+                              disabled={deleteStaffMutation.isPending}
+                              className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)] disabled:opacity-60"
+                            >
+                              Void
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                     </tbody>
@@ -1261,9 +1328,9 @@ function App() {
               <SectionHeading
                 icon={CalendarCheck2}
                 title="Schedule & Attendance"
-                description="Assume present by default; mark day-off or absent when staff should not be paid."
+                description="Staff are present by default. Mark only day-off and absent records."
               />
-              <form onSubmit={submitStaffSchedule} className={formGridClass}>
+              <form onSubmit={submitStaffDayOff} className={formGridClass}>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Staff
                   <select name="staff_id" required className="dashboard-input">
@@ -1276,86 +1343,56 @@ function App() {
                   </select>
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                  Scheduled date
-                  <input name="scheduled_on" type="date" defaultValue={scheduleDateFilter} required className="dashboard-input" />
+                  Date
+                  <input name="attendance_date" type="date" defaultValue={scheduleDateFilter} required className="dashboard-input" />
                 </label>
-                <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Attendance</p>
-                  <div className="flex gap-2">
-                    {(['present', 'pending', 'absent'] as const).map((status, index) => (
-                      <label key={status} className={optionPillClass}>
-                        <input
-                          type="radio"
-                          name="attendance_status"
-                          value={status}
-                          defaultChecked={index === 0}
-                          className="sr-only"
-                        />
-                        {status === 'pending' ? 'day-off' : status}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-3">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Notes (optional)
                   <input name="notes" className="dashboard-input" />
                 </label>
                 <button
                   type="submit"
-                  disabled={!selectedBusinessId || createStaffScheduleMutation.isPending}
+                  disabled={!selectedBusinessId || createStaffDayOffMutation.isPending}
                   className="dashboard-button-primary"
                 >
-                  {createStaffScheduleMutation.isPending ? 'Saving…' : 'Save schedule'}
+                  {createStaffDayOffMutation.isPending ? 'Saving…' : 'Mark day-off'}
                 </button>
               </form>
 
-              <SectionDivider label="Swap plotted dates" />
-              <form onSubmit={submitSwapStaffSchedule} className={formGridClass}>
+              <SectionDivider label="Mark absent" />
+              <form onSubmit={submitStaffAbsence} className={formGridClass}>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                  Source schedule
-                  <select
-                    value={sourceScheduleId}
-                    onChange={(e) => setSourceScheduleId(e.target.value)}
-                    required
-                    className="dashboard-input"
-                  >
-                    <option value="">Select source schedule</option>
-                    {allStaffScheduleEntries.map((schedule) => (
-                      <option key={`source-${schedule.id}`} value={schedule.id}>
-                        {schedule.staff_name ?? 'Unknown staff'} · {formatScheduleDate(schedule.scheduled_on)}
+                  Staff
+                  <select name="staff_id" required className="dashboard-input">
+                    <option value="">Select staff</option>
+                    {staffEntries.map((staff) => (
+                      <option key={staff.id} value={staff.id}>
+                        {staff.full_name}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                  Target schedule
-                  <select
-                    value={targetScheduleId}
-                    onChange={(e) => setTargetScheduleId(e.target.value)}
-                    required
-                    className="dashboard-input"
-                  >
-                    <option value="">Select target schedule</option>
-                    {allStaffScheduleEntries.map((schedule) => (
-                      <option key={`target-${schedule.id}`} value={schedule.id}>
-                        {schedule.staff_name ?? 'Unknown staff'} · {formatScheduleDate(schedule.scheduled_on)}
-                      </option>
-                    ))}
-                  </select>
+                  Date
+                  <input name="attendance_date" type="date" defaultValue={scheduleDateFilter} required className="dashboard-input" />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Notes (optional)
+                  <input name="notes" className="dashboard-input" />
                 </label>
                 <button
                   type="submit"
-                  disabled={!selectedBusinessId || swapStaffSchedulesMutation.isPending || sourceScheduleId === targetScheduleId}
+                  disabled={!selectedBusinessId || createStaffAbsenceMutation.isPending}
                   className="dashboard-button-primary"
                 >
-                  {swapStaffSchedulesMutation.isPending ? 'Swapping…' : 'Swap schedules'}
+                  {createStaffAbsenceMutation.isPending ? 'Saving…' : 'Mark absent'}
                 </button>
               </form>
 
-              <SectionDivider label={`Attendance prompts (${scheduleDateFilter})`} />
+              <SectionDivider label={`Attendance records (${scheduleDateFilter})`} />
               <div className="mb-3 w-full max-w-xs">
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                  Prompt date
+                  Date filter
                   <input
                     type="date"
                     value={scheduleDateFilter}
@@ -1364,40 +1401,59 @@ function App() {
                   />
                 </label>
               </div>
-              {staffSchedulesQuery.isLoading ? (
+              {staffDayOffsQuery.isLoading || staffAbsencesQuery.isLoading ? (
                 <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
-              ) : unresolvedAttendanceToday.length === 0 ? (
-                <EmptyState label="No pending attendance prompts for the selected date." />
+              ) : staffDayOffEntries.length === 0 && staffAbsenceEntries.length === 0 ? (
+                <EmptyState label="No day-off or absence records for the selected date." />
               ) : (
-                <ul className="grid gap-2">
-                  {unresolvedAttendanceToday.map((schedule) => (
-                    <li
-                      key={schedule.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--neutral-linen)] px-4 py-3"
-                    >
-                      <div>
-                        <p className="font-medium">{schedule.staff_name ?? 'Unknown staff'}</p>
-                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatScheduleDate(schedule.scheduled_on)}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => markAttendance(schedule.id, 'present')}
-                          className="rounded-lg bg-[var(--status-success-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--status-success-text)]"
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Day-off</p>
+                    <ul className="grid gap-2">
+                      {staffDayOffEntries.map((dayOff) => (
+                        <li
+                          key={dayOff.id}
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--neutral-linen)] px-4 py-3"
                         >
-                          Present
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => markAttendance(schedule.id, 'absent')}
-                          className="rounded-lg bg-[var(--status-danger-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--status-danger-text)]"
+                          <div>
+                            <p className="font-medium">{dayOff.staff_name ?? 'Unknown staff'}</p>
+                            <p className="text-xs text-[var(--neutral-rosewood)]">{dayOff.day_off_on}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeStaffDayOff(dayOff.id)}
+                            className="rounded-lg bg-[var(--burgundy-50)] px-3 py-1.5 text-xs font-semibold text-[var(--burgundy-800)]"
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Absent</p>
+                    <ul className="grid gap-2">
+                      {staffAbsenceEntries.map((absence) => (
+                        <li
+                          key={absence.id}
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--neutral-linen)] px-4 py-3"
                         >
-                          Absent
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                          <div>
+                            <p className="font-medium">{absence.staff_name ?? 'Unknown staff'}</p>
+                            <p className="text-xs text-[var(--neutral-rosewood)]">{absence.absent_on}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeStaffAbsence(absence.id)}
+                            className="rounded-lg bg-[var(--status-danger-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--status-danger-text)]"
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               )}
             </section>
           )}
@@ -1407,8 +1463,8 @@ function App() {
             <section className={cardClass}>
               <SectionHeading
                 icon={BanknoteArrowUp}
-                title="Compensation"
-                description="Compute per-day salary plus commission, then apply attendance and cash-advance deductions."
+                title="Payroll"
+                description="Run payroll using salary, ethereal commissions, attendance records, and cash-advance deductions."
               />
               <form onSubmit={submitCompensationRun} className={formGridClass}>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
@@ -1447,15 +1503,15 @@ function App() {
                   disabled={!selectedBusinessId || createCompensationRunMutation.isPending}
                   className="dashboard-button-primary"
                 >
-                  {createCompensationRunMutation.isPending ? 'Computing…' : 'Run compensation'}
+                  {createCompensationRunMutation.isPending ? 'Computing…' : 'Run payroll'}
                 </button>
               </form>
 
-              <SectionDivider label="Compensation runs" />
+              <SectionDivider label="Payroll runs" />
               {compensationRunsQuery.isLoading ? (
                 <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
               ) : compensationRuns.length === 0 ? (
-                <EmptyState label="No compensation runs yet." />
+                <EmptyState label="No payroll runs yet." />
               ) : (
                 <ul className="grid gap-3">
                   {compensationRuns.map((run) => (
@@ -1498,7 +1554,10 @@ function App() {
                       {run.payment_history.length > 0 && (
                         <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
                           Payment events: {run.payment_history.length} · Last settled deductions:{' '}
-                          {run.payment_history[run.payment_history.length - 1]?.settled_deductions.length ?? 0}
+                          {run.payment_history[run.payment_history.length - 1]?.settled_deductions.length ?? 0} · Portfolio deduction:{' '}
+                          {run.payment_history[run.payment_history.length - 1]?.portfolio_deduction
+                            ? formatCurrency(parseAmount(run.payment_history[run.payment_history.length - 1]?.portfolio_deduction?.amount))
+                            : 'N/A'}
                         </p>
                       )}
                     </li>
@@ -1701,9 +1760,19 @@ function App() {
                           {formatDateTimeDisplay(sale.transaction_date)} · {formatRelative(sale.transaction_date)}
                         </p>
                       </div>
-                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">
-                        {formatCurrency(parseAmount(sale.sales_amount))}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">
+                          {formatCurrency(parseAmount(sale.sales_amount))}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => voidGcashSale(sale.id)}
+                          disabled={deleteGcashMutation.isPending}
+                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)] disabled:opacity-60"
+                        >
+                          Void
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -1797,7 +1866,17 @@ function App() {
                         <p className="font-medium">{sale.coffee_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.size}</span></p>
                         <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
                       </div>
-                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.total_amount))}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.total_amount))}</span>
+                        <button
+                          type="button"
+                          onClick={() => voidCoffeeSale(sale.id)}
+                          disabled={deleteCoffeeMutation.isPending}
+                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)] disabled:opacity-60"
+                        >
+                          Void
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -1898,7 +1977,17 @@ function App() {
                         <p className="font-medium">{sale.job_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.color_mode} · {sale.print_size} · {sale.paper_count}pg</span></p>
                         <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
                       </div>
-                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.sales_amount))}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.sales_amount))}</span>
+                        <button
+                          type="button"
+                          onClick={() => voidPrintSale(sale.id)}
+                          disabled={deletePrintMutation.isPending}
+                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)] disabled:opacity-60"
+                        >
+                          Void
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -2002,7 +2091,17 @@ function App() {
                         <p className="font-medium">Service · net amount</p>
                         <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.service_date)} · {formatRelative(sale.service_date)}</p>
                       </div>
-                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.net_amount))}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.net_amount))}</span>
+                        <button
+                          type="button"
+                          onClick={() => voidEtherealSale(sale.id)}
+                          disabled={deleteEtherealMutation.isPending}
+                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)] disabled:opacity-60"
+                        >
+                          Void
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>

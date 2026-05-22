@@ -162,6 +162,24 @@ export type StaffSchedule = {
   notes: string | null
 }
 
+export type StaffDayOff = {
+  id: number
+  business_id: number
+  staff_id: number
+  staff_name: string | null
+  day_off_on: string
+  notes: string | null
+}
+
+export type StaffAbsence = {
+  id: number
+  business_id: number
+  staff_id: number
+  staff_name: string | null
+  absent_on: string
+  notes: string | null
+}
+
 export type CompensationBreakdownItem = {
   staff_id: number
   staff_name: string
@@ -189,6 +207,11 @@ export type CompensationPaymentHistoryItem = {
   finalized_at: string
   finalized_by_user_id: number
   finalized_by_name: string
+  portfolio_deduction?: {
+    capital_movement_id: number
+    amount: string
+    occurred_on: string
+  }
   settled_deductions: {
     staff_id: number
     staff_name: string

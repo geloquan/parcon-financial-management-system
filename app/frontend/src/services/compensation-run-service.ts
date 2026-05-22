@@ -7,6 +7,11 @@ export type CreateCompensationRunPayload = {
   cutoff_date: string
 }
 
+export type FinalizeCompensationRunPayload = {
+  reauth_username: string
+  reauth_password: string
+}
+
 export const fetchCompensationRuns = async (businessId: number): Promise<ApiCollectionResponse<CompensationRun>> => {
   return apiRequest<ApiCollectionResponse<CompensationRun>>(`/businesses/${businessId}/compensation_runs`)
 }
@@ -24,8 +29,10 @@ export const createCompensationRun = async (
 export const finalizeCompensationRun = async (
   businessId: number,
   runId: number,
+  payload: FinalizeCompensationRunPayload,
 ): Promise<CompensationRun> => {
   return apiRequest<CompensationRun>(`/businesses/${businessId}/compensation_runs/${runId}/finalize`, {
     method: 'POST',
+    body: JSON.stringify(payload),
   })
 }
