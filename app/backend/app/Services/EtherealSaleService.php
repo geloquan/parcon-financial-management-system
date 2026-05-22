@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\EtherealSale;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class EtherealSaleService
 {
