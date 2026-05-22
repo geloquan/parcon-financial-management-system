@@ -32,18 +32,27 @@ class CompensationRunService
         $mode = $validated['computation_mode'];
 
         if ($mode === 'by_days') {
-            $days = (int) ($validated['number_of_days'] ?? 1);
-            $periodStart = $cutoffDate->copy()->subDays($days - 1);
-            $periodEnd = $cutoffDate->copy();
-        } else {
-            $lastRun = CompensationRun::query()
-                ->where('business_id', $business->id)
-                ->latest('period_end')
-                ->first();
+          $days = (int) ($validated['number_of_days'] ?? 1);
 
-            $periodStart = $lastRun ? Carbon::parse($lastRun->period_end)->addDay()->startOfDay() : $cutoffDate->copy()->startOfMonth();
-            $periodEnd = $cutoffDate->copy();
-            $days = null;
+          $periodStart = $cutoffDate->copy()
+            ->subDays($days - 1)
+            ->startOfDay();
+
+          $periodEnd = $cutoffDate->copy()
+            ->endOfDay();
+        } else {
+          $lastRun = CompensationRun::query()
+            ->where('business_id', $business->id)
+            ->latest('period_end')
+            ->first();
+
+          $periodStart = $lastRun
+            ? Carbon::parse($lastRun->period_end)->addDay()->startOfDay()
+            : $cutoffDate->copy()->startOfMonth()->startOfDay();
+
+          $periodEnd = $cutoffDate->copy()->endOfDay();
+
+          $days = null;
         }
 
         $staff = Staff::query()
@@ -61,7 +70,7 @@ class CompensationRunService
             ->get(['staff_id', 'absent_on']);
         $etherealSales = EtherealSale::query()
             ->where('business_id', $business->id)
-            ->whereBetween('service_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->whereBetween('service_date', [$periodStart, $periodEnd])
             ->get(['staff_id', 'staff_ids', 'net_amount']);
 
         $cashAdvances = StaffCashAdvance::query()
