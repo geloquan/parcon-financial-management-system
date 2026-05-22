@@ -363,7 +363,7 @@ class SalesReportService
                     'providers' => implode(', ', $providerNames),
                     'customer_name' => $sale->customer_name,
                     'service_cost' => round((float) $sale->service_cost, 2),
-                    'discount_percentage' => round((float) $sale->discount_percentage, 2),
+                    'discount' => round((float) $sale->discount_percentage, 2) . '%',
                     'discount_type' => $sale->discount_type,
                     'cash_discount' => round((float) $sale->cash_discount, 2),
                 ],

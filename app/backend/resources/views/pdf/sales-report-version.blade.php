@@ -85,6 +85,11 @@
   </style>
 </head>
 <body>
+
+<div class="pdf-footer">
+  <span class="footer-left">Generated at: {{ now()->format('F j, Y') }}</span>
+  <span class="footer-right">Page <span class="page-num"></span></span>
+</div>
 @php
   $range = $details['range'] ?? [];
   $salesTotals = $details['totals'] ?? [];
@@ -119,7 +124,7 @@
     <table>
       <thead>
       <tr>
-        <th>Module</th>
+        <th>Business</th>
         <th class="num">Transactions</th>
         <th class="num">Amount</th>
       </tr>
@@ -304,5 +309,25 @@
     @endif
   </div>
 @endif
+{{-- Page number footer, rendered by dompdf on every page --}}
+<style>
+  /* push page content up to leave room for footer */
+  @page { margin-bottom: 52px; }
+
+  .pdf-footer {
+    position: fixed;
+    bottom: -36px;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #E0DBD5;
+    padding-top: 5px;
+    font-size: 9px;
+    color: #7A6A5A;
+  }
+  .pdf-footer .footer-center { text-align: center; }
+  .pdf-footer .footer-left   { position: absolute; left: 0; }
+  .pdf-footer .footer-right  { position: absolute; right: 0; }
+  .page-num:after  { content: counter(page); }
+</style>
 </body>
 </html>
