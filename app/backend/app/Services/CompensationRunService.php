@@ -68,18 +68,24 @@ class CompensationRunService
         );
 
         foreach ($staff as $member) {
-            $memberAbsentDates = $absences
-                ->where('staff_id', $member->id)
-                ->map(static fn (StaffAbsence $absence): string => (string) $absence->absent_on?->toDateString())
-                ->filter()
-                ->unique();
+          $memberAbsentDates = collect(
+            $absences
+              ->where('staff_id', $member->id)
+              ->map(fn (StaffAbsence $absence) => $absence->absent_on?->toDateString())
+              ->filter()
+              ->unique()
+              ->values()
+          );
 
-            $memberDayOffDates = $dayOffs
-                ->where('staff_id', $member->id)
-                ->map(static fn (StaffDayOff $dayOff): string => (string) $dayOff->day_off_on?->toDateString())
-                ->filter()
-                ->reject(static fn (string $date) => $memberAbsentDates->contains($date))
-                ->unique();
+          $memberDayOffDates = collect(
+            $dayOffs
+              ->where('staff_id', $member->id)
+              ->map(fn (StaffDayOff $dayOff) => $dayOff->day_off_on?->toDateString())
+              ->filter()
+              ->reject(fn ($date) => $memberAbsentDates->contains($date))
+              ->unique()
+              ->values()
+          );
 
             $dayOffDays = $memberDayOffDates->count();
             $absentDays = $memberAbsentDates->count();
