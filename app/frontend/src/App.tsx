@@ -546,8 +546,15 @@ function App() {
   const serviceReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'service'), [referenceItems])
   const referenceItemById = useMemo(() => new Map(referenceItems.map((item) => [String(item.id), item])), [referenceItems])
   const userRoles = useMemo(() => {
-    if (!meQuery.data) return [] as string[]
-    return meQuery.data.roles.length > 0 ? meQuery.data.roles : [meQuery.data.role]
+    const data = meQuery.data
+
+    if (!data) return []
+
+    if (Array.isArray(data.roles) && data.roles.length > 0) {
+      return data.roles
+    }
+
+    return data.role ? [data.role] : []
   }, [meQuery.data])
 
   const expenseTotal = useMemo(
