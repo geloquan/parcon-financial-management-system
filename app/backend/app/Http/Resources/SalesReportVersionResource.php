@@ -24,6 +24,10 @@ class SalesReportVersionResource extends JsonResource
             'file_size_bytes' => $this->file_size_bytes,
             'metadata' => $this->metadata,
             'details' => $this->details,
+            'pdf_verification' => $this->when(
+                $this->resource->offsetExists('pdf_verification'),
+                fn () => $this->resource->getAttribute('pdf_verification')
+            ),
             'download_url' => route('sales-reports.download', [
                 'business' => $this->business_id,
                 'salesReportVersion' => $this->id,

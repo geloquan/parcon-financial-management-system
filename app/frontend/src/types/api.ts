@@ -297,5 +297,22 @@ export type SalesReportVersion = {
       metadata: Record<string, string | number | null>
     }>
   }
+  pdf_verification?: {
+    status: 'verified' | 'mismatch' | 'missing_file'
+    checked_at: string
+    file_exists: boolean
+    metadata_checks: {
+      business_name: boolean
+      generated_at: boolean
+      generated_by: boolean
+      stored_file_name: boolean
+    }
+    module_checks: {
+      gcash: boolean
+      coffee: boolean
+      print: boolean
+      ethereal: boolean
+    }
+  }
   download_url: string
 }
