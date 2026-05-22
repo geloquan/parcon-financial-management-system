@@ -61,7 +61,11 @@ class CompensationRunService
         $breakdown = [];
         $grossPay = 0.0;
         $totalDeductions = 0.0;
-        $periodDaysCount = max($periodStart->diffInDays($periodEnd) + 1, 0);
+        $periodDaysCount = max(
+          $periodStart->copy()->startOfDay()
+            ->diffInDays($periodEnd->copy()->startOfDay()) + 1,
+          0
+        );
 
         foreach ($staff as $member) {
             $memberAbsentDates = $absences
@@ -82,6 +86,7 @@ class CompensationRunService
             $unpaidDays = $memberDayOffDates->merge($memberAbsentDates)->unique()->count();
             $targetDays = $periodDaysCount;
             $payableDays = max($targetDays - min($unpaidDays, $targetDays), 0);
+
             $presentDays = $payableDays;
 
             $dailyRate = (float) $member->salary;
