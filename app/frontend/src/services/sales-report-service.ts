@@ -13,6 +13,7 @@ export type CreateSalesReportPayload = {
   start_date: string
   end_date: string
   document_title?: string
+  report_type?: 'sales' | 'compensation' | 'combined'
 }
 
 export const generateSalesReport = async (payload: GenerateSalesReportPayload): Promise<SalesReport> => {

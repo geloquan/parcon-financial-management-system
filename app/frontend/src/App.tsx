@@ -1130,6 +1130,7 @@ function App() {
       start_date: String(f.get('start_date') ?? ''),
       end_date: String(f.get('end_date') ?? ''),
       document_title: String(f.get('document_title') ?? '').trim() || undefined,
+      report_type: String(f.get('report_type') ?? 'sales') as 'sales' | 'compensation' | 'combined',
     })
 
     e.currentTarget.reset()
@@ -2901,8 +2902,8 @@ function App() {
             <section className={cardClass}>
               <SectionHeading
                 icon={FileText}
-                title="Sales Reports"
-                description="Generate versioned PDF 8.5x13 sales reports with metadata headers/footers."
+                title="Detail Reports"
+                description="Generate versioned PDF 8.5x13 detail reports (sales, compensation, or combined) with metadata."
               />
               {meQuery.data.role !== 'admin' && meQuery.data.role !== 'owner' ? (
                 <div className="mt-5 rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-4 py-3 text-sm text-[var(--status-warning-text)]">
@@ -2910,7 +2911,7 @@ function App() {
                 </div>
               ) : (
                 <>
-                  <form onSubmit={submitSalesReport} className={formGridClass}>
+                  <form onSubmit={submitPdfSalesReport} className={formGridClass}>
                     <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                       Start date
                       <input name="start_date" type="date" required className="dashboard-input" />
@@ -2922,6 +2923,14 @@ function App() {
                     <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                       Document title (optional)
                       <input name="document_title" className="dashboard-input" />
+                    </label>
+                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      Report type
+                      <select name="report_type" defaultValue="sales" className="dashboard-input">
+                        <option value="sales">Sales</option>
+                        <option value="compensation">Compensation</option>
+                        <option value="combined">Combined</option>
+                      </select>
                     </label>
                     <button
                       type="submit"
@@ -2960,7 +2969,17 @@ function App() {
                             {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
                           </p>
                           <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
-                            Overall sales: {formatCurrency(parseAmount(report.details.totals.overall_sales))}
+                            Type: {report.report_type}
+                            {report.report_type !== 'compensation' && (
+                              <>
+                                {' · '}Overall sales: {formatCurrency(parseAmount(report.details.totals.overall_sales))}
+                              </>
+                            )}
+                            {report.report_type !== 'sales' && (
+                              <>
+                                {' · '}Net pay: {formatCurrency(parseAmount(report.details.compensation_totals?.net_pay ?? 0))}
+                              </>
+                            )}
                           </p>
                           {report.pdf_verification && (
                             <div className="mt-2 grid gap-1 text-xs">

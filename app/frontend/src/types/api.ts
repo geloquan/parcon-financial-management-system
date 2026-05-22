@@ -252,6 +252,7 @@ export type SalesReportVersion = {
   end_date: string
   document_title: string
   document_format: string
+  report_type: 'sales' | 'compensation' | 'combined'
   file_path: string | null
   file_name: string | null
   file_size_bytes: number | null
@@ -294,6 +295,25 @@ export type SalesReportVersion = {
       sale_date: string | null
       reference_item_name: string | null
       reference_item_original_price: number | null
+      metadata: Record<string, string | number | null>
+    }>
+    compensation_totals?: {
+      gross_pay: number
+      total_deductions: number
+      net_pay: number
+    }
+    compensation_counts?: {
+      runs_total: number
+      runs_pending: number
+      runs_finalized: number
+    }
+    compensation_entries?: Array<{
+      module: string
+      business_name: string
+      run_id: number
+      entry_name: string
+      amount: number
+      entry_date: string | null
       metadata: Record<string, string | number | null>
     }>
   }
