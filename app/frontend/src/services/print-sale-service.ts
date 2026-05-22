@@ -1,5 +1,6 @@
 import type { ApiCollectionResponse, PrintSale } from '../types/api'
 import { apiRequest } from './api-client'
+import type { ReauthPayload } from './staff-service'
 
 export type CreatePrintSalePayload = {
   job_type: string
@@ -35,8 +36,13 @@ export const createPrintSale = async (businessId: number, payload: CreatePrintSa
   })
 }
 
-export const deletePrintSale = async (businessId: number, saleId: number): Promise<{ message: string }> => {
+export const deletePrintSale = async (
+  businessId: number,
+  saleId: number,
+  reauth: ReauthPayload,
+): Promise<{ message: string }> => {
   return apiRequest<{ message: string }>(`/businesses/${businessId}/print_sales/${saleId}`, {
     method: 'DELETE',
+    body: JSON.stringify(reauth),
   })
 }

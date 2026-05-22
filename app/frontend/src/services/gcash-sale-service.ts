@@ -1,5 +1,6 @@
 import type { ApiCollectionResponse, GcashSale } from '../types/api'
 import { apiRequest } from './api-client'
+import type { ReauthPayload } from './staff-service'
 
 export type CreateGcashSalePayload = {
   transaction_recipient?: string
@@ -22,8 +23,13 @@ export const createGcashSale = async (businessId: number, payload: CreateGcashSa
   })
 }
 
-export const deleteGcashSale = async (businessId: number, saleId: number): Promise<{ message: string }> => {
+export const deleteGcashSale = async (
+  businessId: number,
+  saleId: number,
+  reauth: ReauthPayload,
+): Promise<{ message: string }> => {
   return apiRequest<{ message: string }>(`/businesses/${businessId}/gcash_sales/${saleId}`, {
     method: 'DELETE',
+    body: JSON.stringify(reauth),
   })
 }
