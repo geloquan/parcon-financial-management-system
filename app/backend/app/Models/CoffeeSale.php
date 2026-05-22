@@ -14,6 +14,8 @@ class CoffeeSale extends Model
         'business_id',
         'price',
         'coffee_type',
+        'reference_item_name',
+        'reference_item_original_price',
         'size',
         'add_on_price',
         'add_on_description',

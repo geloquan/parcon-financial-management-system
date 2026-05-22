@@ -19,6 +19,9 @@ class SalesReportVersionResource extends JsonResource
             'end_date' => $this->end_date?->toDateString(),
             'document_title' => $this->document_title,
             'document_format' => $this->document_format,
+            'file_path' => $this->file_path,
+            'file_name' => $this->file_path ? basename($this->file_path) : null,
+            'file_size_bytes' => $this->file_size_bytes,
             'metadata' => $this->metadata,
             'details' => $this->details,
             'download_url' => route('sales-reports.download', [

@@ -2,25 +2,23 @@ import type { ApiCollectionResponse, CoffeeSale } from '../types/api'
 import { apiRequest } from './api-client'
 import type { ReauthPayload } from './staff-service'
 
-export type CreateCoffeeSalePayload = {
+export type CoffeeSaleEntryPayload = {
   price: number
   coffee_type: string
+  reference_item_name?: string
+  reference_item_original_price?: number
   size: '8oz' | '9oz' | '12oz' | '16oz' | '18oz'
   add_on_price: number
   add_on_description?: string
   sale_date: string
+  reauth_username?: string
+  reauth_password?: string
+}
+
+export type CreateCoffeeSalePayload = CoffeeSaleEntryPayload & {
   reauth_username: string
   reauth_password: string
-  entries?: Array<{
-    price: number
-    coffee_type: string
-    size: '8oz' | '9oz' | '12oz' | '16oz' | '18oz'
-    add_on_price: number
-    add_on_description?: string
-    sale_date: string
-    reauth_username?: string
-    reauth_password?: string
-  }>
+  entries?: CoffeeSaleEntryPayload[]
 }
 
 export const fetchCoffeeSales = async (businessId: number): Promise<ApiCollectionResponse<CoffeeSale>> => {

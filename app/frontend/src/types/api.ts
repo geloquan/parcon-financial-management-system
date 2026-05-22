@@ -27,6 +27,7 @@ export type User = {
   name: string
   username: string
   role: string
+  roles: string[]
   business_id: number | null
 }
 
@@ -61,6 +62,8 @@ export type GcashSale = {
   id: number
   business_id: number
   transaction_recipient: string | null
+  reference_item_name: string | null
+  reference_item_original_price: string | null
   amount_moved: string
   sales_amount: string
   profit_amount: string
@@ -73,6 +76,8 @@ export type CoffeeSale = {
   business_id: number
   price: string
   coffee_type: string
+  reference_item_name: string | null
+  reference_item_original_price: string | null
   size: string
   add_on_price: string
   total_amount: string
@@ -85,6 +90,8 @@ export type PrintSale = {
   business_id: number
   job_type: string
   description: string
+  reference_item_name: string | null
+  reference_item_original_price: string | null
   color_mode: 'black' | 'white'
   print_size: string
   paper_count: number
@@ -97,6 +104,9 @@ export type EtherealSale = {
   business_id: number
   staff_id: number
   staff_ids: number[]
+  service_name: string | null
+  reference_item_name: string | null
+  reference_item_original_price: string | null
   service_cost: string
   discount_percentage: string
   customer_name: string | null
@@ -242,11 +252,19 @@ export type SalesReportVersion = {
   end_date: string
   document_title: string
   document_format: string
+  file_path: string | null
+  file_name: string | null
+  file_size_bytes: number | null
   metadata: {
     page_size: string
     generated_at: string
     generated_by: string
+    generated_by_username?: string
     business_name: string
+    business_slug?: string
+    report_scope?: string
+    stored_disk?: string
+    stored_file_name?: string
   }
   details: {
     range: {
@@ -266,7 +284,18 @@ export type SalesReportVersion = {
       coffee_entries: number
       print_entries: number
       ethereal_entries: number
+      all_entries: number
     }
+    entries: Array<{
+      module: string
+      business_name: string
+      sale_name: string
+      amount: number
+      sale_date: string | null
+      reference_item_name: string | null
+      reference_item_original_price: number | null
+      metadata: Record<string, string | number | null>
+    }>
   }
   download_url: string
 }

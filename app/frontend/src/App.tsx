@@ -10,7 +10,12 @@ import { useGenerateSalesReport } from './hooks/use-sales-reports'
 import { useCreateStaff, useDeleteStaff, useStaff, useUpdateStaff } from './hooks/use-staff'
 import { useCreateStaffDayOff, useDeleteStaffDayOff, useStaffDayOffs } from './hooks/use-staff-day-offs'
 import { useCreateStaffAbsence, useDeleteStaffAbsence, useStaffAbsences } from './hooks/use-staff-absences'
-import { useBusinessReferenceItems, useCreateBusinessReferenceItem } from './hooks/use-business-reference-items'
+import {
+  useBusinessReferenceItems,
+  useCreateBusinessReferenceItem,
+  useDeleteBusinessReferenceItem,
+  useUpdateBusinessReferenceItem,
+} from './hooks/use-business-reference-items'
 import { useCompensationRuns, useCreateCompensationRun, useFinalizeCompensationRun } from './hooks/use-compensation-runs'
 import { useCreateSalesReport, useDownloadSalesReport, useSalesReports } from './hooks/use-sales-reports'
 import {
@@ -65,6 +70,7 @@ type MoneyReauthCredentials = {
 }
 
 type CoffeeDraftItem = {
+  selectedReferenceItemId: string
   price: string
   coffee_type: string
   size: '8oz' | '9oz' | '12oz' | '16oz' | '18oz'
@@ -74,6 +80,7 @@ type CoffeeDraftItem = {
 }
 
 type PrintDraftItem = {
+  selectedReferenceItemId: string
   job_type: string
   description: string
   color_mode: 'black' | 'white'
@@ -84,7 +91,9 @@ type PrintDraftItem = {
 }
 
 type EtherealDraftItem = {
+  selectedReferenceItemId: string
   staff_ids: number[]
+  service_name: string
   customer_name: string
   service_cost: string
   discount_percentage: string
@@ -92,9 +101,17 @@ type EtherealDraftItem = {
   service_date: string
 }
 
+type ReferenceItemFormState = {
+  item_type: 'product' | 'service'
+  name: string
+  price: string
+  description: string
+}
+
 const makeDateTimeDefault = () => formatDateTimeLocal(new Date())
 
 const createCoffeeDraftItem = (): CoffeeDraftItem => ({
+  selectedReferenceItemId: '',
   price: '',
   coffee_type: '',
   size: '8oz',
@@ -104,6 +121,7 @@ const createCoffeeDraftItem = (): CoffeeDraftItem => ({
 })
 
 const createPrintDraftItem = (): PrintDraftItem => ({
+  selectedReferenceItemId: '',
   job_type: 'xerox',
   description: '',
   color_mode: 'black',
@@ -114,12 +132,21 @@ const createPrintDraftItem = (): PrintDraftItem => ({
 })
 
 const createEtherealDraftItem = (): EtherealDraftItem => ({
+  selectedReferenceItemId: '',
   staff_ids: [],
+  service_name: '',
   customer_name: '',
   service_cost: '0',
   discount_percentage: '0',
   discount_type: 'promo',
   service_date: makeDateTimeDefault(),
+})
+
+const createReferenceItemFormState = (): ReferenceItemFormState => ({
+  item_type: 'product',
+  name: '',
+  price: '',
+  description: '',
 })
 
 const parseAmount = (value: string | number | null | undefined) => {
@@ -358,6 +385,8 @@ function App() {
   const [tab, setTabState] = useState<Tab>(_initial.tab)
   const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(_initial.businessId)
 
+  const [gcashRecipient, setGcashRecipient] = useState('')
+  const [gcashReferenceItemId, setGcashReferenceItemId] = useState('')
   const [gcashAmountMoved, setGcashAmountMoved] = useState('0')
   const [gcashSalesAmount, setGcashSalesAmount] = useState('0')
   const [coffeeItems, setCoffeeItems] = useState<CoffeeDraftItem[]>([createCoffeeDraftItem()])
@@ -374,6 +403,8 @@ function App() {
   const [reportPeriod, setReportPeriod] = useState<'today' | 'date_range'>(_initial.period)
 
   const [latestSalesReport, setLatestSalesReport] = useState<SalesReport | null>(null)
+  const [editingReferenceItemId, setEditingReferenceItemId] = useState<number | null>(null)
+  const [editingReferenceItemForm, setEditingReferenceItemForm] = useState<ReferenceItemFormState>(createReferenceItemFormState())
   const [moneyReauthModalOpen, setMoneyReauthModalOpen] = useState(false)
   const [moneyReauthUsername, setMoneyReauthUsername] = useState('')
   const [moneyReauthPassword, setMoneyReauthPassword] = useState('')
@@ -472,6 +503,8 @@ function App() {
   const deleteEtherealMutation = useDeleteEtherealSale(selectedBusinessId)
   const referenceItemsQuery = useBusinessReferenceItems(selectedBusinessId)
   const createReferenceItemMutation = useCreateBusinessReferenceItem(selectedBusinessId)
+  const updateReferenceItemMutation = useUpdateBusinessReferenceItem(selectedBusinessId)
+  const deleteReferenceItemMutation = useDeleteBusinessReferenceItem(selectedBusinessId)
   const capitalMovementsQuery = useCapitalMovements()
   const createPortfolioCapitalMutation = useCreatePortfolioCapitalMovement()
   const createBusinessCapitalMutation = useCreateBusinessCapitalMovement(selectedBusinessId)
@@ -511,6 +544,11 @@ function App() {
   const salesReportVersions = useMemo(() => salesReportsQuery.data?.data ?? [], [salesReportsQuery.data])
   const productReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'product'), [referenceItems])
   const serviceReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'service'), [referenceItems])
+  const referenceItemById = useMemo(() => new Map(referenceItems.map((item) => [String(item.id), item])), [referenceItems])
+  const userRoles = useMemo(() => {
+    if (!meQuery.data) return [] as string[]
+    return meQuery.data.roles.length > 0 ? meQuery.data.roles : [meQuery.data.role]
+  }, [meQuery.data])
 
   const expenseTotal = useMemo(
     () => expenseEntries.reduce((t, i) => t + parseAmount(i.amount), 0),

@@ -15,6 +15,8 @@ class PrintSaleResource extends JsonResource
             'business_id' => $this->business_id,
             'job_type' => $this->job_type,
             'description' => $this->description,
+            'reference_item_name' => $this->reference_item_name,
+            'reference_item_original_price' => $this->reference_item_original_price,
             'color_mode' => $this->color_mode,
             'print_size' => $this->print_size,
             'paper_count' => $this->paper_count,

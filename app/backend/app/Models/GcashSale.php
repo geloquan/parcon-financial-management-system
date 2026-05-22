@@ -13,6 +13,8 @@ class GcashSale extends Model
     protected $fillable = [
         'business_id',
         'transaction_recipient',
+        'reference_item_name',
+        'reference_item_original_price',
         'amount_moved',
         'sales_amount',
         'profit_amount',

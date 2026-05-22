@@ -18,6 +18,8 @@ class SalesReportVersion extends Model
         'end_date',
         'document_title',
         'document_format',
+        'file_path',
+        'file_size_bytes',
         'metadata',
         'details',
     ];

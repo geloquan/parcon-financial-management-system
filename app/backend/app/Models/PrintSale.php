@@ -14,6 +14,8 @@ class PrintSale extends Model
         'business_id',
         'job_type',
         'description',
+        'reference_item_name',
+        'reference_item_original_price',
         'color_mode',
         'print_size',
         'paper_count',

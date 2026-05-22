@@ -4,6 +4,8 @@ import type { ReauthPayload } from './staff-service'
 
 export type CreateGcashSalePayload = {
   transaction_recipient?: string
+  reference_item_name?: string
+  reference_item_original_price?: number
   amount_moved: number
   sales_amount: number
   transaction_type: 'cash_in' | 'cash_out'

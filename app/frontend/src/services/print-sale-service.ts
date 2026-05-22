@@ -2,27 +2,24 @@ import type { ApiCollectionResponse, PrintSale } from '../types/api'
 import { apiRequest } from './api-client'
 import type { ReauthPayload } from './staff-service'
 
-export type CreatePrintSalePayload = {
+export type PrintSaleEntryPayload = {
   job_type: string
   description: string
+  reference_item_name?: string
+  reference_item_original_price?: number
   color_mode: 'black' | 'white'
   print_size: string
   paper_count: number
   sales_amount: number
   sale_date: string
+  reauth_username?: string
+  reauth_password?: string
+}
+
+export type CreatePrintSalePayload = PrintSaleEntryPayload & {
   reauth_username: string
   reauth_password: string
-  entries?: Array<{
-    job_type: string
-    description: string
-    color_mode: 'black' | 'white'
-    print_size: string
-    paper_count: number
-    sales_amount: number
-    sale_date: string
-    reauth_username?: string
-    reauth_password?: string
-  }>
+  entries?: PrintSaleEntryPayload[]
 }
 
 export const fetchPrintSales = async (businessId: number): Promise<ApiCollectionResponse<PrintSale>> => {

@@ -14,6 +14,8 @@ class GcashSaleResource extends JsonResource
             'id' => $this->id,
             'business_id' => $this->business_id,
             'transaction_recipient' => $this->transaction_recipient,
+            'reference_item_name' => $this->reference_item_name,
+            'reference_item_original_price' => $this->reference_item_original_price,
             'amount_moved' => $this->amount_moved,
             'sales_amount' => $this->sales_amount,
             'profit_amount' => $this->profit_amount,

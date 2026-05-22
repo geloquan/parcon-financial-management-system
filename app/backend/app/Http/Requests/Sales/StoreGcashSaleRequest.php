@@ -24,6 +24,8 @@ class StoreGcashSaleRequest extends FormRequest
 
         return [
             'transaction_recipient' => ['nullable', 'string', 'max:255'],
+            'reference_item_name' => ['nullable', 'string', 'max:255'],
+            'reference_item_original_price' => ['nullable', 'numeric', 'min:0'],
             'amount_moved' => ['required', 'numeric', 'min:0', 'lt:sales_amount'],
             'sales_amount' => ['required', 'numeric', 'min:0.01'],
             'transaction_type' => ['required', 'in:cash_in,cash_out'],

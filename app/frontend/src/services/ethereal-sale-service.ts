@@ -2,26 +2,25 @@ import type { ApiCollectionResponse, EtherealSale } from '../types/api'
 import { apiRequest } from './api-client'
 import type { ReauthPayload } from './staff-service'
 
-export type CreateEtherealSalePayload = {
-  staff_id?: number
+export type EtherealSaleEntryPayload = {
   staff_ids: number[]
+  service_name?: string
+  reference_item_name?: string
+  reference_item_original_price?: number
   service_cost: number
   discount_percentage: number
   customer_name?: string
   discount_type: string
   service_date: string
+  reauth_username?: string
+  reauth_password?: string
+}
+
+export type CreateEtherealSalePayload = EtherealSaleEntryPayload & {
+  staff_id?: number
   reauth_username: string
   reauth_password: string
-  entries?: Array<{
-    staff_ids: number[]
-    service_cost: number
-    discount_percentage: number
-    customer_name?: string
-    discount_type: string
-    service_date: string
-    reauth_username?: string
-    reauth_password?: string
-  }>
+  entries?: EtherealSaleEntryPayload[]
 }
 
 export const fetchEtherealSales = async (businessId: number): Promise<ApiCollectionResponse<EtherealSale>> => {
