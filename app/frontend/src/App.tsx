@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import {useEffect, useMemo, useRef, useState, type FormEvent, useCallback} from 'react'
 import { useLogin, useLogout, useMe } from './hooks/use-auth'
 import { useBusinesses } from './hooks/use-businesses'
 import { useCreateExpense, useExpenses } from './hooks/use-expenses'
@@ -177,6 +177,37 @@ const formatRelative = (value: string) => {
   return `${days}d ago`
 }
 
+// ─── All valid tab values (used for URL validation) ──────────────────────────
+const ALL_TABS: Tab[] = [
+  'overview', 'businesses', 'staff', 'scheduleAttendance', 'compensation',
+  'referenceItems', 'expenses', 'gcash', 'coffee', 'print', 'ethereal',
+  'salesReports', 'portfolioCapital', 'businessCapital', 'pdfSalesReports',
+]
+
+// ─── URL state helpers ────────────────────────────────────────────────────────
+const readUrlState = () => {
+  const p = new URLSearchParams(window.location.search)
+  const tabParam = p.get('tab') as Tab | null
+  return {
+    tab: tabParam && ALL_TABS.includes(tabParam) ? tabParam : ('overview' as Tab),
+    businessId: p.get('business') ? Number(p.get('business')) : null,
+    date: p.get('date') ?? formatDateOnly(new Date()),
+    page: p.get('page') ? Math.max(1, Number(p.get('page'))) : 1,
+    scope: (p.get('scope') ?? 'portfolio') as 'portfolio' | 'business',
+    period: (p.get('period') ?? 'today') as 'today' | 'date_range',
+    mode: (p.get('mode') ?? 'by_days') as 'by_days' | 'up_to_date',
+  }
+}
+
+const buildSearch = (params: Record<string, string | null | undefined>) => {
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v != null && v !== '') p.set(k, v)
+  }
+  const s = p.toString()
+  return s ? `?${s}` : ''
+}
+
 // ─── Nav Groups ──────────────────────────────────────────────────────────────
 const navGroups: Array<{
   label: string
@@ -306,8 +337,11 @@ function EmptyState({ label }: { label: string }) {
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 function App() {
-  const [tab, setTab] = useState<Tab>('overview')
-  const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null)
+  const _initial = readUrlState()
+
+  const [tab, setTabState] = useState<Tab>(_initial.tab)
+  const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(_initial.businessId)
+
   const [gcashAmountMoved, setGcashAmountMoved] = useState('0')
   const [gcashSalesAmount, setGcashSalesAmount] = useState('0')
   const [coffeeItems, setCoffeeItems] = useState<CoffeeDraftItem[]>([createCoffeeDraftItem()])
@@ -317,11 +351,12 @@ function App() {
   const [portfolioDirectionPreview, setPortfolioDirectionPreview] = useState<'add' | 'deduct' | 'transfer'>('add')
   const [businessAmountPreview, setBusinessAmountPreview] = useState('0')
   const [businessDirectionPreview, setBusinessDirectionPreview] = useState<'add' | 'deduct'>('add')
-  const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(formatDateOnly(new Date()))
-  const [compensationMode, setCompensationMode] = useState<'by_days' | 'up_to_date'>('by_days')
-  const [salesReportPage, setSalesReportPage] = useState(1)
-  const [reportScope, setReportScope] = useState<'portfolio' | 'business'>('portfolio')
-  const [reportPeriod, setReportPeriod] = useState<'today' | 'date_range'>('today')
+  const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(_initial.date)
+  const [compensationMode, setCompensationMode] = useState<'by_days' | 'up_to_date'>(_initial.mode)
+  const [salesReportPage, setSalesReportPage] = useState(_initial.page)
+  const [reportScope, setReportScope] = useState<'portfolio' | 'business'>(_initial.scope)
+  const [reportPeriod, setReportPeriod] = useState<'today' | 'date_range'>(_initial.period)
+
   const [latestSalesReport, setLatestSalesReport] = useState<SalesReport | null>(null)
   const [moneyReauthModalOpen, setMoneyReauthModalOpen] = useState(false)
   const [moneyReauthUsername, setMoneyReauthUsername] = useState('')
@@ -329,12 +364,62 @@ function App() {
 
   const moneyReauthResolverRef = useRef<((credentials: MoneyReauthCredentials | null) => void) | null>(null)
 
+  const prevTabRef = useRef<Tab>(_initial.tab)
+
+  const setTab = useCallback((next: Tab) => {
+    setTabState(next)
+  }, [])
+
   const meQuery = useMe()
   const loginMutation = useLogin()
   const logoutMutation = useLogout()
 
   const businessesQuery = useBusinesses()
   const businesses = useMemo(() => businessesQuery.data?.data ?? [], [businessesQuery.data])
+
+  useEffect(() => {
+    const isTabChange = prevTabRef.current !== tab
+    prevTabRef.current = tab
+
+    const params: Record<string, string | null> = {
+      // Omit `tab` from URL when it's the default to keep the root URL clean
+      tab: tab !== 'overview' ? tab : null,
+      // Include business for every tab that uses it
+      business: selectedBusinessId ? String(selectedBusinessId) : null,
+      // Tab-specific context params
+      date:   tab === 'scheduleAttendance' ? scheduleDateFilter : null,
+      page:   tab === 'pdfSalesReports' && salesReportPage > 1 ? String(salesReportPage) : null,
+      scope:  tab === 'salesReports' ? reportScope : null,
+      period: tab === 'salesReports' ? reportPeriod : null,
+      mode:   tab === 'compensation' && compensationMode !== 'by_days' ? compensationMode : null,
+    }
+
+    const url = window.location.pathname + buildSearch(params)
+
+    if (isTabChange) {
+      // Push so the browser back button navigates between tabs
+      window.history.pushState({ tab }, '', url)
+    } else {
+      // Replace for filter/context tweaks — no history spam
+      window.history.replaceState({ tab }, '', url)
+    }
+  }, [tab, selectedBusinessId, scheduleDateFilter, salesReportPage, reportScope, reportPeriod, compensationMode])
+
+// ── Sync URL → state (browser back / forward) ───────────────────────────────
+  useEffect(() => {
+    const onPopState = () => {
+      const s = readUrlState()
+      setTabState(s.tab)
+      if (s.businessId) setSelectedBusinessId(s.businessId)
+      setScheduleDateFilter(s.date)
+      setSalesReportPage(s.page)
+      setReportScope(s.scope)
+      setReportPeriod(s.period)
+      setCompensationMode(s.mode)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, []) // intentionally empty — only registers/unregisters the listener
 
   useEffect(() => {
     if (!selectedBusinessId && businesses.length > 0) {
