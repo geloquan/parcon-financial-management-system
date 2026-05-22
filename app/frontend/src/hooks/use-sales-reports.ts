@@ -9,7 +9,7 @@ import {
 } from '../services/sales-report-service'
 import type { ApiCollectionResponse, SalesReportVersion } from '../types/api'
 
-const staleTime = import.meta.env.DEV ? 1_000 : 60_000;
+const staleTime = import.meta.env.DEV ? 60_000 : 60_000;
 
 export const useGenerateSalesReport = () => {
   return useMutation({

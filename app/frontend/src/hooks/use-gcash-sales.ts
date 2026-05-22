@@ -8,7 +8,7 @@ import {
 import type { ReauthPayload } from '../services/staff-service'
 import type { ApiCollectionResponse, GcashSale } from '../types/api'
 
-const staleTime = import.meta.env.DEV ? 1_000 : 60_000;
+const staleTime = import.meta.env.DEV ? 60_000 : 60_000;
 
 export const useGcashSales = (
   businessId: number | null,

@@ -9,7 +9,7 @@ import {
 import type { ApiCollectionResponse, BusinessReferenceItem } from '../types/api'
 import type { ReauthPayload } from '../services/staff-service'
 
-const staleTime = import.meta.env.DEV ? 1_000 : 60_000
+const staleTime = import.meta.env.DEV ? 60_000 : 60_000
 
 export const useBusinessReferenceItems = (
   businessId: number | null,

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@ta
 import { createBusiness, fetchBusinesses, type CreateBusinessPayload } from '../services/business-service'
 import type { ApiCollectionResponse, Business } from '../types/api'
 
-const staleTime = import.meta.env.DEV ? 1_000 : 60_000;
+const staleTime = import.meta.env.DEV ? 60_000 : 60_000;
 
 export const useBusinesses = (
   queryOptions?: Omit<UseQueryOptions<ApiCollectionResponse<Business>>, 'queryKey' | 'queryFn'>

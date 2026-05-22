@@ -8,7 +8,7 @@ import {
 } from '../services/capital-movement-service'
 import type { ApiCollectionResponse, CapitalMovement } from '../types/api'
 
-const staleTime = import.meta.env.DEV ? 1_000 : 60_000;
+const staleTime = import.meta.env.DEV ? 60_000 : 60_000;
 
 export const useCapitalMovements = (
   queryOptions?: Omit<UseQueryOptions<ApiCollectionResponse<CapitalMovement>>, 'queryKey' | 'queryFn'>
