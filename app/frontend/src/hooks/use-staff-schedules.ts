@@ -9,11 +9,14 @@ import {
   updateStaffSchedule,
 } from '../services/staff-schedule-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useStaffSchedules = (businessId: number | null, scheduledOn?: string) => {
   return useQuery({
     queryKey: ['staff-schedules', businessId, scheduledOn],
     queryFn: async () => fetchStaffSchedules(businessId as number, scheduledOn),
     enabled: Boolean(businessId),
+    staleTime,
   })
 }
 

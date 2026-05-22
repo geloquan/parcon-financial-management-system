@@ -1,10 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createBusiness, fetchBusinesses, type CreateBusinessPayload } from '../services/business-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useBusinesses = () => {
   return useQuery({
     queryKey: ['businesses'],
     queryFn: fetchBusinesses,
+    staleTime,
   })
 }
 

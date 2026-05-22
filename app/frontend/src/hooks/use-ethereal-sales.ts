@@ -6,11 +6,14 @@ import {
   type CreateEtherealSalePayload,
 } from '../services/ethereal-sale-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useEtherealSales = (businessId: number | null) => {
   return useQuery({
     queryKey: ['ethereal-sales', businessId],
     queryFn: async () => fetchEtherealSales(businessId as number),
     enabled: Boolean(businessId),
+    staleTime,
   })
 }
 

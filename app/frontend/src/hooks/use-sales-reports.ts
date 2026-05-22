@@ -8,6 +8,8 @@ import {
   type CreateSalesReportPayload,
 } from '../services/sales-report-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useGenerateSalesReport = () => {
   return useMutation({
     mutationFn: async (payload: GenerateSalesReportPayload) => generateSalesReport(payload),
@@ -19,6 +21,7 @@ export const useSalesReports = (businessId: number | null, page: number) => {
     queryKey: ['sales-reports', businessId, page],
     queryFn: async () => fetchSalesReports(businessId as number, page),
     enabled: Boolean(businessId),
+    staleTime,
   })
 }
 

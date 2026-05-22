@@ -8,11 +8,14 @@ import {
   updateStaff,
 } from '../services/staff-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useStaff = (businessId: number | null) => {
   return useQuery({
     queryKey: ['staff', businessId],
     queryFn: async () => fetchStaff(businessId as number),
     enabled: Boolean(businessId),
+    staleTime,
   })
 }
 

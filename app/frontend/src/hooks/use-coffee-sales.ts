@@ -6,11 +6,14 @@ import {
   type CreateCoffeeSalePayload,
 } from '../services/coffee-sale-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useCoffeeSales = (businessId: number | null) => {
   return useQuery({
     queryKey: ['coffee-sales', businessId],
     queryFn: async () => fetchCoffeeSales(businessId as number),
     enabled: Boolean(businessId),
+    staleTime,
   })
 }
 

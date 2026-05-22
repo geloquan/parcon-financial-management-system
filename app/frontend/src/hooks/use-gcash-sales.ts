@@ -6,11 +6,14 @@ import {
   type CreateGcashSalePayload,
 } from '../services/gcash-sale-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useGcashSales = (businessId: number | null) => {
   return useQuery({
     queryKey: ['gcash-sales', businessId],
     queryFn: async () => fetchGcashSales(businessId as number),
     enabled: Boolean(businessId),
+    staleTime,
   })
 }
 

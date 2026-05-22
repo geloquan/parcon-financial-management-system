@@ -7,11 +7,14 @@ import {
   type CreateCompensationRunPayload,
 } from '../services/compensation-run-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useCompensationRuns = (businessId: number | null) => {
   return useQuery({
     queryKey: ['compensation-runs', businessId],
     queryFn: async () => fetchCompensationRuns(businessId as number),
     enabled: Boolean(businessId),
+    staleTime,
   })
 }
 

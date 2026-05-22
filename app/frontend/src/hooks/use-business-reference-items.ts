@@ -5,11 +5,14 @@ import {
   type CreateBusinessReferenceItemPayload,
 } from '../services/business-reference-item-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useBusinessReferenceItems = (businessId: number | null) => {
   return useQuery({
     queryKey: ['business-reference-items', businessId],
     queryFn: async () => fetchBusinessReferenceItems(businessId as number),
     enabled: Boolean(businessId),
+    staleTime,
   })
 }
 

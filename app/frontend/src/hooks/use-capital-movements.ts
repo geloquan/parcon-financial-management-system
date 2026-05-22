@@ -7,10 +7,13 @@ import {
   type CreatePortfolioCapitalMovementPayload,
 } from '../services/capital-movement-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useCapitalMovements = () => {
   return useQuery({
     queryKey: ['capital-movements'],
     queryFn: fetchCapitalMovements,
+    staleTime,
   })
 }
 

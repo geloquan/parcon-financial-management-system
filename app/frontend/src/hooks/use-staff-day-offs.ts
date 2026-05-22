@@ -6,11 +6,14 @@ import {
   type CreateStaffDayOffPayload,
 } from '../services/staff-day-off-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const useStaffDayOffs = (businessId: number | null, dayOffOn?: string) => {
   return useQuery({
     queryKey: ['staff-day-offs', businessId, dayOffOn],
     queryFn: async () => fetchStaffDayOffs(businessId as number, dayOffOn),
     enabled: Boolean(businessId),
+    staleTime,
   })
 }
 

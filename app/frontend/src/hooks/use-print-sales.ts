@@ -6,11 +6,14 @@ import {
   type CreatePrintSalePayload,
 } from '../services/print-sale-service'
 
+const staleTime = import.meta.env.DEV ? 1 : 60_000;
+
 export const usePrintSales = (businessId: number | null) => {
   return useQuery({
     queryKey: ['print-sales', businessId],
     queryFn: async () => fetchPrintSales(businessId as number),
     enabled: Boolean(businessId),
+    staleTime,
   })
 }
 
