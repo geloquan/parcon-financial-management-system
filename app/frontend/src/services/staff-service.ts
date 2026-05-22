@@ -1,6 +1,11 @@
 import type { ApiCollectionResponse, Staff } from '../types/api'
 import { apiRequest } from './api-client'
 
+export type ReauthPayload = {
+  reauth_username: string
+  reauth_password: string
+}
+
 export type CreateStaffPayload = {
   full_name: string
   age: number
@@ -12,7 +17,7 @@ export type CreateStaffPayload = {
   is_active: boolean
 }
 
-export type UpdateStaffPayload = Partial<CreateStaffPayload>
+export type UpdateStaffPayload = Partial<CreateStaffPayload> & ReauthPayload
 
 export const fetchStaff = async (businessId: number): Promise<ApiCollectionResponse<Staff>> => {
   return apiRequest<ApiCollectionResponse<Staff>>(`/businesses/${businessId}/staff`)
@@ -32,8 +37,13 @@ export const updateStaff = async (businessId: number, staffId: number, payload: 
   })
 }
 
-export const deleteStaff = async (businessId: number, staffId: number): Promise<{ message: string }> => {
+export const deleteStaff = async (
+  businessId: number,
+  staffId: number,
+  reauth: ReauthPayload,
+): Promise<{ message: string }> => {
   return apiRequest<{ message: string }>(`/businesses/${businessId}/staff/${staffId}`, {
     method: 'DELETE',
+    body: JSON.stringify(reauth),
   })
 }

@@ -14,7 +14,6 @@ use App\Http\Controllers\Api\SalesReportController;
 use App\Http\Controllers\Api\StaffAbsenceController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\StaffDayOffController;
-use App\Http\Controllers\Api\StaffScheduleController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
@@ -34,17 +33,17 @@ Route::middleware('auth.api')->group(function (): void {
     ->group(function (): void {
       Route::post('capital/movements', [CapitalMovementController::class, 'storeBusiness'])
         ->middleware('role:admin,owner');
-      Route::apiResource('staff', StaffController::class)->only(['index', 'store', 'update', 'destroy']);
+      Route::apiResource('staff', StaffController::class)->only(['index', 'store']);
+      Route::put('staff/{staff}', [StaffController::class, 'update'])
+        ->middleware('portfolio.reauth');
+      Route::delete('staff/{staff}', [StaffController::class, 'destroy'])
+        ->middleware('portfolio.reauth');
       Route::apiResource('staff_day_offs', StaffDayOffController::class)
         ->parameters(['staff_day_offs' => 'staffDayOff'])
         ->only(['index', 'store', 'destroy']);
       Route::apiResource('staff_absences', StaffAbsenceController::class)
         ->parameters(['staff_absences' => 'staffAbsence'])
         ->only(['index', 'store', 'destroy']);
-      Route::apiResource('staff_schedules', StaffScheduleController::class)
-        ->parameters(['staff_schedules' => 'staffSchedule'])
-        ->only(['index', 'store', 'update', 'destroy']);
-      Route::post('staff_schedules/swap', [StaffScheduleController::class, 'swap']);
       Route::apiResource('compensation_runs', CompensationRunController::class)
         ->parameters(['compensation_runs' => 'compensationRun'])
         ->only(['index', 'store', 'destroy']);
@@ -56,16 +55,24 @@ Route::middleware('auth.api')->group(function (): void {
         ->only(['index', 'store', 'update', 'destroy']);
       Route::apiResource('gcash_sales', GcashSaleController::class)
         ->parameters(['gcash_sales' => 'gcashSale'])
-        ->only(['index', 'store', 'update', 'destroy']);
+        ->only(['index', 'store', 'update']);
+      Route::delete('gcash_sales/{gcashSale}', [GcashSaleController::class, 'destroy'])
+        ->middleware('portfolio.reauth');
       Route::apiResource('coffee_sales', CoffeeSaleController::class)
         ->parameters(['coffee_sales' => 'coffeeSale'])
-        ->only(['index', 'store', 'update', 'destroy']);
+        ->only(['index', 'store', 'update']);
+      Route::delete('coffee_sales/{coffeeSale}', [CoffeeSaleController::class, 'destroy'])
+        ->middleware('portfolio.reauth');
       Route::apiResource('print_sales', PrintSaleController::class)
         ->parameters(['print_sales' => 'printSale'])
-        ->only(['index', 'store', 'update', 'destroy']);
+        ->only(['index', 'store', 'update']);
+      Route::delete('print_sales/{printSale}', [PrintSaleController::class, 'destroy'])
+        ->middleware('portfolio.reauth');
       Route::apiResource('ethereal_sales', EtherealSaleController::class)
         ->parameters(['ethereal_sales' => 'etherealSale'])
-        ->only(['index', 'store', 'update', 'destroy']);
+        ->only(['index', 'store', 'update']);
+      Route::delete('ethereal_sales/{etherealSale}', [EtherealSaleController::class, 'destroy'])
+        ->middleware('portfolio.reauth');
       Route::apiResource('sales_reports', SalesReportController::class)
         ->middleware('role:admin,owner')
         ->only(['index', 'store']);

@@ -1,5 +1,6 @@
 import type { ApiCollectionResponse, EtherealSale } from '../types/api'
 import { apiRequest } from './api-client'
+import type { ReauthPayload } from './staff-service'
 
 export type CreateEtherealSalePayload = {
   staff_id?: number
@@ -34,8 +35,13 @@ export const createEtherealSale = async (businessId: number, payload: CreateEthe
   })
 }
 
-export const deleteEtherealSale = async (businessId: number, saleId: number): Promise<{ message: string }> => {
+export const deleteEtherealSale = async (
+  businessId: number,
+  saleId: number,
+  reauth: ReauthPayload,
+): Promise<{ message: string }> => {
   return apiRequest<{ message: string }>(`/businesses/${businessId}/ethereal_sales/${saleId}`, {
     method: 'DELETE',
+    body: JSON.stringify(reauth),
   })
 }
