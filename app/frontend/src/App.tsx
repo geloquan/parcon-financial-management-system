@@ -1562,7 +1562,7 @@ function App() {
                         >
                           <div>
                             <p className="font-medium">{dayOff.staff_name ?? 'Unknown staff'}</p>
-                            <p className="text-xs text-[var(--neutral-rosewood)]">{dayOff.day_off_on}</p>
+                            <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateOnly(dayOff.day_off_on)}</p>
                           </div>
                           <button
                             type="button"
@@ -1585,7 +1585,7 @@ function App() {
                         >
                           <div>
                             <p className="font-medium">{absence.staff_name ?? 'Unknown staff'}</p>
-                            <p className="text-xs text-[var(--neutral-rosewood)]">{absence.absent_on}</p>
+                            <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateOnly(absence.absent_on)}</p>
                           </div>
                           <button
                             type="button"
