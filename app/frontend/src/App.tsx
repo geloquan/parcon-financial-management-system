@@ -680,9 +680,10 @@ function App() {
   const submitExpense = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
+    const form = e.currentTarget            // ← capture BEFORE any await
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    const f = new FormData(e.currentTarget)
+    const f = new FormData(form)
     await createExpenseMutation.mutateAsync({
       date_issued: String(f.get('date_issued') ?? ''),
       amount: Number(f.get('amount') ?? 0),
@@ -711,9 +712,10 @@ function App() {
   const submitGcash = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
+    const form = e.currentTarget            // ← capture BEFORE any await
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    const f = new FormData(e.currentTarget)
+    const f = new FormData(form)            // ← use captured ref
     await createGcashMutation.mutateAsync({
       transaction_recipient: String(f.get('transaction_recipient') ?? '') || undefined,
       amount_moved: Number(f.get('amount_moved') ?? 0),
@@ -722,11 +724,10 @@ function App() {
       transaction_date: String(f.get('transaction_date') ?? ''),
       ...reauth,
     })
-    e.currentTarget.reset()
+    form.reset()
     setGcashAmountMoved('0')
     setGcashSalesAmount('0')
   }
-
   const voidGcashSale = async (saleId: number) => {
     if (!selectedBusinessId) return
     await deleteGcashMutation.mutateAsync(saleId)
@@ -807,9 +808,10 @@ function App() {
 
   const submitPortfolioCapital = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    const form = e.currentTarget            // ← capture BEFORE any await
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    const f = new FormData(e.currentTarget)
+    const f = new FormData(form)
     const direction = String(f.get('direction') ?? 'add') as 'add' | 'deduct' | 'transfer'
     const targetBusinessId = Number(f.get('target_business_id') ?? 0)
     await createPortfolioCapitalMutation.mutateAsync({
@@ -828,9 +830,10 @@ function App() {
   const submitBusinessCapital = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
+    const form = e.currentTarget            // ← capture BEFORE any await
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    const f = new FormData(e.currentTarget)
+  const f = new FormData(form)
     await createBusinessCapitalMutation.mutateAsync({
       amount: Number(f.get('amount') ?? 0),
       direction: String(f.get('direction') ?? 'add') as 'add' | 'deduct',
@@ -1244,7 +1247,7 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Salary (per day)
-                  <input name="salary" type="number" step="100" required className="dashboard-input" />
+                  <input name="salary" type="number" step="0.01" required className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Commission (% per service)
@@ -1601,7 +1604,7 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Base price
-                  <input name="price" type="number" step="50" min="0" required className="dashboard-input" />
+                  <input name="price" type="number" step="0.01" min="0" required className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Description (optional)
@@ -1653,7 +1656,7 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" step="100" required className="dashboard-input" />
+                  <input name="amount" type="number" step="0.01" required className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Description
@@ -1726,11 +1729,11 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Moved cash
-                  <input name="amount_moved" type="number" step="150" required value={gcashAmountMoved} onChange={(e) => setGcashAmountMoved(e.target.value)} className="dashboard-input" />
+                  <input name="amount_moved" type="number" step="0.01" required value={gcashAmountMoved} onChange={(e) => setGcashAmountMoved(e.target.value)} className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Sales amount
-                  <input name="sales_amount" type="number" step="150" required value={gcashSalesAmount} onChange={(e) => setGcashSalesAmount(e.target.value)} className="dashboard-input" />
+                  <input name="sales_amount" type="number" step="0.01" required value={gcashSalesAmount} onChange={(e) => setGcashSalesAmount(e.target.value)} className="dashboard-input" />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Transaction type</p>
@@ -1824,7 +1827,7 @@ function App() {
                       </div>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Price
-                        <input type="number" step="30" required value={item.price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, price: e.target.value } : en))} className="dashboard-input" />
+                        <input type="number" step="0.01" required value={item.price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, price: e.target.value } : en))} className="dashboard-input" />
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Coffee type
@@ -1958,7 +1961,7 @@ function App() {
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sales amount
-                        <input type="number" step="5" required value={item.sales_amount} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sales_amount: e.target.value } : en))} className="dashboard-input" />
+                        <input type="number" step="0.01" required value={item.sales_amount} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sales_amount: e.target.value } : en))} className="dashboard-input" />
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sale date
@@ -2056,11 +2059,11 @@ function App() {
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Service cost
-                        <input type="number" step="200" required value={item.service_cost} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_cost: e.target.value } : en))} className="dashboard-input" />
+                        <input type="number" step="0.01" required value={item.service_cost} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_cost: e.target.value } : en))} className="dashboard-input" />
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Discount %
-                        <input type="number" step="10" min="0" max="100" required value={item.discount_percentage} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_percentage: e.target.value } : en))} className="dashboard-input" />
+                        <input type="number" step="0.01" min="0" max="100" required value={item.discount_percentage} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_percentage: e.target.value } : en))} className="dashboard-input" />
                       </label>
                       <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
                         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Discount type</p>
@@ -2254,7 +2257,7 @@ function App() {
               <form onSubmit={submitPortfolioCapital} className={formGridClass}>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" step="1000" required value={portfolioAmountPreview} onChange={(e) => setPortfolioAmountPreview(e.target.value)} className="dashboard-input" />
+                  <input name="amount" type="number" step="0.01" required value={portfolioAmountPreview} onChange={(e) => setPortfolioAmountPreview(e.target.value)} className="dashboard-input" />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>
@@ -2336,7 +2339,7 @@ function App() {
               <form onSubmit={submitBusinessCapital} className={formGridClass}>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" step="500" required value={businessAmountPreview} onChange={(e) => setBusinessAmountPreview(e.target.value)} className="dashboard-input" />
+                  <input name="amount" type="number" step="0.01" required value={businessAmountPreview} onChange={(e) => setBusinessAmountPreview(e.target.value)} className="dashboard-input" />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>
