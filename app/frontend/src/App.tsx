@@ -2631,7 +2631,7 @@ function App() {
           {tab === 'salesReports' && (
             <section className={cardClass}>
               <SectionHeading icon={FileText} title="Quick Report" description="On-screen sales snapshot by scope and period (no document export)." />
-              <form onSubmit={submitPdfSalesReport} className={formGridClass}>
+              <form onSubmit={submitSalesReport} className={formGridClass}>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Scope</p>
                   <div className="flex gap-2">
