@@ -219,6 +219,18 @@ const navGroups: Array<{
   },
 ]
 
+// Tabs where switching the active business mid-session is relevant and safe
+const SHOW_BUSINESS_SELECTOR_TABS: Tab[] = [
+  'overview',
+  'staff',
+  'scheduleAttendance',
+  'compensation',
+  'referenceItems',
+  'expenses',
+  'businessCapital',
+  'pdfSalesReports',
+]
+
 // ─── Shared class constants ───────────────────────────────────────────────────
 const cardClass =
   'rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-6 shadow-[0_4px_20px_rgba(58,9,18,0.06)]'
@@ -1001,7 +1013,7 @@ function App() {
             </div>
 
             {/* Business selector */}
-            {businesses.length > 0 && (
+            {businesses.length > 0 && SHOW_BUSINESS_SELECTOR_TABS.includes(tab) && (
               <div className="mt-5">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--neutral-rosewood)]">
                   Active business
