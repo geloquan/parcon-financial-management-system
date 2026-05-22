@@ -149,12 +149,12 @@ const createReferenceItemFormState = (): ReferenceItemFormState => ({
   description: '',
 })
 
-const parseAmount = (value: string | number | null | undefined) => {
-  const parsed = typeof value === 'number' ? value : Number(value ?? 0)
+const parseAmount = (value: unknown) => {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : 0
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-const parseNonNegativeAmount = (value: string | number | null | undefined) => {
+const parseNonNegativeAmount = (value: unknown) => {
   return Math.max(parseAmount(value), 0)
 }
 
@@ -866,6 +866,56 @@ function App() {
     e.currentTarget.reset()
   }
 
+  const beginReferenceItemEdit = (itemId: number) => {
+    const item = referenceItems.find((entry) => entry.id === itemId)
+    if (!item) return
+
+    setEditingReferenceItemId(itemId)
+    setEditingReferenceItemForm({
+      item_type: item.item_type,
+      name: item.name,
+      price: String(parseAmount(item.price)),
+      description: item.description ?? '',
+    })
+  }
+
+  const cancelReferenceItemEdit = () => {
+    setEditingReferenceItemId(null)
+    setEditingReferenceItemForm(createReferenceItemFormState())
+  }
+
+  const saveReferenceItemEdit = async () => {
+    if (!selectedBusinessId || !editingReferenceItemId) return
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+
+    await updateReferenceItemMutation.mutateAsync({
+      itemId: editingReferenceItemId,
+      payload: {
+        item_type: editingReferenceItemForm.item_type,
+        name: editingReferenceItemForm.name,
+        price: parseNonNegativeAmount(editingReferenceItemForm.price),
+        description: editingReferenceItemForm.description,
+        ...reauth,
+      },
+    })
+
+    cancelReferenceItemEdit()
+  }
+
+  const removeReferenceItem = async (itemId: number) => {
+    if (!selectedBusinessId) return
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+    await deleteReferenceItemMutation.mutateAsync({
+      itemId,
+      payload: reauth,
+    })
+    if (editingReferenceItemId === itemId) {
+      cancelReferenceItemEdit()
+    }
+  }
+
   const submitGcash = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
@@ -873,8 +923,11 @@ function App() {
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     const f = new FormData(form)            // ← use captured ref
+    const selectedReferenceItem = gcashReferenceItemId ? referenceItemById.get(gcashReferenceItemId) : undefined
     await createGcashMutation.mutateAsync({
-      transaction_recipient: String(f.get('transaction_recipient') ?? '') || undefined,
+      transaction_recipient: gcashRecipient.trim() || undefined,
+      reference_item_name: selectedReferenceItem?.name,
+      reference_item_original_price: selectedReferenceItem ? parseAmount(selectedReferenceItem.price) : undefined,
       amount_moved: parseNonNegativeAmount(f.get('amount_moved')),
       sales_amount: parseNonNegativeAmount(f.get('sales_amount')),
       transaction_type: String(f.get('transaction_type') ?? 'cash_in') as 'cash_in' | 'cash_out',
@@ -882,6 +935,8 @@ function App() {
       ...reauth,
     })
     form.reset()
+    setGcashRecipient('')
+    setGcashReferenceItemId('')
     setGcashAmountMoved('0')
     setGcashSalesAmount('0')
   }
@@ -897,14 +952,26 @@ function App() {
     if (!selectedBusinessId) return
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    const entries = coffeeItems.map((item) => ({
-      price: parseNonNegativeAmount(item.price),
-      coffee_type: item.coffee_type,
-      size: item.size,
-      add_on_price: parseNonNegativeAmount(item.add_on_price),
-      add_on_description: item.add_on_description,
-      sale_date: new Date(item.sale_date).toISOString(),
-    }))
+    const entries = coffeeItems.map((item) => {
+      const selectedReferenceItem = item.selectedReferenceItemId
+        ? referenceItemById.get(item.selectedReferenceItemId)
+        : undefined
+
+      return {
+        ...(selectedReferenceItem
+          ? {
+              reference_item_name: selectedReferenceItem.name,
+              reference_item_original_price: parseAmount(selectedReferenceItem.price),
+            }
+          : {}),
+        price: parseNonNegativeAmount(item.price),
+        coffee_type: item.coffee_type,
+        size: item.size,
+        add_on_price: parseNonNegativeAmount(item.add_on_price),
+        add_on_description: item.add_on_description,
+        sale_date: new Date(item.sale_date).toISOString(),
+      }
+    })
     await createCoffeeMutation.mutateAsync({ ...entries[0], entries, ...reauth })
     setCoffeeItems([createCoffeeDraftItem()])
   }
@@ -921,15 +988,27 @@ function App() {
     if (!selectedBusinessId) return
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    const entries = printItems.map((item) => ({
-      job_type: item.job_type,
-      description: item.description,
-      color_mode: item.color_mode,
-      print_size: item.print_size,
-      paper_count: parseNonNegativeAmount(item.paper_count || 1),
-      sales_amount: parseNonNegativeAmount(item.sales_amount),
-      sale_date: new Date(item.sale_date).toISOString(),
-    }))
+    const entries = printItems.map((item) => {
+      const selectedReferenceItem = item.selectedReferenceItemId
+        ? referenceItemById.get(item.selectedReferenceItemId)
+        : undefined
+
+      return {
+        ...(selectedReferenceItem
+          ? {
+              reference_item_name: selectedReferenceItem.name,
+              reference_item_original_price: parseAmount(selectedReferenceItem.price),
+            }
+          : {}),
+        job_type: item.job_type,
+        description: item.description,
+        color_mode: item.color_mode,
+        print_size: item.print_size,
+        paper_count: parseNonNegativeAmount(item.paper_count || 1),
+        sales_amount: parseNonNegativeAmount(item.sales_amount),
+        sale_date: new Date(item.sale_date).toISOString(),
+      }
+    })
     await createPrintMutation.mutateAsync({ ...entries[0], entries, ...reauth })
     setPrintItems([createPrintDraftItem()])
   }
@@ -946,14 +1025,27 @@ function App() {
     if (!selectedBusinessId) return
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    const entries = etherealItems.map((item) => ({
-      staff_ids: item.staff_ids,
-      service_cost: parseNonNegativeAmount(item.service_cost),
-      discount_percentage: parseNonNegativeAmount(item.discount_percentage),
-      customer_name: item.customer_name,
-      discount_type: item.discount_type,
-      service_date: item.service_date,
-    }))
+    const entries = etherealItems.map((item) => {
+      const selectedReferenceItem = item.selectedReferenceItemId
+        ? referenceItemById.get(item.selectedReferenceItemId)
+        : undefined
+
+      return {
+        ...(selectedReferenceItem
+          ? {
+              reference_item_name: selectedReferenceItem.name,
+              reference_item_original_price: parseAmount(selectedReferenceItem.price),
+            }
+          : {}),
+        staff_ids: item.staff_ids,
+        service_name: item.service_name,
+        service_cost: parseNonNegativeAmount(item.service_cost),
+        discount_percentage: parseNonNegativeAmount(item.discount_percentage),
+        customer_name: item.customer_name,
+        discount_type: item.discount_type,
+        service_date: item.service_date,
+      }
+    })
     await createEtherealMutation.mutateAsync({
       ...entries[0],
       staff_id: entries[0].staff_ids[0],
@@ -1175,9 +1267,17 @@ function App() {
                 <div>
                   <p className="text-xs text-[var(--neutral-rosewood)]">Welcome back</p>
                   <h2 className="text-lg font-semibold leading-tight">{meQuery.data.name}</h2>
-                  <span className="inline-block rounded-full bg-[var(--burgundy-50)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">
-                    {meQuery.data.role}
-                  </span>
+                  <p className="text-xs text-[var(--neutral-rosewood)]">@{meQuery.data.username}</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {(userRoles.length > 0 ? userRoles : [meQuery.data.role]).map((role) => (
+                      <span
+                        key={role}
+                        className="inline-block rounded-full bg-[var(--burgundy-50)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]"
+                      >
+                        {role}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
               <button
@@ -1795,20 +1895,98 @@ function App() {
                 <ul className="grid gap-2">
                   {referenceItems.map((item) => (
                     <li key={item.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
-                      <div>
-                        <span className="font-medium">{item.name}</span>
-                        {item.description ? (
-                          <span className="ml-2 text-xs text-[var(--neutral-rosewood)]">· {item.description}</span>
-                        ) : null}
-                        <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                          item.item_type === 'product'
-                            ? 'bg-[var(--status-info-bg)] text-[var(--status-info-text)]'
-                            : 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
-                        }`}>
-                          {item.item_type}
-                        </span>
-                      </div>
-                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(item.price))}</span>
+                      {editingReferenceItemId === item.id ? (
+                        <div className="grid w-full gap-3 md:grid-cols-2 lg:grid-cols-4">
+                          <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                            Type
+                            <select
+                              value={editingReferenceItemForm.item_type}
+                              onChange={(e) =>
+                                setEditingReferenceItemForm((prev) => ({
+                                  ...prev,
+                                  item_type: e.target.value as 'product' | 'service',
+                                }))
+                              }
+                              className="dashboard-input"
+                            >
+                              <option value="product">Product</option>
+                              <option value="service">Service</option>
+                            </select>
+                          </label>
+                          <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                            Name
+                            <input
+                              value={editingReferenceItemForm.name}
+                              onChange={(e) => setEditingReferenceItemForm((prev) => ({ ...prev, name: e.target.value }))}
+                              className="dashboard-input"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                            Price
+                            <input
+                              type="number"
+                              value={editingReferenceItemForm.price}
+                              onChange={(e) => setEditingReferenceItemForm((prev) => ({ ...prev, price: toNonNegativeInputValue(e.target.value) }))}
+                              className="dashboard-input"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                            Description
+                            <input
+                              value={editingReferenceItemForm.description}
+                              onChange={(e) => setEditingReferenceItemForm((prev) => ({ ...prev, description: e.target.value }))}
+                              className="dashboard-input"
+                            />
+                          </label>
+                          <div className="md:col-span-2 lg:col-span-4 flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void saveReferenceItemEdit()}
+                              disabled={updateReferenceItemMutation.isPending}
+                              className="dashboard-button-primary"
+                            >
+                              {updateReferenceItemMutation.isPending ? 'Saving…' : 'Save'}
+                            </button>
+                            <button type="button" onClick={cancelReferenceItemEdit} className="dashboard-button-secondary">
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <span className="font-medium">{item.name}</span>
+                            {item.description ? (
+                              <span className="ml-2 text-xs text-[var(--neutral-rosewood)]">· {item.description}</span>
+                            ) : null}
+                            <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                              item.item_type === 'product'
+                                ? 'bg-[var(--status-info-bg)] text-[var(--status-info-text)]'
+                                : 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                            }`}>
+                              {item.item_type}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(item.price))}</span>
+                            <button
+                              type="button"
+                              onClick={() => beginReferenceItemEdit(item.id)}
+                              className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void removeReferenceItem(item.id)}
+                              disabled={deleteReferenceItemMutation.isPending}
+                              className="rounded-md border border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger-text)] disabled:opacity-60"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -1895,8 +2073,36 @@ function App() {
               <SectionHeading icon={Wallet} title="GCash Sales" description="Manually log GCash cash-in and cash-out transactions." />
               <form onSubmit={submitGcash} className={formGridClass}>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Copy from reference item (optional)
+                  <select
+                    value={gcashReferenceItemId}
+                    onChange={(e) => {
+                      const selectedId = e.target.value
+                      const selectedItem = selectedId ? referenceItemById.get(selectedId) : undefined
+                      setGcashReferenceItemId(selectedId)
+                      if (selectedItem) {
+                        setGcashRecipient(selectedItem.name)
+                        setGcashSalesAmount(String(parseAmount(selectedItem.price)))
+                      }
+                    }}
+                    className="dashboard-input"
+                  >
+                    <option value="">Manual entry</option>
+                    {referenceItems.map((item) => (
+                      <option key={item.id} value={String(item.id)}>
+                        {item.name} · {formatCurrency(parseAmount(item.price))}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transaction recipient (optional)
-                  <input name="transaction_recipient" className="dashboard-input" />
+                  <input
+                    name="transaction_recipient"
+                    value={gcashRecipient}
+                    onChange={(e) => setGcashRecipient(e.target.value)}
+                    className="dashboard-input"
+                  />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Moved cash
@@ -1997,6 +2203,40 @@ function App() {
                         )}
                       </div>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Copy from reference item (optional)
+                        <select
+                          value={item.selectedReferenceItemId}
+                          onChange={(e) =>
+                            setCoffeeItems((prev) =>
+                              prev.map((entry, entryIndex) => {
+                                if (entryIndex !== index) return entry
+                                const selectedId = e.target.value
+                                const selectedItem = selectedId ? referenceItemById.get(selectedId) : undefined
+
+                                if (!selectedItem) {
+                                  return { ...entry, selectedReferenceItemId: selectedId }
+                                }
+
+                                return {
+                                  ...entry,
+                                  selectedReferenceItemId: selectedId,
+                                  coffee_type: selectedItem.name,
+                                  price: String(parseAmount(selectedItem.price)),
+                                }
+                              }),
+                            )
+                          }
+                          className="dashboard-input"
+                        >
+                          <option value="">Manual entry</option>
+                          {productReferenceItems.map((referenceItem) => (
+                            <option key={referenceItem.id} value={String(referenceItem.id)}>
+                              {referenceItem.name} · {formatCurrency(parseAmount(referenceItem.price))}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Price
                         <input type="number" list="quick-number-values" required value={item.price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, price: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
                       </label>
@@ -2088,6 +2328,40 @@ function App() {
                             Remove
                           </button>
                         )}
+                      </div>
+                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Copy from reference item (optional)</p>
+                        <select
+                          value={item.selectedReferenceItemId}
+                          onChange={(e) =>
+                            setPrintItems((prev) =>
+                              prev.map((entry, entryIndex) => {
+                                if (entryIndex !== index) return entry
+                                const selectedId = e.target.value
+                                const selectedItem = selectedId ? referenceItemById.get(selectedId) : undefined
+
+                                if (!selectedItem) {
+                                  return { ...entry, selectedReferenceItemId: selectedId }
+                                }
+
+                                return {
+                                  ...entry,
+                                  selectedReferenceItemId: selectedId,
+                                  description: selectedItem.name,
+                                  sales_amount: String(parseAmount(selectedItem.price)),
+                                }
+                              }),
+                            )
+                          }
+                          className="dashboard-input"
+                        >
+                          <option value="">Manual entry</option>
+                          {productReferenceItems.map((referenceItem) => (
+                            <option key={referenceItem.id} value={String(referenceItem.id)}>
+                              {referenceItem.name} · {formatCurrency(parseAmount(referenceItem.price))}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
                         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Job type</p>
@@ -2198,6 +2472,48 @@ function App() {
                         )}
                       </div>
                       <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Copy from reference item (optional)</p>
+                        <select
+                          value={item.selectedReferenceItemId}
+                          onChange={(e) =>
+                            setEtherealItems((prev) =>
+                              prev.map((entry, entryIndex) => {
+                                if (entryIndex !== index) return entry
+                                const selectedId = e.target.value
+                                const selectedItem = selectedId ? referenceItemById.get(selectedId) : undefined
+
+                                if (!selectedItem) {
+                                  return { ...entry, selectedReferenceItemId: selectedId }
+                                }
+
+                                return {
+                                  ...entry,
+                                  selectedReferenceItemId: selectedId,
+                                  service_name: selectedItem.name,
+                                  service_cost: String(parseAmount(selectedItem.price)),
+                                }
+                              }),
+                            )
+                          }
+                          className="dashboard-input"
+                        >
+                          <option value="">Manual entry</option>
+                          {serviceReferenceItems.map((referenceItem) => (
+                            <option key={referenceItem.id} value={String(referenceItem.id)}>
+                              {referenceItem.name} · {formatCurrency(parseAmount(referenceItem.price))}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Service name
+                        <input
+                          value={item.service_name}
+                          onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_name: e.target.value } : en))}
+                          className="dashboard-input"
+                        />
+                      </label>
+                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
                         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Service provider(s)</p>
                         <div className="flex flex-wrap gap-2">
                           {staffEntries.map((staff) => {
@@ -2274,7 +2590,7 @@ function App() {
                   {etherealEntries.map((sale) => (
                     <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
                       <div>
-                        <p className="font-medium">Service · net amount</p>
+                        <p className="font-medium">{sale.service_name ?? 'Service'} · net amount</p>
                         <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.service_date)} · {formatRelative(sale.service_date)}</p>
                       </div>
                       <div className="flex items-center gap-3">
