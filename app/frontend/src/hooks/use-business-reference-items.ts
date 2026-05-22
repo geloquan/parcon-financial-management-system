@@ -6,7 +6,7 @@ import {
 } from '../services/business-reference-item-service'
 import type { ApiCollectionResponse, BusinessReferenceItem } from '../types/api'
 
-const staleTime = import.meta.env.DEV ? 1 : 60_000;
+const staleTime = import.meta.env.DEV ? 1_000 : 60_000;
 
 export const useBusinessReferenceItems = (
   businessId: number | null,

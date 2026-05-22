@@ -8,7 +8,7 @@ import {
 import type { ReauthPayload } from '../services/staff-service'
 import type { ApiCollectionResponse, StaffDayOff } from '../types/api'
 
-const staleTime = import.meta.env.DEV ? 1 : 60_000;
+const staleTime = import.meta.env.DEV ? 1_000 : 60_000;
 
 export const useStaffDayOffs = (
   businessId: number | null,

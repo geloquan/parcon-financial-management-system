@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@ta
 import { createExpense, fetchExpenses, type CreateExpensePayload } from '../services/expense-service'
 import type { ApiCollectionResponse, Expense } from '../types/api'
 
-const staleTime = import.meta.env.DEV ? 1 : 60_000;
+const staleTime = import.meta.env.DEV ? 1_000 : 60_000;
 
 export const useExpenses = (
   businessId: number | null,
