@@ -2,9 +2,8 @@ import type { ApiCollectionResponse, CompensationRun } from '../types/api'
 import { apiRequest } from './api-client'
 
 export type CreateCompensationRunPayload = {
-  computation_mode: 'by_days' | 'up_to_date'
-  number_of_days?: number
-  cutoff_date: string
+  computation_mode: 'today' | 'specific_date'
+  cutoff_date?: string
 }
 
 export type FinalizeCompensationRunPayload = {

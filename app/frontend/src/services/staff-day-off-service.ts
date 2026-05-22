@@ -1,5 +1,6 @@
 import type { ApiCollectionResponse, StaffDayOff } from '../types/api'
 import { apiRequest } from './api-client'
+import type { ReauthPayload } from './staff-service'
 
 export type CreateStaffDayOffPayload = {
   staff_id: number
@@ -25,8 +26,13 @@ export const createStaffDayOff = async (
   })
 }
 
-export const deleteStaffDayOff = async (businessId: number, dayOffId: number): Promise<{ message: string }> => {
+export const deleteStaffDayOff = async (
+  businessId: number,
+  dayOffId: number,
+  reauth: ReauthPayload,
+): Promise<{ message: string }> => {
   return apiRequest<{ message: string }>(`/businesses/${businessId}/staff_day_offs/${dayOffId}`, {
     method: 'DELETE',
+    body: JSON.stringify(reauth),
   })
 }

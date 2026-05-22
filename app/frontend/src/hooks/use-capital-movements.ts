@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query'
 import {
   createBusinessCapitalMovement,
   createPortfolioCapitalMovement,
@@ -6,14 +6,18 @@ import {
   type CreateBusinessCapitalMovementPayload,
   type CreatePortfolioCapitalMovementPayload,
 } from '../services/capital-movement-service'
+import type { ApiCollectionResponse, CapitalMovement } from '../types/api'
 
 const staleTime = import.meta.env.DEV ? 1 : 60_000;
 
-export const useCapitalMovements = () => {
+export const useCapitalMovements = (
+  queryOptions?: Omit<UseQueryOptions<ApiCollectionResponse<CapitalMovement>>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery({
     queryKey: ['capital-movements'],
     queryFn: fetchCapitalMovements,
     staleTime,
+    ...queryOptions,
   })
 }
 

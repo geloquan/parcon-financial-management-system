@@ -40,37 +40,59 @@ Route::middleware('auth.api')->group(function (): void {
         ->middleware('portfolio.reauth');
       Route::apiResource('staff_day_offs', StaffDayOffController::class)
         ->parameters(['staff_day_offs' => 'staffDayOff'])
-        ->only(['index', 'store', 'destroy']);
+        ->only(['index', 'store']);
+      Route::delete('staff_day_offs/{staffDayOff}', [StaffDayOffController::class, 'destroy'])
+        ->middleware('portfolio.reauth');
       Route::apiResource('staff_absences', StaffAbsenceController::class)
         ->parameters(['staff_absences' => 'staffAbsence'])
-        ->only(['index', 'store', 'destroy']);
+        ->only(['index', 'store']);
+      Route::delete('staff_absences/{staffAbsence}', [StaffAbsenceController::class, 'destroy'])
+        ->middleware('portfolio.reauth');
       Route::apiResource('compensation_runs', CompensationRunController::class)
         ->parameters(['compensation_runs' => 'compensationRun'])
-        ->only(['index', 'store', 'destroy']);
+        ->only(['index', 'store']);
+      Route::delete('compensation_runs/{compensationRun}', [CompensationRunController::class, 'destroy'])
+        ->middleware('portfolio.reauth');
       Route::post('compensation_runs/{compensationRun}/finalize', [CompensationRunController::class, 'finalize'])
         ->middleware(['role:admin,owner', 'portfolio.reauth']);
-      Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
+      Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store']);
+      Route::put('expenses/{expense}', [ExpenseController::class, 'update'])
+        ->middleware('portfolio.reauth');
+      Route::delete('expenses/{expense}', [ExpenseController::class, 'destroy'])
+        ->middleware('portfolio.reauth');
       Route::apiResource('reference_items', BusinessReferenceItemController::class)
         ->parameters(['reference_items' => 'businessReferenceItem'])
-        ->only(['index', 'store', 'update', 'destroy']);
+        ->only(['index', 'store']);
+      Route::put('reference_items/{businessReferenceItem}', [BusinessReferenceItemController::class, 'update'])
+        ->middleware('portfolio.reauth');
+      Route::delete('reference_items/{businessReferenceItem}', [BusinessReferenceItemController::class, 'destroy'])
+        ->middleware('portfolio.reauth');
       Route::apiResource('gcash_sales', GcashSaleController::class)
         ->parameters(['gcash_sales' => 'gcashSale'])
-        ->only(['index', 'store', 'update']);
+        ->only(['index', 'store']);
+      Route::put('gcash_sales/{gcashSale}', [GcashSaleController::class, 'update'])
+        ->middleware('portfolio.reauth');
       Route::delete('gcash_sales/{gcashSale}', [GcashSaleController::class, 'destroy'])
         ->middleware('portfolio.reauth');
       Route::apiResource('coffee_sales', CoffeeSaleController::class)
         ->parameters(['coffee_sales' => 'coffeeSale'])
-        ->only(['index', 'store', 'update']);
+        ->only(['index', 'store']);
+      Route::put('coffee_sales/{coffeeSale}', [CoffeeSaleController::class, 'update'])
+        ->middleware('portfolio.reauth');
       Route::delete('coffee_sales/{coffeeSale}', [CoffeeSaleController::class, 'destroy'])
         ->middleware('portfolio.reauth');
       Route::apiResource('print_sales', PrintSaleController::class)
         ->parameters(['print_sales' => 'printSale'])
-        ->only(['index', 'store', 'update']);
+        ->only(['index', 'store']);
+      Route::put('print_sales/{printSale}', [PrintSaleController::class, 'update'])
+        ->middleware('portfolio.reauth');
       Route::delete('print_sales/{printSale}', [PrintSaleController::class, 'destroy'])
         ->middleware('portfolio.reauth');
       Route::apiResource('ethereal_sales', EtherealSaleController::class)
         ->parameters(['ethereal_sales' => 'etherealSale'])
-        ->only(['index', 'store', 'update']);
+        ->only(['index', 'store']);
+      Route::put('ethereal_sales/{etherealSale}', [EtherealSaleController::class, 'update'])
+        ->middleware('portfolio.reauth');
       Route::delete('ethereal_sales/{etherealSale}', [EtherealSaleController::class, 'destroy'])
         ->middleware('portfolio.reauth');
       Route::apiResource('sales_reports', SalesReportController::class)

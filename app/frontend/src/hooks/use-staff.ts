@@ -1,21 +1,27 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query'
 import {
   createStaff,
   deleteStaff,
   fetchStaff,
+  type ReauthPayload,
   type CreateStaffPayload,
   type UpdateStaffPayload,
   updateStaff,
 } from '../services/staff-service'
+import type { ApiCollectionResponse, Staff } from '../types/api'
 
 const staleTime = import.meta.env.DEV ? 1 : 60_000;
 
-export const useStaff = (businessId: number | null) => {
+export const useStaff = (
+  businessId: number | null,
+  queryOptions?: Omit<UseQueryOptions<ApiCollectionResponse<Staff>>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery({
     queryKey: ['staff', businessId],
     queryFn: async () => fetchStaff(businessId as number),
-    enabled: Boolean(businessId),
     staleTime,
+    ...queryOptions,
+    enabled: Boolean(businessId) && (queryOptions?.enabled ?? true),
   })
 }
 
@@ -46,7 +52,8 @@ export const useDeleteStaff = (businessId: number | null) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (staffId: number) => deleteStaff(businessId as number, staffId),
+    mutationFn: async ({ staffId, payload }: { staffId: number; payload: ReauthPayload }) =>
+      deleteStaff(businessId as number, staffId, payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['staff', businessId] })
     },

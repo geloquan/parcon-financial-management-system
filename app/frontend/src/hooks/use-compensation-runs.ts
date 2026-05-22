@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query'
 import {
   createCompensationRun,
   type FinalizeCompensationRunPayload,
@@ -6,15 +6,20 @@ import {
   fetchCompensationRuns,
   type CreateCompensationRunPayload,
 } from '../services/compensation-run-service'
+import type { ApiCollectionResponse, CompensationRun } from '../types/api'
 
 const staleTime = import.meta.env.DEV ? 1 : 60_000;
 
-export const useCompensationRuns = (businessId: number | null) => {
+export const useCompensationRuns = (
+  businessId: number | null,
+  queryOptions?: Omit<UseQueryOptions<ApiCollectionResponse<CompensationRun>>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery({
     queryKey: ['compensation-runs', businessId],
     queryFn: async () => fetchCompensationRuns(businessId as number),
-    enabled: Boolean(businessId),
     staleTime,
+    ...queryOptions,
+    enabled: Boolean(businessId) && (queryOptions?.enabled ?? true),
   })
 }
 

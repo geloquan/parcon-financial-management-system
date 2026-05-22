@@ -28,32 +28,12 @@ class CompensationRunService
 
     public function store(Business $business, User $user, array $validated): CompensationRun
     {
-        $cutoffDate = Carbon::parse($validated['cutoff_date'])->startOfDay();
         $mode = $validated['computation_mode'];
-
-        if ($mode === 'by_days') {
-          $days = (int) ($validated['number_of_days'] ?? 1);
-
-          $periodStart = $cutoffDate->copy()
-            ->subDays($days - 1)
-            ->startOfDay();
-
-          $periodEnd = $cutoffDate->copy()
-            ->endOfDay();
-        } else {
-          $lastRun = CompensationRun::query()
-            ->where('business_id', $business->id)
-            ->latest('period_end')
-            ->first();
-
-          $periodStart = $lastRun
-            ? Carbon::parse($lastRun->period_end)->addDay()->startOfDay()
-            : $cutoffDate->copy()->startOfMonth()->startOfDay();
-
-          $periodEnd = $cutoffDate->copy()->endOfDay();
-
-          $days = null;
-        }
+        $cutoffDate = $mode === 'today'
+            ? Carbon::today()
+            : Carbon::parse($validated['cutoff_date'])->startOfDay();
+        $periodStart = $cutoffDate->copy()->startOfDay();
+        $periodEnd = $cutoffDate->copy()->endOfDay();
 
         $staff = Staff::query()
             ->where('business_id', $business->id)
@@ -100,9 +80,7 @@ class CompensationRunService
             $dayOffDays = $memberDayOffDates->count();
             $absentDays = $memberAbsentDates->count();
             $unpaidDays = $memberDayOffDates->merge($memberAbsentDates)->unique()->count();
-            $targetDays = $mode === 'by_days'
-                ? max((int) ($validated['number_of_days'] ?? 0), 0)
-                : $periodDaysCount;
+            $targetDays = $periodDaysCount;
             $payableDays = max($targetDays - min($unpaidDays, $targetDays), 0);
             $presentDays = $payableDays;
 
@@ -160,7 +138,7 @@ class CompensationRunService
             'business_id' => $business->id,
             'computed_by_user_id' => $user->id,
             'computation_mode' => $mode,
-            'number_of_days' => $days,
+            'number_of_days' => null,
             'cutoff_date' => $cutoffDate->toDateString(),
             'period_start' => $periodStart->toDateString(),
             'period_end' => $periodEnd->toDateString(),

@@ -14,9 +14,8 @@ class StoreCompensationRunRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'computation_mode' => ['required', 'in:by_days,up_to_date'],
-            'number_of_days' => ['nullable', 'integer', 'min:1', 'required_if:computation_mode,by_days'],
-            'cutoff_date' => ['required', 'date', 'before_or_equal:today'],
+            'computation_mode' => ['required', 'in:today,specific_date'],
+            'cutoff_date' => ['nullable', 'date', 'before_or_equal:today', 'required_if:computation_mode,specific_date'],
         ];
     }
 }

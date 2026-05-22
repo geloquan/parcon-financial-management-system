@@ -127,6 +127,17 @@ const parseAmount = (value: string | number | null | undefined) => {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+const parseNonNegativeAmount = (value: string | number | null | undefined) => {
+  return Math.max(parseAmount(value), 0)
+}
+
+const toNonNegativeInputValue = (value: string) => {
+  if (value.trim() === '') return value
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return value
+  return String(Math.max(parsed, 0))
+}
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-PH', {
     style: 'currency',
@@ -188,6 +199,11 @@ const ALL_TABS: Tab[] = [
 const readUrlState = () => {
   const p = new URLSearchParams(window.location.search)
   const tabParam = p.get('tab') as Tab | null
+  const rawMode = p.get('mode')
+  const normalizedMode: 'today' | 'specific_date' =
+    rawMode === 'specific_date' || rawMode === 'up_to_date' || rawMode === 'by_days'
+      ? 'specific_date'
+      : 'today'
   return {
     tab: tabParam && ALL_TABS.includes(tabParam) ? tabParam : ('overview' as Tab),
     businessId: p.get('business') ? Number(p.get('business')) : null,
@@ -195,7 +211,7 @@ const readUrlState = () => {
     page: p.get('page') ? Math.max(1, Number(p.get('page'))) : 1,
     scope: (p.get('scope') ?? 'portfolio') as 'portfolio' | 'business',
     period: (p.get('period') ?? 'today') as 'today' | 'date_range',
-    mode: (p.get('mode') ?? 'by_days') as 'by_days' | 'up_to_date',
+    mode: normalizedMode,
   }
 }
 
@@ -352,7 +368,7 @@ function App() {
   const [businessAmountPreview, setBusinessAmountPreview] = useState('0')
   const [businessDirectionPreview, setBusinessDirectionPreview] = useState<'add' | 'deduct'>('add')
   const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(_initial.date)
-  const [compensationMode, setCompensationMode] = useState<'by_days' | 'up_to_date'>(_initial.mode)
+  const [compensationMode, setCompensationMode] = useState<'today' | 'specific_date'>(_initial.mode)
   const [salesReportPage, setSalesReportPage] = useState(_initial.page)
   const [reportScope, setReportScope] = useState<'portfolio' | 'business'>(_initial.scope)
   const [reportPeriod, setReportPeriod] = useState<'today' | 'date_range'>(_initial.period)
@@ -391,7 +407,7 @@ function App() {
       page:   tab === 'pdfSalesReports' && salesReportPage > 1 ? String(salesReportPage) : null,
       scope:  tab === 'salesReports' ? reportScope : null,
       period: tab === 'salesReports' ? reportPeriod : null,
-      mode:   tab === 'compensation' && compensationMode !== 'by_days' ? compensationMode : null,
+      mode:   tab === 'compensation' && compensationMode !== 'today' ? compensationMode : null,
     }
 
     const url = window.location.pathname + buildSearch(params)
@@ -667,12 +683,12 @@ function App() {
     const f = new FormData(e.currentTarget)
     await createStaffMutation.mutateAsync({
       full_name: String(f.get('full_name') ?? ''),
-      age: Number(f.get('age') ?? 0),
+      age: parseNonNegativeAmount(f.get('age')),
       employment_start_date: String(f.get('employment_start_date') ?? ''),
       employment_end_date: String(f.get('employment_end_date') ?? ''),
       employment_type: String(f.get('employment_type') ?? ''),
-      salary: Number(f.get('salary') ?? 0),
-      commission_rate_percent: Number(f.get('commission_rate_percent') ?? 0),
+      salary: parseNonNegativeAmount(f.get('salary')),
+      commission_rate_percent: parseNonNegativeAmount(f.get('commission_rate_percent')),
       is_active: String(f.get('is_active') ?? '1') === '1',
     })
     e.currentTarget.reset()
@@ -680,23 +696,29 @@ function App() {
 
   const markStaffInactive = async (staffId: number) => {
     if (!selectedBusinessId) return
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
     await updateStaffMutation.mutateAsync({
       staffId,
-      payload: { is_active: false },
+      payload: { is_active: false, ...reauth },
     })
   }
 
   const endStaffEmployment = async (staffId: number) => {
     if (!selectedBusinessId) return
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
     await updateStaffMutation.mutateAsync({
       staffId,
-      payload: { is_active: false, employment_end_date: formatDateOnly(new Date()) },
+      payload: { is_active: false, employment_end_date: formatDateOnly(new Date()), ...reauth },
     })
   }
 
   const voidStaffRecord = async (staffId: number) => {
     if (!selectedBusinessId) return
-    await deleteStaffMutation.mutateAsync(staffId)
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+    await deleteStaffMutation.mutateAsync({ staffId, payload: reauth })
   }
 
   const submitStaffDayOff = async (e: FormEvent<HTMLFormElement>) => {
@@ -725,23 +747,28 @@ function App() {
 
   const removeStaffDayOff = async (dayOffId: number) => {
     if (!selectedBusinessId) return
-    await deleteStaffDayOffMutation.mutateAsync(dayOffId)
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+    await deleteStaffDayOffMutation.mutateAsync({ dayOffId, payload: reauth })
   }
 
   const removeStaffAbsence = async (absenceId: number) => {
     if (!selectedBusinessId) return
-    await deleteStaffAbsenceMutation.mutateAsync(absenceId)
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+    await deleteStaffAbsenceMutation.mutateAsync({ absenceId, payload: reauth })
   }
 
   const submitCompensationRun = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
     const f = new FormData(e.currentTarget)
-    const mode = String(f.get('computation_mode') ?? 'by_days') as 'by_days' | 'up_to_date'
+    const mode = String(f.get('computation_mode') ?? 'today') as 'today' | 'specific_date'
     await createCompensationRunMutation.mutateAsync({
       computation_mode: mode,
-      number_of_days: mode === 'by_days' ? Number(f.get('number_of_days') ?? 0) : undefined,
-      cutoff_date: String(f.get('cutoff_date') ?? formatDateOnly(new Date())),
+      cutoff_date: mode === 'specific_date'
+        ? String(f.get('cutoff_date') ?? formatDateOnly(new Date()))
+        : undefined,
     })
   }
 
@@ -771,7 +798,7 @@ function App() {
     const f = new FormData(form)
     await createExpenseMutation.mutateAsync({
       date_issued: String(f.get('date_issued') ?? ''),
-      amount: Number(f.get('amount') ?? 0),
+      amount: parseNonNegativeAmount(f.get('amount')),
       description: String(f.get('description') ?? ''),
       purpose: String(f.get('purpose') ?? 'business') as 'business' | 'business_portfolio' | 'service',
       payment_type: String(f.get('payment_type') ?? 'one_time') as 'one_time' | 'repeat',
@@ -788,7 +815,7 @@ function App() {
     await createReferenceItemMutation.mutateAsync({
       item_type: String(f.get('item_type') ?? 'product') as 'product' | 'service',
       name: String(f.get('name') ?? ''),
-      price: Number(f.get('price') ?? 0),
+      price: parseNonNegativeAmount(f.get('price')),
       description: String(f.get('description') ?? ''),
     })
     e.currentTarget.reset()
@@ -803,8 +830,8 @@ function App() {
     const f = new FormData(form)            // ← use captured ref
     await createGcashMutation.mutateAsync({
       transaction_recipient: String(f.get('transaction_recipient') ?? '') || undefined,
-      amount_moved: Number(f.get('amount_moved') ?? 0),
-      sales_amount: Number(f.get('sales_amount') ?? 0),
+      amount_moved: parseNonNegativeAmount(f.get('amount_moved')),
+      sales_amount: parseNonNegativeAmount(f.get('sales_amount')),
       transaction_type: String(f.get('transaction_type') ?? 'cash_in') as 'cash_in' | 'cash_out',
       transaction_date: String(f.get('transaction_date') ?? ''),
       ...reauth,
@@ -815,7 +842,9 @@ function App() {
   }
   const voidGcashSale = async (saleId: number) => {
     if (!selectedBusinessId) return
-    await deleteGcashMutation.mutateAsync(saleId)
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+    await deleteGcashMutation.mutateAsync({ saleId, payload: reauth })
   }
 
   const submitCoffee = async (e: FormEvent<HTMLFormElement>) => {
@@ -824,10 +853,10 @@ function App() {
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     const entries = coffeeItems.map((item) => ({
-      price: Number(item.price || 0),
+      price: parseNonNegativeAmount(item.price),
       coffee_type: item.coffee_type,
       size: item.size,
-      add_on_price: Number(item.add_on_price || 0),
+      add_on_price: parseNonNegativeAmount(item.add_on_price),
       add_on_description: item.add_on_description,
       sale_date: new Date(item.sale_date).toISOString(),
     }))
@@ -837,7 +866,9 @@ function App() {
 
   const voidCoffeeSale = async (saleId: number) => {
     if (!selectedBusinessId) return
-    await deleteCoffeeMutation.mutateAsync(saleId)
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+    await deleteCoffeeMutation.mutateAsync({ saleId, payload: reauth })
   }
 
   const submitPrint = async (e: FormEvent<HTMLFormElement>) => {
@@ -850,8 +881,8 @@ function App() {
       description: item.description,
       color_mode: item.color_mode,
       print_size: item.print_size,
-      paper_count: Number(item.paper_count || 1),
-      sales_amount: Number(item.sales_amount || 0),
+      paper_count: parseNonNegativeAmount(item.paper_count || 1),
+      sales_amount: parseNonNegativeAmount(item.sales_amount),
       sale_date: new Date(item.sale_date).toISOString(),
     }))
     await createPrintMutation.mutateAsync({ ...entries[0], entries, ...reauth })
@@ -860,7 +891,9 @@ function App() {
 
   const voidPrintSale = async (saleId: number) => {
     if (!selectedBusinessId) return
-    await deletePrintMutation.mutateAsync(saleId)
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+    await deletePrintMutation.mutateAsync({ saleId, payload: reauth })
   }
 
   const submitEthereal = async (e: FormEvent<HTMLFormElement>) => {
@@ -870,8 +903,8 @@ function App() {
     if (!reauth) return
     const entries = etherealItems.map((item) => ({
       staff_ids: item.staff_ids,
-      service_cost: Number(item.service_cost || 0),
-      discount_percentage: Number(item.discount_percentage || 0),
+      service_cost: parseNonNegativeAmount(item.service_cost),
+      discount_percentage: parseNonNegativeAmount(item.discount_percentage),
       customer_name: item.customer_name,
       discount_type: item.discount_type,
       service_date: item.service_date,
@@ -888,7 +921,9 @@ function App() {
 
   const voidEtherealSale = async (saleId: number) => {
     if (!selectedBusinessId) return
-    await deleteEtherealMutation.mutateAsync(saleId)
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+    await deleteEtherealMutation.mutateAsync({ saleId, payload: reauth })
   }
 
   const submitPortfolioCapital = async (e: FormEvent<HTMLFormElement>) => {
@@ -900,7 +935,7 @@ function App() {
     const direction = String(f.get('direction') ?? 'add') as 'add' | 'deduct' | 'transfer'
     const targetBusinessId = Number(f.get('target_business_id') ?? 0)
     await createPortfolioCapitalMutation.mutateAsync({
-      amount: Number(f.get('amount') ?? 0),
+      amount: parseNonNegativeAmount(f.get('amount')),
       direction,
       target_business_id: direction === 'transfer' && targetBusinessId ? targetBusinessId : undefined,
       occurred_on: String(f.get('occurred_on') ?? ''),
@@ -920,7 +955,7 @@ function App() {
     if (!reauth) return
   const f = new FormData(form)
     await createBusinessCapitalMutation.mutateAsync({
-      amount: Number(f.get('amount') ?? 0),
+      amount: parseNonNegativeAmount(f.get('amount')),
       direction: String(f.get('direction') ?? 'add') as 'add' | 'deduct',
       occurred_on: String(f.get('occurred_on') ?? ''),
       notes: String(f.get('notes') ?? ''),
@@ -1013,6 +1048,16 @@ function App() {
   // ─── Authenticated shell ───────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-[var(--surface-page)] text-[var(--neutral-espresso)]">
+      <datalist id="quick-number-values">
+        <option value="0" />
+        <option value="1" />
+        <option value="5" />
+        <option value="10" />
+        <option value="50" />
+        <option value="100" />
+        <option value="500" />
+        <option value="1000" />
+      </datalist>
       <div className="mx-auto grid w-full max-w-[1460px] gap-6 px-4 py-6 lg:grid-cols-[240px_minmax(0,1fr)]">
 
         {/* ── Sidebar ───────────────────────────────────────────────────── */}
@@ -1316,7 +1361,7 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Age
-                  <input name="age" type="number" min="16" required className="dashboard-input" />
+                  <input name="age" type="number" list="quick-number-values" required className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Start date
@@ -1332,11 +1377,11 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Salary (per day)
-                  <input name="salary" type="number" step="0.01" required className="dashboard-input" />
+                  <input name="salary" type="number" list="quick-number-values" required className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Commission (% per service)
-                  <input name="commission_rate_percent" type="number" min="0" max="100" step="0.01" defaultValue="0" required className="dashboard-input" />
+                  <input name="commission_rate_percent" type="number" list="quick-number-values" defaultValue="0" required className="dashboard-input" />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Status</p>
@@ -1571,8 +1616,8 @@ function App() {
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Computation mode</p>
                   <div className="flex gap-2">
                     {([
-                      { value: 'by_days', label: 'By number of days' },
-                      { value: 'up_to_date', label: 'Up to specific date' },
+                      { value: 'today', label: 'Today' },
+                      { value: 'specific_date', label: 'Specific date' },
                     ] as const).map((mode) => (
                       <label key={mode.value} className={optionPillClass}>
                         <input
@@ -1588,16 +1633,12 @@ function App() {
                     ))}
                   </div>
                 </div>
-                {compensationMode === 'by_days' && (
+                {compensationMode === 'specific_date' && (
                   <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                    Number of days
-                    <input name="number_of_days" type="number" min="1" defaultValue="1" required className="dashboard-input" />
+                    Specific date
+                    <input name="cutoff_date" type="date" defaultValue={formatDateOnly(new Date())} required className="dashboard-input" />
                   </label>
                 )}
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                  Cutoff date
-                  <input name="cutoff_date" type="date" defaultValue={formatDateOnly(new Date())} required className="dashboard-input" />
-                </label>
                 <button
                   type="submit"
                   disabled={!selectedBusinessId || createCompensationRunMutation.isPending}
@@ -1618,7 +1659,7 @@ function App() {
                     <li key={run.id} className="rounded-xl border border-[var(--neutral-linen)] px-4 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="font-semibold">
-                          {run.computation_mode === 'by_days' ? `By days (${run.number_of_days ?? 0})` : 'Up to date'} ·{' '}
+                          {run.computation_mode === 'today' ? 'Today' : 'Specific date'} ·{' '}
                           {formatCompactDate(run.period_start)} – {formatCompactDate(run.period_end)}
                         </p>
                         <div className="flex items-center gap-2">
@@ -1689,7 +1730,7 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Base price
-                  <input name="price" type="number" step="0.01" min="0" required className="dashboard-input" />
+                  <input name="price" type="number" list="quick-number-values" required className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Description (optional)
@@ -1741,7 +1782,7 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" step="0.01" required className="dashboard-input" />
+                  <input name="amount" type="number" list="quick-number-values" required className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Description
@@ -1814,11 +1855,11 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Moved cash
-                  <input name="amount_moved" type="number" step="0.01" required value={gcashAmountMoved} onChange={(e) => setGcashAmountMoved(e.target.value)} className="dashboard-input" />
+                  <input name="amount_moved" type="number" list="quick-number-values" required value={gcashAmountMoved} onChange={(e) => setGcashAmountMoved(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Sales amount
-                  <input name="sales_amount" type="number" step="0.01" required value={gcashSalesAmount} onChange={(e) => setGcashSalesAmount(e.target.value)} className="dashboard-input" />
+                  <input name="sales_amount" type="number" list="quick-number-values" required value={gcashSalesAmount} onChange={(e) => setGcashSalesAmount(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Transaction type</p>
@@ -1912,7 +1953,7 @@ function App() {
                       </div>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Price
-                        <input type="number" step="0.01" required value={item.price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, price: e.target.value } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, price: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Coffee type
@@ -1931,7 +1972,7 @@ function App() {
                       </div>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Add-on price
-                        <input type="number" step="0.01" min="0" required value={item.add_on_price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, add_on_price: e.target.value } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.add_on_price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, add_on_price: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Add-on description
@@ -2042,11 +2083,11 @@ function App() {
                       </div>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Paper count
-                        <input type="number" min="1" required value={item.paper_count} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, paper_count: e.target.value } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.paper_count} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, paper_count: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sales amount
-                        <input type="number" step="0.01" required value={item.sales_amount} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sales_amount: e.target.value } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.sales_amount} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sales_amount: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sale date
@@ -2144,11 +2185,11 @@ function App() {
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Service cost
-                        <input type="number" step="0.01" required value={item.service_cost} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_cost: e.target.value } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.service_cost} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_cost: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
                       </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Discount %
-                        <input type="number" step="0.01" min="0" max="100" required value={item.discount_percentage} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_percentage: e.target.value } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.discount_percentage} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_percentage: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
                       </label>
                       <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
                         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Discount type</p>
@@ -2342,7 +2383,7 @@ function App() {
               <form onSubmit={submitPortfolioCapital} className={formGridClass}>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" step="0.01" required value={portfolioAmountPreview} onChange={(e) => setPortfolioAmountPreview(e.target.value)} className="dashboard-input" />
+                  <input name="amount" type="number" list="quick-number-values" required value={portfolioAmountPreview} onChange={(e) => setPortfolioAmountPreview(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>
@@ -2424,7 +2465,7 @@ function App() {
               <form onSubmit={submitBusinessCapital} className={formGridClass}>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" step="0.01" required value={businessAmountPreview} onChange={(e) => setBusinessAmountPreview(e.target.value)} className="dashboard-input" />
+                  <input name="amount" type="number" list="quick-number-values" required value={businessAmountPreview} onChange={(e) => setBusinessAmountPreview(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>

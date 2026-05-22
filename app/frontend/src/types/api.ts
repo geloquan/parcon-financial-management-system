@@ -151,17 +151,6 @@ export type SalesReport = {
   totals: SalesReportTotals
 }
 
-export type StaffSchedule = {
-  id: number
-  business_id: number
-  staff_id: number
-  staff_name: string | null
-  scheduled_on: string
-  attendance_status: 'pending' | 'present' | 'absent'
-  attendance_marked_at: string | null
-  notes: string | null
-}
-
 export type StaffDayOff = {
   id: number
   business_id: number
@@ -228,7 +217,7 @@ export type CompensationRun = {
   id: number
   business_id: number
   computed_by_user_id: number
-  computation_mode: 'by_days' | 'up_to_date'
+  computation_mode: 'today' | 'specific_date'
   number_of_days: number | null
   cutoff_date: string
   period_start: string

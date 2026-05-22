@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query'
 import {
   generateSalesReport,
   type GenerateSalesReportPayload,
@@ -7,6 +7,7 @@ import {
   fetchSalesReports,
   type CreateSalesReportPayload,
 } from '../services/sales-report-service'
+import type { ApiCollectionResponse, SalesReportVersion } from '../types/api'
 
 const staleTime = import.meta.env.DEV ? 1 : 60_000;
 
@@ -16,12 +17,17 @@ export const useGenerateSalesReport = () => {
   })
 }
 
-export const useSalesReports = (businessId: number | null, page: number) => {
+export const useSalesReports = (
+  businessId: number | null,
+  page: number,
+  queryOptions?: Omit<UseQueryOptions<ApiCollectionResponse<SalesReportVersion>>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery({
     queryKey: ['sales-reports', businessId, page],
     queryFn: async () => fetchSalesReports(businessId as number, page),
-    enabled: Boolean(businessId),
     staleTime,
+    ...queryOptions,
+    enabled: Boolean(businessId) && (queryOptions?.enabled ?? true),
   })
 }
 
