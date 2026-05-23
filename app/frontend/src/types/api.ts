@@ -255,6 +255,7 @@ export type SalesReportVersion = {
   report_type: 'sales' | 'compensation' | 'combined'
   file_path: string | null
   file_name: string | null
+  portfolio_download_url?: string
   file_size_bytes: number | null
   metadata: {
     page_size: string

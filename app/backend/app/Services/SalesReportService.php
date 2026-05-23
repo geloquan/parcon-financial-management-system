@@ -38,6 +38,20 @@ class SalesReportService
         return $paginator;
     }
 
+    public function paginatePortfolio(): LengthAwarePaginator
+    {
+        $paginator = SalesReportVersion::query()
+            ->where('metadata->report_scope', 'all_businesses')
+            ->latest('id')
+            ->paginate(10);
+
+        $paginator->getCollection()->transform(function (SalesReportVersion $report): SalesReportVersion {
+            return $this->attachPdfVerification($report);
+        });
+
+        return $paginator;
+    }
+
     public function generate(array $validated): array
     {
         [$startAt, $endAt] = $this->resolvePeriod($validated);
@@ -157,9 +171,24 @@ class SalesReportService
 
     public function download(Business $business, SalesReportVersion $report): array
     {
-        $filename = $report->file_path
-            ? basename($report->file_path)
-            : sprintf('%s-%s-report-v%s.pdf', $business->slug, $report->report_type ?? 'sales', $report->version);
+        $filename = $this->resolveDownloadFilename($report, $business);
+
+        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
+            return [
+                'filename' => $filename,
+                'content' => Storage::disk('local')->get($report->file_path),
+            ];
+        }
+
+        return [
+            'filename' => $filename,
+            'content' => $this->generatePdf($report),
+        ];
+    }
+
+    public function downloadPortfolio(SalesReportVersion $report): array
+    {
+        $filename = $this->resolveDownloadFilename($report);
 
         if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
             return [
@@ -592,6 +621,21 @@ class SalesReportService
     private function toMoneyString(float $value): string
     {
         return number_format($value, 2, '.', '');
+    }
+
+    private function resolveDownloadFilename(SalesReportVersion $report, ?Business $business = null): string
+    {
+        if ($report->file_path) {
+            return basename($report->file_path);
+        }
+
+        $metadataBusinessSlug = (string) (($report->metadata ?? [])['business_slug'] ?? '');
+        $businessSlug = $business?->slug;
+        if (! $businessSlug) {
+            $businessSlug = $metadataBusinessSlug !== '' ? $metadataBusinessSlug : ($report->business?->slug ?? 'business');
+        }
+
+        return sprintf('%s-%s-report-v%s.pdf', $businessSlug, $report->report_type ?? 'sales', $report->version);
     }
 
     private function attachPdfVerification(SalesReportVersion $report): SalesReportVersion

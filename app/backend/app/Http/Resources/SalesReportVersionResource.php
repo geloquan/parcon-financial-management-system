@@ -10,6 +10,10 @@ class SalesReportVersionResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $metadata = $this->metadata ?? [];
+        $details = $this->details ?? [];
+        $reportScope = (string) ($metadata['report_scope'] ?? $details['report_scope'] ?? 'business');
+
         return [
             'id' => $this->id,
             'business_id' => $this->business_id,
@@ -23,8 +27,8 @@ class SalesReportVersionResource extends JsonResource
             'file_path' => $this->file_path,
             'file_name' => $this->file_path ? basename($this->file_path) : null,
             'file_size_bytes' => $this->file_size_bytes,
-            'metadata' => $this->metadata,
-            'details' => $this->details,
+            'metadata' => $metadata,
+            'details' => $details,
             'pdf_verification' => $this->when(
                 $this->resource->offsetExists('pdf_verification'),
                 fn () => $this->resource->getAttribute('pdf_verification')
@@ -33,6 +37,12 @@ class SalesReportVersionResource extends JsonResource
                 'business' => $this->business_id,
                 'salesReportVersion' => $this->id,
             ]),
+            'portfolio_download_url' => $this->when(
+                $reportScope === 'all_businesses',
+                fn () => route('portfolio-sales-reports.download', [
+                    'salesReportVersion' => $this->id,
+                ])
+            ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

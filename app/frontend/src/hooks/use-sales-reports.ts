@@ -4,7 +4,9 @@ import {
   type GenerateSalesReportPayload,
   createSalesReport,
   downloadSalesReport,
+  downloadPortfolioSalesReport,
   fetchSalesReports,
+  fetchPortfolioSalesReports,
   type CreateSalesReportPayload,
 } from '../services/sales-report-service'
 import type { ApiCollectionResponse, SalesReportVersion } from '../types/api'
@@ -43,8 +45,27 @@ export const useCreateSalesReport = (businessId: number | null, page: number, re
   })
 }
 
+export const usePortfolioSalesReports = (
+  page: number,
+  queryOptions?: Omit<UseQueryOptions<ApiCollectionResponse<SalesReportVersion>>, 'queryKey' | 'queryFn'>
+) => {
+  return useQuery({
+    queryKey: ['portfolio-sales-reports', page],
+    queryFn: async () => fetchPortfolioSalesReports(page),
+    staleTime,
+    ...queryOptions,
+    enabled: queryOptions?.enabled ?? true,
+  })
+}
+
 export const useDownloadSalesReport = (businessId: number | null) => {
   return useMutation({
     mutationFn: async (reportId: number) => downloadSalesReport(businessId as number, reportId),
+  })
+}
+
+export const useDownloadPortfolioSalesReport = () => {
+  return useMutation({
+    mutationFn: async (reportId: number) => downloadPortfolioSalesReport(reportId),
   })
 }

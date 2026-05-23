@@ -106,6 +106,12 @@ Route::middleware('auth.api')->group(function (): void {
   Route::post('portfolio_capital/movements', [CapitalMovementController::class, 'storePortfolio'])
     ->middleware(['role:admin,owner', 'portfolio.reauth']);
 
+  Route::get('portfolio/sales_reports', [SalesReportController::class, 'indexPortfolio'])
+    ->middleware('role:admin,owner');
+  Route::get('portfolio/sales_reports/{salesReportVersion}/download', [SalesReportController::class, 'downloadPortfolio'])
+    ->name('portfolio-sales-reports.download')
+    ->middleware('role:admin,owner');
+
   Route::post('sales_reports/generate', [SalesReportController::class, 'generate']);
 
   Route::get('capital/movements', [CapitalMovementController::class, 'index']);

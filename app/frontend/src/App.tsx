@@ -17,7 +17,13 @@ import {
   useUpdateBusinessReferenceItem,
 } from './hooks/use-business-reference-items'
 import { useCompensationRuns, useCreateCompensationRun, useFinalizeCompensationRun } from './hooks/use-compensation-runs'
-import { useCreateSalesReport, useDownloadSalesReport, useSalesReports } from './hooks/use-sales-reports'
+import {
+  useCreateSalesReport,
+  useDownloadPortfolioSalesReport,
+  useDownloadSalesReport,
+  usePortfolioSalesReports,
+  useSalesReports,
+} from './hooks/use-sales-reports'
 import {
   CalendarCheck2,
   BanknoteArrowDown,
@@ -39,7 +45,7 @@ import {
   FileText,
   type LucideIcon,
 } from 'lucide-react'
-import type { SalesReport } from './types/api'
+import type { SalesReport, SalesReportVersion } from './types/api'
 import {
   useCapitalMovements,
   useCreateBusinessCapitalMovement,
@@ -510,9 +516,11 @@ function App() {
   const createPortfolioCapitalMutation = useCreatePortfolioCapitalMovement()
   const createBusinessCapitalMutation = useCreateBusinessCapitalMovement(selectedBusinessId)
   const generateSalesReportMutation = useGenerateSalesReport()
-  const salesReportsQuery = useSalesReports(selectedBusinessId, salesReportPage, pdfReportScope)
+  const salesReportsQuery = useSalesReports(selectedBusinessId, salesReportPage, pdfReportScope, { enabled: pdfReportScope === 'business' })
+  const portfolioSalesReportsQuery = usePortfolioSalesReports(salesReportPage, { enabled: pdfReportScope === 'all_businesses' })
   const createSalesReportMutation = useCreateSalesReport(selectedBusinessId, salesReportPage, pdfReportScope)
   const downloadSalesReportMutation = useDownloadSalesReport(selectedBusinessId)
+  const downloadPortfolioSalesReportMutation = useDownloadPortfolioSalesReport()
 
   const selectedBusinessName = useMemo(
     () => businesses.find((b) => b.id === selectedBusinessId)?.name ?? null,
@@ -542,7 +550,10 @@ function App() {
   const printEntries = useMemo(() => printQuery.data?.data ?? [], [printQuery.data])
   const etherealEntries = useMemo(() => etherealQuery.data?.data ?? [], [etherealQuery.data])
   const referenceItems = useMemo(() => referenceItemsQuery.data?.data ?? [], [referenceItemsQuery.data])
-  const salesReportVersions = useMemo(() => salesReportsQuery.data?.data ?? [], [salesReportsQuery.data])
+  const salesReportVersions = useMemo(
+    () => (pdfReportScope === 'all_businesses' ? portfolioSalesReportsQuery.data?.data ?? [] : salesReportsQuery.data?.data ?? []),
+    [pdfReportScope, portfolioSalesReportsQuery.data, salesReportsQuery.data],
+  )
   const productReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'product'), [referenceItems])
   const serviceReferenceItems = useMemo(() => referenceItems.filter((i) => i.item_type === 'service'), [referenceItems])
   const referenceItemById = useMemo(() => new Map(referenceItems.map((item) => [String(item.id), item])), [referenceItems])
@@ -825,8 +836,11 @@ function App() {
     await finalizeCompensationRunMutation.mutateAsync({ runId, payload: reauth })
   }
 
-  const triggerDownloadSalesReport = async (reportId: number) => {
-    const download = await downloadSalesReportMutation.mutateAsync(reportId)
+  const triggerDownloadSalesReport = async (report: SalesReportVersion) => {
+    const reportScope = report.metadata.report_scope ?? report.details.report_scope ?? 'business'
+    const download = reportScope === 'all_businesses'
+      ? await downloadPortfolioSalesReportMutation.mutateAsync(report.id)
+      : await downloadSalesReportMutation.mutateAsync(report.id)
     const url = URL.createObjectURL(download.blob)
     const anchor = document.createElement('a')
     anchor.href = url
@@ -2953,7 +2967,7 @@ function App() {
                 </form>
 
                 <SectionDivider label="Generated versions" />
-                {salesReportsQuery.isLoading ? (
+                {(pdfReportScope === 'all_businesses' ? portfolioSalesReportsQuery : salesReportsQuery).isLoading ? (
                   <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
                 ) : salesReportVersions.length === 0 ? (
                   <EmptyState label="No report versions generated yet." />
@@ -2967,8 +2981,8 @@ function App() {
                           </p>
                           <button
                             type="button"
-                            onClick={() => triggerDownloadSalesReport(report.id)}
-                            disabled={downloadSalesReportMutation.isPending}
+                            onClick={() => triggerDownloadSalesReport(report)}
+                            disabled={downloadSalesReportMutation.isPending || downloadPortfolioSalesReportMutation.isPending}
                             className="dashboard-button-secondary"
                           >
                             Download PDF
@@ -3034,7 +3048,7 @@ function App() {
                       <button
                         type="button"
                         onClick={() => setSalesReportPage((prev) => prev + 1)}
-                        disabled={!salesReportsQuery.data?.links?.next}
+                        disabled={!(pdfReportScope === 'all_businesses' ? portfolioSalesReportsQuery.data?.links?.next : salesReportsQuery.data?.links?.next)}
                         className="dashboard-button-secondary"
                       >
                         Next

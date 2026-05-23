@@ -24,6 +24,11 @@ class SalesReportController extends Controller
     return SalesReportVersionResource::collection($this->salesReportService->paginate($business));
   }
 
+  public function indexPortfolio(): AnonymousResourceCollection
+  {
+    return SalesReportVersionResource::collection($this->salesReportService->paginatePortfolio());
+  }
+
   public function store(StoreSalesReportRequest $request, Business $business): SalesReportVersionResource
   {
     return new SalesReportVersionResource(
@@ -84,6 +89,21 @@ class SalesReportController extends Controller
     abort_if($salesReportVersion->business_id !== $business->id, 404);
 
     $download = $this->salesReportService->download($business, $salesReportVersion);
+
+    return response($download['content'], 200, [
+      'Content-Type' => 'application/pdf',
+      'Content-Disposition' => sprintf('attachment; filename="%s"', $download['filename']),
+    ]);
+  }
+
+  public function downloadPortfolio(SalesReportVersion $salesReportVersion)
+  {
+    $metadata = $salesReportVersion->metadata ?? [];
+    $details = $salesReportVersion->details ?? [];
+    $reportScope = (string) (($metadata['report_scope'] ?? $details['report_scope'] ?? 'business'));
+    abort_if($reportScope !== 'all_businesses', 404);
+
+    $download = $this->salesReportService->downloadPortfolio($salesReportVersion);
 
     return response($download['content'], 200, [
       'Content-Type' => 'application/pdf',

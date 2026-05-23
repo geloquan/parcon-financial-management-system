@@ -16,13 +16,19 @@
   - grouped sales detail entries by date with merged date row,
   - combined original price + charged amount into one informative pricing cell,
   - improved detail readability with smart placement and color accents.
+- Added dedicated backend portfolio-level report-version endpoints for all-business reports:
+  - `GET /api/portfolio/sales_reports` for listing all-business versions,
+  - `GET /api/portfolio/sales_reports/{salesReportVersion}/download` for downloading all-business PDFs.
+- Added backend service/controller/resource support for portfolio-level report listing/downloading and exposed `portfolio_download_url` for all-business report resources.
+- Updated frontend sales report data layer with portfolio report fetch/download API calls and React Query hooks.
+- Updated Sales Reports UI listing/downloading flow so when `Report scope` is `All businesses`, it uses the portfolio report-version endpoints instead of selected-business endpoints.
 
 ## What was not done
-- Did not add a **global report index endpoint** independent of selected business (reports are still listed under the selected business route).
+- Did not add a portfolio-level create endpoint for all-business report generation; generating still posts to `/api/businesses/{business}/sales_reports`.
 - Did not redesign non-sales PDF sections beyond compatibility updates (compensation section remains mostly unchanged visually).
 - Could not complete full local validation due missing dependencies/environment setup in this runner:
   - frontend lint/build failed because node modules are not installed,
   - backend tests failed because Composer vendor dependencies are not installed.
 
 ### LLM instruction for next query/task
-- If the next task is to fully complete "all businesses" reporting UX, implement a dedicated backend endpoint for portfolio-level sales report versions and a frontend view that can list/download all-business reports without relying on a selected business context.
+- If the next task is to remove selected-business dependency for all-business report generation too, add `POST /api/portfolio/sales_reports` (admin/owner only), update frontend submit flow to call it for `report_scope=all_businesses`, and verify end-to-end create/list/download behavior.
