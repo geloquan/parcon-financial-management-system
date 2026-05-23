@@ -18,6 +18,7 @@ class StoreSalesReportRequest extends FormRequest
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'document_title' => ['nullable', 'string', 'max:255'],
             'report_type' => ['nullable', 'in:sales,compensation,combined'],
+            'report_scope' => ['nullable', 'in:business,all_businesses'],
         ];
     }
 }

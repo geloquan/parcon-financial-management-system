@@ -20,24 +20,25 @@ export const useGenerateSalesReport = () => {
 export const useSalesReports = (
   businessId: number | null,
   page: number,
+  reportScope: 'business' | 'all_businesses',
   queryOptions?: Omit<UseQueryOptions<ApiCollectionResponse<SalesReportVersion>>, 'queryKey' | 'queryFn'>
 ) => {
   return useQuery({
-    queryKey: ['sales-reports', businessId, page],
-    queryFn: async () => fetchSalesReports(businessId as number, page),
+    queryKey: ['sales-reports', businessId, page, reportScope],
+    queryFn: async () => fetchSalesReports(businessId as number, page, reportScope),
     staleTime,
     ...queryOptions,
     enabled: Boolean(businessId) && (queryOptions?.enabled ?? true),
   })
 }
 
-export const useCreateSalesReport = (businessId: number | null, page: number) => {
+export const useCreateSalesReport = (businessId: number | null, page: number, reportScope: 'business' | 'all_businesses') => {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (payload: CreateSalesReportPayload) => createSalesReport(businessId as number, payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['sales-reports', businessId, page] })
+      await queryClient.invalidateQueries({ queryKey: ['sales-reports', businessId, page, reportScope] })
     },
   })
 }

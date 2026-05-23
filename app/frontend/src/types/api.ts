@@ -268,6 +268,7 @@ export type SalesReportVersion = {
     stored_file_name?: string
   }
   details: {
+    report_scope?: 'business' | 'all_businesses'
     range: {
       start_date: string
       end_date: string
@@ -287,8 +288,19 @@ export type SalesReportVersion = {
       ethereal_entries: number
       all_entries: number
     }
+    business_summary?: Array<{
+      business_id: number
+      business_name: string
+      business_slug: string
+      entries_count: number
+      total_sales: number
+      gcash_sales: number
+      module_sales: number
+    }>
     entries: Array<{
       module: string
+      business_id?: number
+      business_slug?: string
       business_name: string
       sale_name: string
       amount: number

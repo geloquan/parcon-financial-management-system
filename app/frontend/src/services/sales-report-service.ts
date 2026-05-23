@@ -14,6 +14,7 @@ export type CreateSalesReportPayload = {
   end_date: string
   document_title?: string
   report_type?: 'sales' | 'compensation' | 'combined'
+  report_scope?: 'business' | 'all_businesses'
 }
 
 export const generateSalesReport = async (payload: GenerateSalesReportPayload): Promise<SalesReport> => {
@@ -26,8 +27,11 @@ export const generateSalesReport = async (payload: GenerateSalesReportPayload): 
 export const fetchSalesReports = async (
   businessId: number,
   page = 1,
+  reportScope: 'business' | 'all_businesses' = 'business',
 ): Promise<ApiCollectionResponse<SalesReportVersion>> => {
-  return apiRequest<ApiCollectionResponse<SalesReportVersion>>(`/businesses/${businessId}/sales_reports?page=${page}`)
+  return apiRequest<ApiCollectionResponse<SalesReportVersion>>(
+    `/businesses/${businessId}/sales_reports?page=${page}&report_scope=${reportScope}`,
+  )
 }
 
 export const createSalesReport = async (

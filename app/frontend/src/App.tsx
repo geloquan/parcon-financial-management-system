@@ -399,6 +399,7 @@ function App() {
   const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(_initial.date)
   const [compensationMode, setCompensationMode] = useState<'today' | 'specific_date'>(_initial.mode)
   const [salesReportPage, setSalesReportPage] = useState(_initial.page)
+  const [pdfReportScope, setPdfReportScope] = useState<'business' | 'all_businesses'>('business')
   const [reportScope, setReportScope] = useState<'portfolio' | 'business'>(_initial.scope)
   const [reportPeriod, setReportPeriod] = useState<'today' | 'date_range'>(_initial.period)
 
@@ -509,8 +510,8 @@ function App() {
   const createPortfolioCapitalMutation = useCreatePortfolioCapitalMovement()
   const createBusinessCapitalMutation = useCreateBusinessCapitalMovement(selectedBusinessId)
   const generateSalesReportMutation = useGenerateSalesReport()
-  const salesReportsQuery = useSalesReports(selectedBusinessId, salesReportPage)
-  const createSalesReportMutation = useCreateSalesReport(selectedBusinessId, salesReportPage)
+  const salesReportsQuery = useSalesReports(selectedBusinessId, salesReportPage, pdfReportScope)
+  const createSalesReportMutation = useCreateSalesReport(selectedBusinessId, salesReportPage, pdfReportScope)
   const downloadSalesReportMutation = useDownloadSalesReport(selectedBusinessId)
 
   const selectedBusinessName = useMemo(
@@ -1126,14 +1127,17 @@ function App() {
     if (!selectedBusinessId) return
 
     const f = new FormData(e.currentTarget)
+    const reportScope = String(f.get('report_scope') ?? 'business') as 'business' | 'all_businesses'
     await createSalesReportMutation.mutateAsync({
       start_date: String(f.get('start_date') ?? ''),
       end_date: String(f.get('end_date') ?? ''),
       document_title: String(f.get('document_title') ?? '').trim() || undefined,
       report_type: String(f.get('report_type') ?? 'sales') as 'sales' | 'compensation' | 'combined',
+      report_scope: reportScope,
     })
 
     e.currentTarget.reset()
+    setPdfReportScope(reportScope)
     setSalesReportPage(1)
   }
 
@@ -2927,6 +2931,18 @@ function App() {
                       <option value="combined">Combined</option>
                     </select>
                   </label>
+                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                    Report scope
+                    <select
+                      name="report_scope"
+                      value={pdfReportScope}
+                      onChange={(event) => setPdfReportScope(event.target.value as 'business' | 'all_businesses')}
+                      className="dashboard-input"
+                    >
+                      <option value="business">Selected business only</option>
+                      <option value="all_businesses">All businesses</option>
+                    </select>
+                  </label>
                   <button
                     type="submit"
                     disabled={!selectedBusinessId || createSalesReportMutation.isPending}
@@ -2962,6 +2978,8 @@ function App() {
                           Range {formatCompactDate(report.start_date)} – {formatCompactDate(report.end_date)}
                           {' · '}
                           {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
+                          {' · '}
+                          Scope: {(report.metadata.report_scope ?? report.details.report_scope ?? 'business').replace('_', ' ')}
                         </p>
                         <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
                           Type: {report.report_type}

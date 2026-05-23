@@ -20,8 +20,14 @@ class SalesReportService
 {
     public function paginate(Business $business): LengthAwarePaginator
     {
+        $reportScope = request()->query('report_scope');
+
         $paginator = SalesReportVersion::query()
             ->where('business_id', $business->id)
+            ->when(
+                in_array($reportScope, ['business', 'all_businesses'], true),
+                fn (Builder $query) => $query->where('metadata->report_scope', $reportScope)
+            )
             ->latest('id')
             ->paginate(10);
 
@@ -89,12 +95,13 @@ class SalesReportService
         $startDate = Carbon::parse($validated['start_date'])->startOfDay();
         $endDate = Carbon::parse($validated['end_date'])->endOfDay();
         $reportType = (string) ($validated['report_type'] ?? 'sales');
+        $reportScope = (string) ($validated['report_scope'] ?? 'business');
 
         $nextVersion = (int) SalesReportVersion::query()
             ->where('business_id', $business->id)
             ->max('version') + 1;
 
-        $details = $this->collectDetails($business, $startDate, $endDate, $reportType);
+        $details = $this->collectDetails($business, $startDate, $endDate, $reportType, $reportScope);
         $now = now();
 
         $report = SalesReportVersion::query()->create([
@@ -103,7 +110,11 @@ class SalesReportService
             'version' => $nextVersion,
             'start_date' => $startDate->toDateString(),
             'end_date' => $endDate->toDateString(),
-            'document_title' => $validated['document_title'] ?: sprintf('%s Detail Report', $business->name),
+            'document_title' => $validated['document_title'] ?: (
+                $reportScope === 'all_businesses'
+                    ? 'All Businesses Detail Report'
+                    : sprintf('%s Detail Report', $business->name)
+            ),
             'document_format' => 'pdf-8.5x13',
             'report_type' => $reportType,
             'metadata' => [
@@ -113,7 +124,7 @@ class SalesReportService
                 'generated_by_username' => $user->username,
                 'business_name' => $business->name,
                 'business_slug' => $business->slug,
-                'report_scope' => 'business',
+                'report_scope' => $reportScope,
                 'report_type' => $reportType,
                 'stored_disk' => 'local',
             ],
@@ -180,13 +191,14 @@ class SalesReportService
         $query->whereBetween($column, [$startAt, $endAt]);
     }
 
-    private function collectDetails(Business $business, Carbon $startDate, Carbon $endDate, string $reportType): array
+    private function collectDetails(Business $business, Carbon $startDate, Carbon $endDate, string $reportType, string $reportScope): array
     {
         $includeSales = in_array($reportType, ['sales', 'combined'], true);
         $includeCompensation = in_array($reportType, ['compensation', 'combined'], true);
+        $targetBusiness = $reportScope === 'all_businesses' ? null : $business;
 
         $salesDetails = $includeSales
-            ? $this->collectSalesDetails($business, $startDate, $endDate)
+            ? $this->collectSalesDetails($targetBusiness, $startDate, $endDate)
             : [
                 'totals' => [
                     'gcash_sales' => 0.0,
@@ -203,11 +215,12 @@ class SalesReportService
                     'ethereal_entries' => 0,
                     'all_entries' => 0,
                 ],
+                'business_summary' => [],
                 'entries' => [],
             ];
 
         $compensationDetails = $includeCompensation
-            ? $this->collectCompensationDetails($business, $startDate, $endDate)
+            ? $this->collectCompensationDetails($targetBusiness, $startDate, $endDate)
             : [
                 'totals' => [
                     'gross_pay' => 0.0,
@@ -224,12 +237,14 @@ class SalesReportService
 
         return [
             'report_type' => $reportType,
+            'report_scope' => $reportScope,
             'range' => [
                 'start_date' => $startDate->toDateString(),
                 'end_date' => $endDate->toDateString(),
             ],
             'totals' => $salesDetails['totals'],
             'counts' => $salesDetails['counts'],
+            'business_summary' => $salesDetails['business_summary'],
             'entries' => $salesDetails['entries'],
             'compensation_totals' => $compensationDetails['totals'],
             'compensation_counts' => $compensationDetails['counts'],
@@ -237,34 +252,44 @@ class SalesReportService
         ];
     }
 
-    private function collectSalesDetails(Business $business, Carbon $startDate, Carbon $endDate): array
+    private function collectSalesDetails(?Business $business, Carbon $startDate, Carbon $endDate): array
     {
-        $gcashEntries = GcashSale::query()
-            ->where('business_id', $business->id)
-            ->whereBetween('transaction_date', [$startDate, $endDate])
-            ->orderBy('transaction_date')
-            ->get();
+        $gcashQuery = GcashSale::query()->whereBetween('transaction_date', [$startDate, $endDate])->orderBy('transaction_date');
+        $coffeeQuery = CoffeeSale::query()->whereBetween('sale_date', [$startDate, $endDate])->orderBy('sale_date');
+        $printQuery = PrintSale::query()->whereBetween('sale_date', [$startDate, $endDate])->orderBy('sale_date');
+        $etherealQuery = EtherealSale::query()->whereBetween('service_date', [$startDate, $endDate])->orderBy('service_date');
 
-        $coffeeEntries = CoffeeSale::query()
-            ->where('business_id', $business->id)
-            ->whereBetween('sale_date', [$startDate, $endDate])
-            ->orderBy('sale_date')
-            ->get();
+        if ($business) {
+            $gcashQuery->where('business_id', $business->id);
+            $coffeeQuery->where('business_id', $business->id);
+            $printQuery->where('business_id', $business->id);
+            $etherealQuery->where('business_id', $business->id);
+        }
 
-        $printEntries = PrintSale::query()
-            ->where('business_id', $business->id)
-            ->whereBetween('sale_date', [$startDate, $endDate])
-            ->orderBy('sale_date')
-            ->get();
+        $gcashEntries = $gcashQuery->get();
+        $coffeeEntries = $coffeeQuery->get();
+        $printEntries = $printQuery->get();
+        $etherealEntries = $etherealQuery->get();
 
-        $etherealEntries = EtherealSale::query()
-            ->where('business_id', $business->id)
-            ->whereBetween('service_date', [$startDate, $endDate])
-            ->orderBy('service_date')
-            ->get();
+        $businessIds = collect()
+            ->merge($gcashEntries->pluck('business_id'))
+            ->merge($coffeeEntries->pluck('business_id'))
+            ->merge($printEntries->pluck('business_id'))
+            ->merge($etherealEntries->pluck('business_id'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $businessDirectory = $this->resolveBusinessDirectory($businessIds);
+
+        if ($business && !isset($businessDirectory[$business->id])) {
+            $businessDirectory[$business->id] = [
+                'name' => $business->name,
+                'slug' => $business->slug,
+            ];
+        }
 
         $staffNames = $this->resolveStaffNames(
-            $business->id,
             $etherealEntries->flatMap(fn (EtherealSale $sale) => $sale->staff_ids ?? [$sale->staff_id])->filter()->all()
         );
 
@@ -281,15 +306,22 @@ class SalesReportService
             'print' => 0,
             'ethereal' => 0,
         ];
+        $businessSummary = [];
 
         foreach ($gcashEntries as $sale) {
-            $moduleTotals['gcash'] += (float) $sale->sales_amount;
+            $businessId = (int) $sale->business_id;
+            $businessMeta = $businessDirectory[$businessId] ?? ['name' => sprintf('Business #%d', $businessId), 'slug' => sprintf('business-%d', $businessId)];
+            $amount = round((float) $sale->sales_amount, 2);
+            $moduleTotals['gcash'] += $amount;
             $moduleCounts['gcash']++;
+            $businessSummary[$businessId] = $this->accumulateBusinessSummary($businessSummary[$businessId] ?? null, $businessId, $businessMeta['name'], $businessMeta['slug'], $amount, true);
             $entries[] = [
                 'module' => 'GCash',
-                'business_name' => $business->name,
+                'business_id' => $businessId,
+                'business_slug' => $businessMeta['slug'],
+                'business_name' => $businessMeta['name'],
                 'sale_name' => $sale->transaction_recipient ?: 'GCash transaction',
-                'amount' => round((float) $sale->sales_amount, 2),
+                'amount' => $amount,
                 'sale_date' => $sale->transaction_date?->toIso8601String(),
                 'reference_item_name' => $sale->reference_item_name,
                 'reference_item_original_price' => $sale->reference_item_original_price !== null ? round((float) $sale->reference_item_original_price, 2) : null,
@@ -302,12 +334,17 @@ class SalesReportService
         }
 
         foreach ($coffeeEntries as $sale) {
+            $businessId = (int) $sale->business_id;
+            $businessMeta = $businessDirectory[$businessId] ?? ['name' => sprintf('Business #%d', $businessId), 'slug' => sprintf('business-%d', $businessId)];
             $totalAmount = round((float) $sale->price + (float) $sale->add_on_price, 2);
             $moduleTotals['coffee'] += $totalAmount;
             $moduleCounts['coffee']++;
+            $businessSummary[$businessId] = $this->accumulateBusinessSummary($businessSummary[$businessId] ?? null, $businessId, $businessMeta['name'], $businessMeta['slug'], $totalAmount, false);
             $entries[] = [
                 'module' => 'Coffee',
-                'business_name' => $business->name,
+                'business_id' => $businessId,
+                'business_slug' => $businessMeta['slug'],
+                'business_name' => $businessMeta['name'],
                 'sale_name' => $sale->coffee_type,
                 'amount' => $totalAmount,
                 'sale_date' => $sale->sale_date?->toIso8601String(),
@@ -323,13 +360,19 @@ class SalesReportService
         }
 
         foreach ($printEntries as $sale) {
-            $moduleTotals['print'] += (float) $sale->sales_amount;
+            $businessId = (int) $sale->business_id;
+            $businessMeta = $businessDirectory[$businessId] ?? ['name' => sprintf('Business #%d', $businessId), 'slug' => sprintf('business-%d', $businessId)];
+            $amount = round((float) $sale->sales_amount, 2);
+            $moduleTotals['print'] += $amount;
             $moduleCounts['print']++;
+            $businessSummary[$businessId] = $this->accumulateBusinessSummary($businessSummary[$businessId] ?? null, $businessId, $businessMeta['name'], $businessMeta['slug'], $amount, false);
             $entries[] = [
                 'module' => 'Print',
-                'business_name' => $business->name,
+                'business_id' => $businessId,
+                'business_slug' => $businessMeta['slug'],
+                'business_name' => $businessMeta['name'],
                 'sale_name' => $sale->description,
-                'amount' => round((float) $sale->sales_amount, 2),
+                'amount' => $amount,
                 'sale_date' => $sale->sale_date?->toIso8601String(),
                 'reference_item_name' => $sale->reference_item_name,
                 'reference_item_original_price' => $sale->reference_item_original_price !== null ? round((float) $sale->reference_item_original_price, 2) : null,
@@ -343,19 +386,25 @@ class SalesReportService
         }
 
         foreach ($etherealEntries as $sale) {
+            $businessId = (int) $sale->business_id;
+            $businessMeta = $businessDirectory[$businessId] ?? ['name' => sprintf('Business #%d', $businessId), 'slug' => sprintf('business-%d', $businessId)];
             $providerNames = collect($sale->staff_ids ?? ($sale->staff_id ? [$sale->staff_id] : []))
                 ->map(fn ($staffId) => $staffNames[(int) $staffId] ?? null)
                 ->filter()
                 ->values()
                 ->all();
 
-            $moduleTotals['ethereal'] += (float) $sale->net_amount;
+            $amount = round((float) $sale->net_amount, 2);
+            $moduleTotals['ethereal'] += $amount;
             $moduleCounts['ethereal']++;
+            $businessSummary[$businessId] = $this->accumulateBusinessSummary($businessSummary[$businessId] ?? null, $businessId, $businessMeta['name'], $businessMeta['slug'], $amount, false);
             $entries[] = [
                 'module' => 'Ethereal',
-                'business_name' => $business->name,
+                'business_id' => $businessId,
+                'business_slug' => $businessMeta['slug'],
+                'business_name' => $businessMeta['name'],
                 'sale_name' => $sale->service_name ?: 'Beauty service',
-                'amount' => round((float) $sale->net_amount, 2),
+                'amount' => $amount,
                 'sale_date' => $sale->service_date?->toIso8601String(),
                 'reference_item_name' => $sale->reference_item_name,
                 'reference_item_original_price' => $sale->reference_item_original_price !== null ? round((float) $sale->reference_item_original_price, 2) : null,
@@ -371,6 +420,9 @@ class SalesReportService
         }
 
         usort($entries, fn (array $a, array $b): int => strcmp((string) ($a['sale_date'] ?? ''), (string) ($b['sale_date'] ?? '')));
+
+        $businessSummaryRows = array_values($businessSummary);
+        usort($businessSummaryRows, fn (array $a, array $b): int => strcmp((string) $a['business_name'], (string) $b['business_name']));
 
         return [
             'totals' => [
@@ -388,22 +440,30 @@ class SalesReportService
                 'ethereal_entries' => $moduleCounts['ethereal'],
                 'all_entries' => count($entries),
             ],
+            'business_summary' => $businessSummaryRows,
             'entries' => $entries,
         ];
     }
 
-    private function collectCompensationDetails(Business $business, Carbon $startDate, Carbon $endDate): array
+    private function collectCompensationDetails(?Business $business, Carbon $startDate, Carbon $endDate): array
     {
         $runs = CompensationRun::query()
-            ->where('business_id', $business->id)
+            ->when($business, fn (Builder $query) => $query->where('business_id', $business->id))
             ->whereBetween('period_end', [$startDate->toDateString(), $endDate->toDateString()])
             ->orderBy('period_end')
             ->get();
 
-        $entries = $runs->map(function (CompensationRun $run) use ($business): array {
+        $businessDirectory = $this->resolveBusinessDirectory(
+            $runs->pluck('business_id')->filter()->unique()->values()->all()
+        );
+
+        $entries = $runs->map(function (CompensationRun $run) use ($businessDirectory): array {
+            $businessId = (int) $run->business_id;
+            $businessMeta = $businessDirectory[$businessId] ?? ['name' => sprintf('Business #%d', $businessId)];
+
             return [
                 'module' => 'Compensation',
-                'business_name' => $business->name,
+                'business_name' => $businessMeta['name'],
                 'run_id' => $run->id,
                 'entry_name' => sprintf('Compensation Run #%d', $run->id),
                 'amount' => round((float) $run->net_pay, 2),
@@ -435,17 +495,62 @@ class SalesReportService
         ];
     }
 
-    private function resolveStaffNames(int $businessId, array $staffIds): array
+    private function resolveStaffNames(array $staffIds): array
     {
         if ($staffIds === []) {
             return [];
         }
 
         return \App\Models\Staff::query()
-            ->where('business_id', $businessId)
             ->whereIn('id', array_values(array_unique($staffIds)))
             ->pluck('full_name', 'id')
             ->all();
+    }
+
+    private function resolveBusinessDirectory(array $businessIds): array
+    {
+        if ($businessIds === []) {
+            return [];
+        }
+
+        return Business::query()
+            ->whereIn('id', $businessIds)
+            ->get(['id', 'name', 'slug'])
+            ->keyBy('id')
+            ->map(fn (Business $business): array => [
+                'name' => $business->name,
+                'slug' => $business->slug,
+            ])
+            ->all();
+    }
+
+    private function accumulateBusinessSummary(
+        ?array $current,
+        int $businessId,
+        string $businessName,
+        string $businessSlug,
+        float $amount,
+        bool $isGcash
+    ): array {
+        $summary = $current ?? [
+            'business_id' => $businessId,
+            'business_name' => $businessName,
+            'business_slug' => $businessSlug,
+            'entries_count' => 0,
+            'total_sales' => 0.0,
+            'gcash_sales' => 0.0,
+            'module_sales' => 0.0,
+        ];
+
+        $summary['entries_count']++;
+        $summary['total_sales'] = round(((float) $summary['total_sales']) + $amount, 2);
+        if ($isGcash) {
+            $summary['gcash_sales'] = round(((float) $summary['gcash_sales']) + $amount, 2);
+        } else {
+            $summary['module_sales'] = round(((float) $summary['module_sales']) + $amount, 2);
+        }
+
+        return $summary;
     }
 
     private function generatePdf(SalesReportVersion $report): string

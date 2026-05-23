@@ -82,6 +82,26 @@
     .section {
       margin-top: 12px;
     }
+
+    .chip {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid #E0DBD5;
+      background: #F7ECEE;
+      color: #5C1220;
+      margin-right: 6px;
+    }
+
+    .chip-gcash { background: #E6F1FB; color: #0C447C; border-color: #B5D4F4; }
+    .chip-coffee { background: #FAEEDA; color: #633806; border-color: #FAC775; }
+    .chip-print { background: #F7ECEE; color: #5C1220; border-color: #D98A95; }
+    .chip-ethereal { background: #EAF3DE; color: #27500A; border-color: #C0DD97; }
+    .date-divider { background: #F7ECEE; color: #5C1220; font-weight: 700; }
+    .tight p { margin: 0 0 2px; }
+    .tiny { font-size: 10px; }
   </style>
 </head>
 <body>
@@ -103,6 +123,7 @@
 <h1>{{ $report->document_title }}</h1>
 <div class="meta-grid">
   <p><strong>Business:</strong> {{ $metadata['business_name'] ?? 'N/A' }}</p>
+  <p><strong>Scope:</strong> {{ ucfirst(str_replace('_', ' ', $details['report_scope'] ?? ($metadata['report_scope'] ?? 'business'))) }}</p>
   <p><strong>Report Type:</strong> {{ ucfirst($reportType) }}</p>
   <p><strong>Version:</strong> {{ $report->version }}</p>
   <p><strong>Date Range:</strong>
@@ -121,38 +142,59 @@
 @if(in_array($reportType, ['sales', 'combined'], true))
   <div class="section">
     <h2>Sales Summary</h2>
+    @php
+      $businessSummary = $details['business_summary'] ?? [];
+    @endphp
     <table>
       <thead>
       <tr>
         <th>Business</th>
-        <th class="num">Transactions</th>
-        <th class="num">Amount</th>
+        <th class="num">Entries</th>
+        <th class="num">GCash</th>
+        <th class="num">Module Sales</th>
+        <th class="num">Total</th>
       </tr>
       </thead>
       <tbody>
-      <tr>
-        <td>GCash</td>
-        <td class="num">{{ $salesCounts['gcash_entries'] ?? 0 }}</td>
-        <td class="num">{{ number_format((float) ($salesTotals['gcash_sales'] ?? 0), 2) }}</td>
-      </tr>
-      <tr>
-        <td>Coffee</td>
-        <td class="num">{{ $salesCounts['coffee_entries'] ?? 0 }}</td>
-        <td class="num">{{ number_format((float) ($salesTotals['coffee_sales'] ?? 0), 2) }}</td>
-      </tr>
-      <tr>
-        <td>Print</td>
-        <td class="num">{{ $salesCounts['print_entries'] ?? 0 }}</td>
-        <td class="num">{{ number_format((float) ($salesTotals['print_sales'] ?? 0), 2) }}</td>
-      </tr>
-      <tr>
-        <td>Ethereal</td>
-        <td class="num">{{ $salesCounts['ethereal_entries'] ?? 0 }}</td>
-        <td class="num">{{ number_format((float) ($salesTotals['ethereal_sales'] ?? 0), 2) }}</td>
-      </tr>
+      @forelse($businessSummary as $summary)
+        @php
+          $slug = (string) ($summary['business_slug'] ?? '');
+          $chipClass = match($slug) {
+            'gcash' => 'chip-gcash',
+            'coffee' => 'chip-coffee',
+            'print' => 'chip-print',
+            'ethereal' => 'chip-ethereal',
+            default => '',
+          };
+          $icon = match($slug) {
+            'gcash' => '💳',
+            'coffee' => '☕',
+            'print' => '🖨️',
+            'ethereal' => '✨',
+            default => '🏢',
+          };
+        @endphp
+        <tr>
+          <td><span class="chip {{ $chipClass }}">{{ $icon }} {{ $summary['business_name'] ?? 'Business' }}</span></td>
+          <td class="num">{{ $summary['entries_count'] ?? 0 }}</td>
+          <td class="num">{{ number_format((float) ($summary['gcash_sales'] ?? 0), 2) }}</td>
+          <td class="num">{{ number_format((float) ($summary['module_sales'] ?? 0), 2) }}</td>
+          <td class="num profit">{{ number_format((float) ($summary['total_sales'] ?? 0), 2) }}</td>
+        </tr>
+      @empty
+        <tr>
+          <td class="muted">No business data</td>
+          <td class="num">0</td>
+          <td class="num">0.00</td>
+          <td class="num">0.00</td>
+          <td class="num">0.00</td>
+        </tr>
+      @endforelse
       <tr>
         <td><strong>Overall Sales</strong></td>
         <td class="num"><strong>{{ $salesCounts['all_entries'] ?? 0 }}</strong></td>
+        <td class="num"><strong>{{ number_format((float) ($salesTotals['gcash_sales'] ?? 0), 2) }}</strong></td>
+        <td class="num"><strong>{{ number_format((float) (($salesTotals['coffee_sales'] ?? 0) + ($salesTotals['print_sales'] ?? 0) + ($salesTotals['ethereal_sales'] ?? 0)), 2) }}</strong></td>
         <td class="num profit"><strong>{{ number_format((float) ($salesTotals['overall_sales'] ?? 0), 2) }}</strong>
         </td>
       </tr>
@@ -170,42 +212,65 @@
         <tr>
           <th>#</th>
           <th>Module</th>
-          <th>Item</th>
-          <th>Sale Name</th>
-          <th class="num">Original Price</th>
-          <th class="num">Amount Charged</th>
-          <th>Date</th>
+          <th>Item & Sale</th>
+          <th class="num">Pricing</th>
           <th>Details</th>
         </tr>
         </thead>
         <tbody>
+        @php $currentDateLabel = null; @endphp
         @foreach($salesEntries as $index => $entry)
           @php
             $originalPrice = (float) ($entry['reference_item_original_price'] ?? 0);
             $amountCharged = (float) ($entry['amount'] ?? 0);
             $hasVariance = $originalPrice > 0 && $amountCharged !== $originalPrice;
+            $dateLabel = isset($entry['sale_date']) && $entry['sale_date']
+              ? \Carbon\Carbon::parse($entry['sale_date'])->format('F j, Y')
+              : 'No date';
+            $module = strtolower((string) ($entry['module'] ?? ''));
+            $moduleClass = match($module) {
+              'gcash' => 'chip-gcash',
+              'coffee' => 'chip-coffee',
+              'print' => 'chip-print',
+              'ethereal' => 'chip-ethereal',
+              default => '',
+            };
+            $moduleIcon = match($module) {
+              'gcash' => '💳',
+              'coffee' => '☕',
+              'print' => '🖨️',
+              'ethereal' => '✨',
+              default => '•',
+            };
           @endphp
+          @if($currentDateLabel !== $dateLabel)
+            @php $currentDateLabel = $dateLabel; @endphp
+            <tr>
+              <td colspan="5" class="date-divider">{{ $currentDateLabel }}</td>
+            </tr>
+          @endif
           <tr>
             <td>{{ $index + 1 }}</td>
-            <td>{{ $entry['module'] ?? '—' }}</td>
-            <td>{{ $entry['reference_item_name'] ?? '—' }}</td>
-            <td>{{ $entry['sale_name'] ?? '—' }}</td>
-            <td class="num">
-              {{ $originalPrice > 0 ? number_format($originalPrice, 2) : '—' }}
+            <td><span class="chip {{ $moduleClass }}">{{ $moduleIcon }} {{ $entry['module'] ?? '—' }}</span></td>
+            <td class="tight">
+              <p><strong>{{ $entry['reference_item_name'] ?? '—' }}</strong></p>
+              <p class="tiny muted">{{ $entry['sale_name'] ?? '—' }}</p>
+              <p class="tiny muted">{{ $entry['business_name'] ?? '—' }}</p>
             </td>
-            <td class="num {{ $hasVariance ? 'loss' : '' }}">
-              {{ number_format($amountCharged, 2) }}
+            <td class="num">
+              <div><span class="muted tiny">Original:</span> {{ $originalPrice > 0 ? number_format($originalPrice, 2) : '—' }}</div>
+              <div class="{{ $hasVariance ? 'loss' : '' }}"><span class="muted tiny">Charged:</span> {{ number_format($amountCharged, 2) }}</div>
               @if($hasVariance)
-                <div style="font-size:10px; font-weight:400;">
+                <div class="tiny" style="font-weight:400;">
                   {{ $amountCharged < $originalPrice ? '▼' : '▲' }}
                   {{ number_format(abs($amountCharged - $originalPrice), 2) }}
                 </div>
               @endif
             </td>
-            <td>{{ isset($entry['sale_date']) && $entry['sale_date']
-                ? \Carbon\Carbon::parse($entry['sale_date'])->format('M j, Y, g:i A')
-                : '—' }}</td>
-            <td>
+            <td class="tight">
+              <p class="tiny muted">{{ isset($entry['sale_date']) && $entry['sale_date']
+                  ? \Carbon\Carbon::parse($entry['sale_date'])->format('g:i A')
+                  : '—' }}</p>
               @forelse($entry['metadata'] ?? [] as $label => $value)
                 @if($value !== null && $value !== '')
                   <div><span
