@@ -23,12 +23,16 @@ class EtherealSale extends Model
         'discount_type',
         'cash_discount',
         'net_amount',
+        'is_debt',
+        'charged_amount',
+        'remarks',
         'service_date',
     ];
 
     protected $casts = [
         'service_date' => 'datetime',
         'staff_ids' => 'array',
+        'is_debt' => 'boolean',
     ];
 
     public function business(): BelongsTo

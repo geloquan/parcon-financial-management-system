@@ -52,6 +52,14 @@ class EtherealSaleService
         $primaryStaffId = $staffIds[0] ?? ($validated['staff_id'] ?? null);
         $cashDiscount = round(($validated['service_cost'] * $validated['discount_percentage']) / 100, 2);
         $netAmount = round($validated['service_cost'] - $cashDiscount, 2);
+        $isDebt = (bool) ($validated['is_debt'] ?? false);
+        $chargedAmount = array_key_exists('charged_amount', $validated)
+            ? $validated['charged_amount']
+            : null;
+
+        if ($chargedAmount === null && ! $isDebt) {
+            $chargedAmount = $netAmount;
+        }
 
         return [
             ...$validated,
@@ -59,6 +67,8 @@ class EtherealSaleService
             'staff_ids' => $staffIds,
             'cash_discount' => $cashDiscount,
             'net_amount' => $netAmount,
+            'is_debt' => $isDebt,
+            'charged_amount' => $chargedAmount,
         ];
     }
 }

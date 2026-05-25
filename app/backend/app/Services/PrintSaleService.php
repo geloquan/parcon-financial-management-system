@@ -16,7 +16,10 @@ class PrintSaleService
 
     public function store(Business $business, array $validated): PrintSale
     {
-        return PrintSale::query()->create([...$validated, 'business_id' => $business->id]);
+        return PrintSale::query()->create([
+            ...$this->normalizePayload($validated),
+            'business_id' => $business->id,
+        ]);
     }
 
     public function storeMany(Business $business, array $validated): Collection
@@ -25,7 +28,7 @@ class PrintSaleService
 
         return collect($entries)->map(
             fn (array $entry): PrintSale => PrintSale::query()->create([
-                ...$entry,
+                ...$this->normalizePayload($entry),
                 'business_id' => $business->id,
             ])
         );
@@ -33,7 +36,7 @@ class PrintSaleService
 
     public function update(PrintSale $sale, array $validated): PrintSale
     {
-        $sale->update($validated);
+        $sale->update($this->normalizePayload($validated));
 
         return $sale->refresh();
     }
@@ -41,5 +44,23 @@ class PrintSaleService
     public function delete(PrintSale $sale): void
     {
         $sale->delete();
+    }
+
+    private function normalizePayload(array $payload): array
+    {
+        $isDebt = (bool) ($payload['is_debt'] ?? false);
+        $chargedAmount = array_key_exists('charged_amount', $payload)
+            ? $payload['charged_amount']
+            : null;
+
+        if ($chargedAmount === null && ! $isDebt) {
+            $chargedAmount = $payload['sales_amount'] ?? 0;
+        }
+
+        return [
+            ...$payload,
+            'is_debt' => $isDebt,
+            'charged_amount' => $chargedAmount,
+        ];
     }
 }

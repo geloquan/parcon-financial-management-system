@@ -11,6 +11,9 @@ export type EtherealSaleEntryPayload = {
   discount_percentage: number
   customer_name?: string
   discount_type: string
+  is_debt?: boolean
+  charged_amount?: number
+  remarks?: string
   service_date: string
   reauth_username?: string
   reauth_password?: string

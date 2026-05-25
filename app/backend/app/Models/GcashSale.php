@@ -18,12 +18,16 @@ class GcashSale extends Model
         'amount_moved',
         'sales_amount',
         'profit_amount',
+        'is_debt',
+        'charged_amount',
+        'remarks',
         'transaction_type',
         'transaction_date',
     ];
 
     protected $casts = [
         'transaction_date' => 'datetime',
+        'is_debt' => 'boolean',
     ];
 
     public function business(): BelongsTo

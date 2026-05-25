@@ -11,6 +11,9 @@ export type PrintSaleEntryPayload = {
   print_size: string
   paper_count: number
   sales_amount: number
+  is_debt?: boolean
+  charged_amount?: number
+  remarks?: string
   sale_date: string
   reauth_username?: string
   reauth_password?: string

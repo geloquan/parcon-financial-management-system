@@ -16,7 +16,10 @@ class CoffeeSaleService
 
   public function store(Business $business, array $validated): CoffeeSale
   {
-    return CoffeeSale::query()->create([...$validated, 'business_id' => $business->id]);
+    return CoffeeSale::query()->create([
+      ...$this->normalizePayload($validated),
+      'business_id' => $business->id,
+    ]);
   }
 
   public function storeMany(Business $business, array $validated): Collection
@@ -25,7 +28,7 @@ class CoffeeSaleService
 
     return collect($entries)->map(
       fn(array $entry): CoffeeSale => CoffeeSale::query()->create([
-        ...$entry,
+        ...$this->normalizePayload($entry),
         'business_id' => $business->id,
       ])
     );
@@ -33,7 +36,7 @@ class CoffeeSaleService
 
   public function update(CoffeeSale $sale, array $validated): CoffeeSale
   {
-    $sale->update($validated);
+    $sale->update($this->normalizePayload($validated));
 
     return $sale->refresh();
   }
@@ -41,5 +44,23 @@ class CoffeeSaleService
   public function delete(CoffeeSale $sale): void
   {
     $sale->delete();
+  }
+
+  private function normalizePayload(array $payload): array
+  {
+    $isDebt = (bool) ($payload['is_debt'] ?? false);
+    $chargedAmount = array_key_exists('charged_amount', $payload)
+      ? $payload['charged_amount']
+      : null;
+
+    if ($chargedAmount === null && ! $isDebt) {
+      $chargedAmount = round(((float) ($payload['price'] ?? 0)) + ((float) ($payload['add_on_price'] ?? 0)), 2);
+    }
+
+    return [
+      ...$payload,
+      'is_debt' => $isDebt,
+      'charged_amount' => $chargedAmount,
+    ];
   }
 }

@@ -8,6 +8,9 @@ export type CreateGcashSalePayload = {
   reference_item_original_price?: number
   amount_moved: number
   sales_amount: number
+  is_debt?: boolean
+  charged_amount?: number
+  remarks?: string
   transaction_type: 'cash_in' | 'cash_out'
   transaction_date: string
   reauth_username: string

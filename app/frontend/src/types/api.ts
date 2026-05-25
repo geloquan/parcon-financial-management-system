@@ -67,6 +67,9 @@ export type GcashSale = {
   amount_moved: string
   sales_amount: string
   profit_amount: string
+  is_debt: boolean
+  charged_amount: string | null
+  remarks: string | null
   transaction_type: 'cash_in' | 'cash_out'
   transaction_date: string
 }
@@ -82,6 +85,9 @@ export type CoffeeSale = {
   add_on_price: string
   total_amount: string
   add_on_description: string | null
+  is_debt: boolean
+  charged_amount: string | null
+  remarks: string | null
   sale_date: string
 }
 
@@ -96,6 +102,9 @@ export type PrintSale = {
   print_size: string
   paper_count: number
   sales_amount: string
+  is_debt: boolean
+  charged_amount: string | null
+  remarks: string | null
   sale_date: string
 }
 
@@ -113,6 +122,9 @@ export type EtherealSale = {
   discount_type: string
   cash_discount: string
   net_amount: string
+  is_debt: boolean
+  charged_amount: string | null
+  remarks: string | null
   service_date: string
 }
 

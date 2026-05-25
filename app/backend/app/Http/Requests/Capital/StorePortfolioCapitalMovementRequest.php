@@ -21,7 +21,7 @@ class StorePortfolioCapitalMovementRequest extends FormRequest
             'direction' => ['required', 'in:add,deduct,transfer'],
             'target_business_id' => ['nullable', 'integer', 'exists:businesses,id'],
             'occurred_on' => ['required', 'date'],
-            'notes' => ['nullable', 'string'],
+            'notes' => ['nullable', 'string', 'required_if:direction,add,deduct'],
             ...$this->moneyReauthRules(),
         ];
     }

@@ -82,6 +82,9 @@ type CoffeeDraftItem = {
   size: '8oz' | '9oz' | '12oz' | '16oz' | '18oz'
   add_on_price: string
   add_on_description: string
+  is_debt: boolean
+  charged_amount: string
+  remarks: string
   sale_date: string
 }
 
@@ -93,6 +96,9 @@ type PrintDraftItem = {
   print_size: string
   paper_count: string
   sales_amount: string
+  is_debt: boolean
+  charged_amount: string
+  remarks: string
   sale_date: string
 }
 
@@ -104,6 +110,9 @@ type EtherealDraftItem = {
   service_cost: string
   discount_percentage: string
   discount_type: string
+  is_debt: boolean
+  charged_amount: string
+  remarks: string
   service_date: string
 }
 
@@ -123,6 +132,9 @@ const createCoffeeDraftItem = (): CoffeeDraftItem => ({
   size: '8oz',
   add_on_price: '0',
   add_on_description: '',
+  is_debt: false,
+  charged_amount: '',
+  remarks: '',
   sale_date: makeDateTimeDefault(),
 })
 
@@ -134,6 +146,9 @@ const createPrintDraftItem = (): PrintDraftItem => ({
   print_size: 'short',
   paper_count: '1',
   sales_amount: '',
+  is_debt: false,
+  charged_amount: '',
+  remarks: '',
   sale_date: makeDateTimeDefault(),
 })
 
@@ -145,6 +160,9 @@ const createEtherealDraftItem = (): EtherealDraftItem => ({
   service_cost: '0',
   discount_percentage: '0',
   discount_type: 'promo',
+  is_debt: false,
+  charged_amount: '',
+  remarks: '',
   service_date: makeDateTimeDefault(),
 })
 
@@ -395,11 +413,15 @@ function App() {
   const [gcashReferenceItemId, setGcashReferenceItemId] = useState('')
   const [gcashAmountMoved, setGcashAmountMoved] = useState('0')
   const [gcashSalesAmount, setGcashSalesAmount] = useState('0')
+  const [gcashIsDebt, setGcashIsDebt] = useState(false)
+  const [gcashChargedAmount, setGcashChargedAmount] = useState('')
+  const [gcashRemarks, setGcashRemarks] = useState('')
   const [coffeeItems, setCoffeeItems] = useState<CoffeeDraftItem[]>([createCoffeeDraftItem()])
   const [printItems, setPrintItems] = useState<PrintDraftItem[]>([createPrintDraftItem()])
   const [etherealItems, setEtherealItems] = useState<EtherealDraftItem[]>([createEtherealDraftItem()])
   const [portfolioAmountPreview, setPortfolioAmountPreview] = useState('0')
   const [portfolioDirectionPreview, setPortfolioDirectionPreview] = useState<'add' | 'deduct' | 'transfer'>('add')
+  const [portfolioNotes, setPortfolioNotes] = useState('')
   const [businessAmountPreview, setBusinessAmountPreview] = useState('0')
   const [businessDirectionPreview, setBusinessDirectionPreview] = useState<'add' | 'deduct'>('add')
   const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(_initial.date)
@@ -945,6 +967,11 @@ function App() {
       reference_item_original_price: selectedReferenceItem ? parseAmount(selectedReferenceItem.price) : undefined,
       amount_moved: parseNonNegativeAmount(f.get('amount_moved')),
       sales_amount: parseNonNegativeAmount(f.get('sales_amount')),
+      is_debt: gcashIsDebt,
+      charged_amount: gcashIsDebt
+        ? (gcashChargedAmount.trim() ? parseNonNegativeAmount(gcashChargedAmount) : undefined)
+        : parseNonNegativeAmount(gcashChargedAmount || f.get('sales_amount')),
+      remarks: gcashRemarks.trim() || undefined,
       transaction_type: String(f.get('transaction_type') ?? 'cash_in') as 'cash_in' | 'cash_out',
       transaction_date: String(f.get('transaction_date') ?? ''),
       ...reauth,
@@ -954,6 +981,9 @@ function App() {
     setGcashReferenceItemId('')
     setGcashAmountMoved('0')
     setGcashSalesAmount('0')
+    setGcashIsDebt(false)
+    setGcashChargedAmount('')
+    setGcashRemarks('')
   }
   const voidGcashSale = async (saleId: number) => {
     if (!selectedBusinessId) return
@@ -984,6 +1014,9 @@ function App() {
         size: item.size,
         add_on_price: parseNonNegativeAmount(item.add_on_price),
         add_on_description: item.add_on_description,
+        is_debt: item.is_debt,
+        charged_amount: item.charged_amount.trim() ? parseNonNegativeAmount(item.charged_amount) : undefined,
+        remarks: item.remarks.trim() || undefined,
         sale_date: new Date(item.sale_date).toISOString(),
       }
     })
@@ -1021,6 +1054,9 @@ function App() {
         print_size: item.print_size,
         paper_count: parseNonNegativeAmount(item.paper_count || 1),
         sales_amount: parseNonNegativeAmount(item.sales_amount),
+        is_debt: item.is_debt,
+        charged_amount: item.charged_amount.trim() ? parseNonNegativeAmount(item.charged_amount) : undefined,
+        remarks: item.remarks.trim() || undefined,
         sale_date: new Date(item.sale_date).toISOString(),
       }
     })
@@ -1058,6 +1094,9 @@ function App() {
         discount_percentage: parseNonNegativeAmount(item.discount_percentage),
         customer_name: item.customer_name,
         discount_type: item.discount_type,
+        is_debt: item.is_debt,
+        charged_amount: item.charged_amount.trim() ? parseNonNegativeAmount(item.charged_amount) : undefined,
+        remarks: item.remarks.trim() || undefined,
         service_date: item.service_date,
       }
     })
@@ -1091,12 +1130,13 @@ function App() {
       direction,
       target_business_id: direction === 'transfer' && targetBusinessId ? targetBusinessId : undefined,
       occurred_on: String(f.get('occurred_on') ?? ''),
-      notes: String(f.get('notes') ?? ''),
+      notes: portfolioNotes.trim(),
       ...reauth,
     })
     e.currentTarget.reset()
     setPortfolioAmountPreview('0')
     setPortfolioDirectionPreview('add')
+    setPortfolioNotes('')
   }
 
   const submitBusinessCapital = async (e: FormEvent<HTMLFormElement>) => {
@@ -2146,6 +2186,37 @@ function App() {
                   Sales amount
                   <input name="sales_amount" type="number" list="quick-number-values" required value={gcashSalesAmount} onChange={(e) => setGcashSalesAmount(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
                 </label>
+                <div className="md:col-span-2 lg:col-span-3">
+                  <label className={optionPillClass}>
+                    <input
+                      type="checkbox"
+                      checked={gcashIsDebt}
+                      onChange={(e) => setGcashIsDebt(e.target.checked)}
+                      className="sr-only"
+                    />
+                    Mark as debt
+                  </label>
+                </div>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Charged amount
+                  <input
+                    type="number"
+                    list="quick-number-values"
+                    value={gcashChargedAmount}
+                    required={!gcashIsDebt}
+                    onChange={(e) => setGcashChargedAmount(toNonNegativeInputValue(e.target.value))}
+                    className="dashboard-input"
+                  />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
+                  Remarks
+                  <input
+                    value={gcashRemarks}
+                    required={gcashIsDebt}
+                    onChange={(e) => setGcashRemarks(e.target.value)}
+                    className="dashboard-input"
+                  />
+                </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Transaction type</p>
                   <div className="flex gap-2">
@@ -2181,14 +2252,22 @@ function App() {
                   {gcashEntries.map((sale) => (
                     <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
                       <div>
-                        <p className="font-medium">{sale.transaction_recipient ?? 'No recipient'}</p>
+                        <p className="font-medium">
+                          {sale.transaction_recipient ?? 'No recipient'}
+                          {sale.is_debt && (
+                            <span className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
+                              Debt
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-[var(--neutral-rosewood)]">
                           {formatDateTimeDisplay(sale.transaction_date)} · {formatRelative(sale.transaction_date)}
                         </p>
+                        {sale.remarks && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="tabular-nums font-semibold text-[var(--accent-gold)]">
-                          {formatCurrency(parseAmount(sale.sales_amount))}
+                          {formatCurrency(parseAmount(sale.charged_amount ?? sale.sales_amount))}
                         </span>
                         <button
                           type="button"
@@ -2297,6 +2376,49 @@ function App() {
                         Add-on description
                         <input value={item.add_on_description} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, add_on_description: e.target.value } : en))} className="dashboard-input" />
                       </label>
+                      <div className="md:col-span-2 lg:col-span-3">
+                        <label className={optionPillClass}>
+                          <input
+                            type="checkbox"
+                            checked={item.is_debt}
+                            onChange={(e) =>
+                              setCoffeeItems((prev) =>
+                                prev.map((en, ei) => ei === index ? { ...en, is_debt: e.target.checked } : en),
+                              )
+                            }
+                            className="sr-only"
+                          />
+                          Mark as debt
+                        </label>
+                      </div>
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Charged amount
+                        <input
+                          type="number"
+                          list="quick-number-values"
+                          value={item.charged_amount}
+                          required={!item.is_debt}
+                          onChange={(e) =>
+                            setCoffeeItems((prev) =>
+                              prev.map((en, ei) => ei === index ? { ...en, charged_amount: toNonNegativeInputValue(e.target.value) } : en),
+                            )
+                          }
+                          className="dashboard-input"
+                        />
+                      </label>
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
+                        Remarks
+                        <input
+                          value={item.remarks}
+                          required={item.is_debt}
+                          onChange={(e) =>
+                            setCoffeeItems((prev) =>
+                              prev.map((en, ei) => ei === index ? { ...en, remarks: e.target.value } : en),
+                            )
+                          }
+                          className="dashboard-input"
+                        />
+                      </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sale date
                         <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.sale_date} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sale_date: e.target.value } : en))} className="dashboard-input" />
@@ -2323,11 +2445,21 @@ function App() {
                   {coffeeEntries.map((sale) => (
                     <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
                       <div>
-                        <p className="font-medium">{sale.coffee_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.size}</span></p>
+                        <p className="font-medium">
+                          {sale.coffee_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.size}</span>
+                          {sale.is_debt && (
+                            <span className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
+                              Debt
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
+                        {sale.remarks && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.total_amount))}</span>
+                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">
+                          {formatCurrency(parseAmount(sale.charged_amount ?? sale.total_amount))}
+                        </span>
                         <button
                           type="button"
                           onClick={() => voidCoffeeSale(sale.id)}
@@ -2442,6 +2574,49 @@ function App() {
                         Sales amount
                         <input type="number" list="quick-number-values" required value={item.sales_amount} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sales_amount: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
                       </label>
+                      <div className="md:col-span-2 lg:col-span-3">
+                        <label className={optionPillClass}>
+                          <input
+                            type="checkbox"
+                            checked={item.is_debt}
+                            onChange={(e) =>
+                              setPrintItems((prev) =>
+                                prev.map((en, ei) => ei === index ? { ...en, is_debt: e.target.checked } : en),
+                              )
+                            }
+                            className="sr-only"
+                          />
+                          Mark as debt
+                        </label>
+                      </div>
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Charged amount
+                        <input
+                          type="number"
+                          list="quick-number-values"
+                          value={item.charged_amount}
+                          required={!item.is_debt}
+                          onChange={(e) =>
+                            setPrintItems((prev) =>
+                              prev.map((en, ei) => ei === index ? { ...en, charged_amount: toNonNegativeInputValue(e.target.value) } : en),
+                            )
+                          }
+                          className="dashboard-input"
+                        />
+                      </label>
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
+                        Remarks
+                        <input
+                          value={item.remarks}
+                          required={item.is_debt}
+                          onChange={(e) =>
+                            setPrintItems((prev) =>
+                              prev.map((en, ei) => ei === index ? { ...en, remarks: e.target.value } : en),
+                            )
+                          }
+                          className="dashboard-input"
+                        />
+                      </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sale date
                         <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.sale_date} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sale_date: e.target.value } : en))} className="dashboard-input" />
@@ -2468,11 +2643,19 @@ function App() {
                   {printEntries.map((sale) => (
                     <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
                       <div>
-                        <p className="font-medium">{sale.job_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.color_mode} · {sale.print_size} · {sale.paper_count}pg</span></p>
+                        <p className="font-medium">
+                          {sale.job_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.color_mode} · {sale.print_size} · {sale.paper_count}pg</span>
+                          {sale.is_debt && (
+                            <span className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
+                              Debt
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
+                        {sale.remarks && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.sales_amount))}</span>
+                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.charged_amount ?? sale.sales_amount))}</span>
                         <button
                           type="button"
                           onClick={() => voidPrintSale(sale.id)}
@@ -2597,6 +2780,49 @@ function App() {
                           ))}
                         </div>
                       </div>
+                      <div className="md:col-span-2 lg:col-span-3">
+                        <label className={optionPillClass}>
+                          <input
+                            type="checkbox"
+                            checked={item.is_debt}
+                            onChange={(e) =>
+                              setEtherealItems((prev) =>
+                                prev.map((en, ei) => ei === index ? { ...en, is_debt: e.target.checked } : en),
+                              )
+                            }
+                            className="sr-only"
+                          />
+                          Mark as debt
+                        </label>
+                      </div>
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Charged amount
+                        <input
+                          type="number"
+                          list="quick-number-values"
+                          value={item.charged_amount}
+                          required={!item.is_debt}
+                          onChange={(e) =>
+                            setEtherealItems((prev) =>
+                              prev.map((en, ei) => ei === index ? { ...en, charged_amount: toNonNegativeInputValue(e.target.value) } : en),
+                            )
+                          }
+                          className="dashboard-input"
+                        />
+                      </label>
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
+                        Remarks
+                        <input
+                          value={item.remarks}
+                          required={item.is_debt}
+                          onChange={(e) =>
+                            setEtherealItems((prev) =>
+                              prev.map((en, ei) => ei === index ? { ...en, remarks: e.target.value } : en),
+                            )
+                          }
+                          className="dashboard-input"
+                        />
+                      </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Service date
                         <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.service_date} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_date: e.target.value } : en))} className="dashboard-input" />
@@ -2624,11 +2850,19 @@ function App() {
                   {etherealEntries.map((sale) => (
                     <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
                       <div>
-                        <p className="font-medium">{sale.service_name ?? 'Service'} · net amount</p>
+                        <p className="font-medium">
+                          {sale.service_name ?? 'Service'} · net amount
+                          {sale.is_debt && (
+                            <span className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
+                              Debt
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.service_date)} · {formatRelative(sale.service_date)}</p>
+                        {sale.remarks && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.net_amount))}</span>
+                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.charged_amount ?? sale.net_amount))}</span>
                         <button
                           type="button"
                           onClick={() => voidEtherealSale(sale.id)}
@@ -2803,8 +3037,14 @@ function App() {
                   <input name="occurred_on" type="date" required className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                  Notes
-                  <input name="notes" className="dashboard-input" />
+                  Remarks {portfolioDirectionPreview === 'transfer' ? '(optional for transfer)' : '(required)'}
+                  <input
+                    name="notes"
+                    value={portfolioNotes}
+                    required={portfolioDirectionPreview !== 'transfer'}
+                    onChange={(e) => setPortfolioNotes(e.target.value)}
+                    className="dashboard-input"
+                  />
                 </label>
                 <button type="submit" disabled={createPortfolioCapitalMutation.isPending} className="dashboard-button-primary">
                   {createPortfolioCapitalMutation.isPending ? 'Processing…' : 'Save portfolio movement'}
@@ -2831,6 +3071,7 @@ function App() {
                           {movement.direction}
                         </span>
                         <p className="text-xs text-[var(--neutral-rosewood)]">{formatCompactDate(movement.occurred_on)}</p>
+                        {movement.notes && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {movement.notes}</p>}
                       </div>
                       <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
                     </li>

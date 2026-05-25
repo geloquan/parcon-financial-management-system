@@ -10,6 +10,9 @@ export type CoffeeSaleEntryPayload = {
   size: '8oz' | '9oz' | '12oz' | '16oz' | '18oz'
   add_on_price: number
   add_on_description?: string
+  is_debt?: boolean
+  charged_amount?: number
+  remarks?: string
   sale_date: string
   reauth_username?: string
   reauth_password?: string

@@ -19,11 +19,15 @@ class CoffeeSale extends Model
         'size',
         'add_on_price',
         'add_on_description',
+        'is_debt',
+        'charged_amount',
+        'remarks',
         'sale_date',
     ];
 
     protected $casts = [
         'sale_date' => 'datetime',
+        'is_debt' => 'boolean',
     ];
 
     public function business(): BelongsTo
