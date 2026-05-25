@@ -9,6 +9,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $driver = DB::getDriverName();
+
         Schema::table('capital_movements', function (Blueprint $table): void {
             $table->text('remarks')->nullable()->after('notes');
             $table->string('debt_status', 20)->nullable()->after('remarks');
@@ -22,7 +24,10 @@ return new class extends Migration
 
         // Extend the direction enum to include 'debt'.
         // SQLite (used in tests) ignores enum constraints, so this only affects MySQL/Postgres.
-        if (DB::getDriverName() === 'mysql') {
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE capital_movements DROP CONSTRAINT IF EXISTS capital_movements_direction_check');
+            DB::statement("ALTER TABLE capital_movements ADD CONSTRAINT capital_movements_direction_check CHECK (direction IN ('add', 'deduct', 'transfer', 'debt'))");
+        } elseif ($driver === 'mysql') {
             DB::statement(
                 "ALTER TABLE capital_movements MODIFY direction ENUM('add','deduct','transfer','debt') NOT NULL"
             );
@@ -31,7 +36,12 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (DB::getDriverName() === 'mysql') {
+        $driver = DB::getDriverName();
+
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE capital_movements DROP CONSTRAINT IF EXISTS capital_movements_direction_check');
+            DB::statement("ALTER TABLE capital_movements ADD CONSTRAINT capital_movements_direction_check CHECK (direction IN ('add', 'deduct', 'transfer'))");
+        } elseif ($driver === 'mysql') {
             DB::statement(
                 "ALTER TABLE capital_movements MODIFY direction ENUM('add','deduct','transfer') NOT NULL"
             );
