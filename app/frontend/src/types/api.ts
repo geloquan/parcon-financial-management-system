@@ -351,6 +351,30 @@ export type SalesReportVersion = {
       entry_date: string | null
       metadata: Record<string, string | number | null>
     }>
+    capital_flow_entries?: Array<{
+      movement_id: number
+      direction: 'add' | 'deduct' | 'transfer' | 'debt'
+      source_type: 'portfolio' | 'business'
+      amount: number
+      occurred_on: string | null
+      who: string
+      what: string
+      where: string
+      notes: string | null
+      remarks: string | null
+      debt_status: 'outstanding' | 'settled' | null
+      settled_at: string | null
+      settled_by: string | null
+    }>
+    capital_flow_totals?: {
+      portfolio_inflows: number
+      portfolio_outflows: number
+      business_inflows: number
+      business_outflows: number
+      debts_outstanding: number
+      debts_settled: number
+      total_movements: number
+    }
   }
   pdf_verification?: {
     status: 'verified' | 'mismatch' | 'missing_file'

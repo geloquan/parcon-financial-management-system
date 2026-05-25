@@ -40,7 +40,11 @@ export const apiRequest = async <T>(
       parsedError = { message: 'Request failed.' }
     }
 
-    throw new Error(parsedError.message)
+    const firstFieldError = parsedError.errors
+      ? Object.values(parsedError.errors).find((messages) => Array.isArray(messages) && messages.length > 0)?.[0]
+      : undefined
+
+    throw new Error(firstFieldError ?? parsedError.message)
   }
 
   return (await response.json()) as T

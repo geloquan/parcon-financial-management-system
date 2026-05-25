@@ -397,7 +397,7 @@
           <td class="num profit">{{ number_format((float) ($capitalFlowTotals['portfolio_inflows'] ?? 0), 2) }}</td>
         </tr>
         <tr>
-          <td>Portfolio Outflows (Deduct / Transfer)</td>
+          <td>Portfolio Outflows (Deduct / Transfer / Debt)</td>
           <td class="num loss">{{ number_format((float) ($capitalFlowTotals['portfolio_outflows'] ?? 0), 2) }}</td>
         </tr>
         <tr>

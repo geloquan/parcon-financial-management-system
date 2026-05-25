@@ -3,8 +3,10 @@ import {
   createBusinessCapitalMovement,
   createPortfolioCapitalMovement,
   fetchCapitalMovements,
+  settlePortfolioDebt,
   type CreateBusinessCapitalMovementPayload,
   type CreatePortfolioCapitalMovementPayload,
+  type SettlePortfolioDebtPayload,
 } from '../services/capital-movement-service'
 import type { ApiCollectionResponse, CapitalMovement } from '../types/api'
 
@@ -38,6 +40,18 @@ export const useCreateBusinessCapitalMovement = (businessId: number | null) => {
   return useMutation({
     mutationFn: async (payload: CreateBusinessCapitalMovementPayload) =>
       createBusinessCapitalMovement(businessId as number, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['capital-movements'] })
+    },
+  })
+}
+
+export const useSettlePortfolioDebt = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ movementId, payload }: { movementId: number; payload: SettlePortfolioDebtPayload }) =>
+      settlePortfolioDebt(movementId, payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['capital-movements'] })
     },

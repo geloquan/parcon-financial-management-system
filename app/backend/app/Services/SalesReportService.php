@@ -590,7 +590,7 @@ class SalesReportService
         })->values()->all();
 
         $portfolioInflows = round((float) $movements->where('source_type', 'portfolio')->whereIn('direction', ['add'])->sum('amount'), 2);
-        $portfolioOutflows = round((float) $movements->where('source_type', 'portfolio')->whereIn('direction', ['deduct', 'transfer'])->sum('amount'), 2);
+        $portfolioOutflows = round((float) $movements->where('source_type', 'portfolio')->whereIn('direction', ['deduct', 'transfer', 'debt'])->sum('amount'), 2);
         $businessInflows = round((float) $movements->where('source_type', 'business')->where('direction', 'add')->sum('amount'), 2);
         $businessOutflows = round((float) $movements->where('source_type', 'business')->where('direction', 'deduct')->sum('amount'), 2);
         $totalDebtsOutstanding = round((float) $movements->where('direction', 'debt')->where('debt_status', 'outstanding')->sum('amount'), 2);

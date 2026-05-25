@@ -6,6 +6,7 @@ use App\Models\Business;
 use App\Models\CapitalMovement;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CapitalMovementService
@@ -102,24 +103,44 @@ class CapitalMovementService
 
     public function settleDebt(CapitalMovement $movement, User $user): CapitalMovement
     {
-        if ($movement->direction !== 'debt') {
-            throw ValidationException::withMessages([
-                'movement' => ['Only debt records can be settled.'],
+        return DB::transaction(function () use ($movement, $user): CapitalMovement {
+            $movement = CapitalMovement::query()
+                ->lockForUpdate()
+                ->findOrFail($movement->id);
+
+            if ($movement->direction !== 'debt') {
+                throw ValidationException::withMessages([
+                    'movement' => ['Only debt records can be settled.'],
+                ]);
+            }
+
+            if ($movement->debt_status === 'settled') {
+                throw ValidationException::withMessages([
+                    'movement' => ['This debt record has already been settled.'],
+                ]);
+            }
+
+            $settledAt = now();
+
+            $movement->update([
+                'debt_status' => 'settled',
+                'settled_at' => $settledAt,
+                'settled_by_user_id' => $user->id,
             ]);
-        }
 
-        if ($movement->debt_status === 'settled') {
-            throw ValidationException::withMessages([
-                'movement' => ['This debt record has already been settled.'],
+            CapitalMovement::query()->create([
+                'initiated_by_user_id' => $user->id,
+                'amount' => $movement->amount,
+                'direction' => 'add',
+                'source_type' => 'portfolio',
+                'source_business_id' => null,
+                'target_business_id' => null,
+                'occurred_on' => $settledAt->toDateString(),
+                'notes' => sprintf('Debt settlement received for record #%d.', $movement->id),
+                'remarks' => $movement->remarks,
             ]);
-        }
 
-        $movement->update([
-            'debt_status' => 'settled',
-            'settled_at' => now(),
-            'settled_by_user_id' => $user->id,
-        ]);
-
-        return $movement->refresh();
+            return $movement->refresh();
+        });
     }
 }

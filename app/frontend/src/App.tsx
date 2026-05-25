@@ -50,6 +50,7 @@ import {
   useCapitalMovements,
   useCreateBusinessCapitalMovement,
   useCreatePortfolioCapitalMovement,
+  useSettlePortfolioDebt,
 } from './hooks/use-capital-movements'
 import { formatCompactDate } from './services/formatDate.ts'
 
@@ -180,6 +181,14 @@ const parseAmount = (value: unknown) => {
 
 const parseNonNegativeAmount = (value: unknown) => {
   return Math.max(parseAmount(value), 0)
+}
+
+const extractErrorMessage = (error: unknown): string => {
+  if (error instanceof Error && error.message.trim() !== '') {
+    return error.message
+  }
+
+  return 'Request failed.'
 }
 
 const toNonNegativeInputValue = (value: string) => {
@@ -420,8 +429,9 @@ function App() {
   const [printItems, setPrintItems] = useState<PrintDraftItem[]>([createPrintDraftItem()])
   const [etherealItems, setEtherealItems] = useState<EtherealDraftItem[]>([createEtherealDraftItem()])
   const [portfolioAmountPreview, setPortfolioAmountPreview] = useState('0')
-  const [portfolioDirectionPreview, setPortfolioDirectionPreview] = useState<'add' | 'deduct' | 'transfer'>('add')
+  const [portfolioDirectionPreview, setPortfolioDirectionPreview] = useState<'add' | 'deduct' | 'transfer' | 'debt'>('add')
   const [portfolioNotes, setPortfolioNotes] = useState('')
+  const [portfolioRemarks, setPortfolioRemarks] = useState('')
   const [businessAmountPreview, setBusinessAmountPreview] = useState('0')
   const [businessDirectionPreview, setBusinessDirectionPreview] = useState<'add' | 'deduct'>('add')
   const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(_initial.date)
@@ -536,6 +546,7 @@ function App() {
   const deleteReferenceItemMutation = useDeleteBusinessReferenceItem(selectedBusinessId)
   const capitalMovementsQuery = useCapitalMovements()
   const createPortfolioCapitalMutation = useCreatePortfolioCapitalMovement()
+  const settlePortfolioDebtMutation = useSettlePortfolioDebt()
   const createBusinessCapitalMutation = useCreateBusinessCapitalMovement(selectedBusinessId)
   const generateSalesReportMutation = useGenerateSalesReport()
   const salesReportsQuery = useSalesReports(selectedBusinessId, salesReportPage, pdfReportScope, { enabled: pdfReportScope === 'business' })
@@ -641,9 +652,17 @@ function App() {
       return m.direction === 'add' ? bal + amt : bal - amt
     }, 0)
     const businessBalance = all.reduce((bal, m) => {
-      if (m.source_business_id !== selectedBusinessId) return bal
       const amt = parseAmount(m.amount)
-      return m.direction === 'add' ? bal + amt : bal - amt
+
+      if (m.source_type === 'portfolio' && m.direction === 'transfer' && m.target_business_id === selectedBusinessId) {
+        return bal + amt
+      }
+
+      if (m.source_type === 'business' && m.source_business_id === selectedBusinessId) {
+        return m.direction === 'add' ? bal + amt : bal - amt
+      }
+
+      return bal
     }, 0)
     return { portfolioBalance, businessBalance }
   }, [capitalMovementsQuery.data, selectedBusinessId])
@@ -855,7 +874,22 @@ function App() {
     if (!selectedBusinessId) return
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    await finalizeCompensationRunMutation.mutateAsync({ runId, payload: reauth })
+    try {
+      await finalizeCompensationRunMutation.mutateAsync({ runId, payload: reauth })
+    } catch (error) {
+      window.alert(extractErrorMessage(error))
+    }
+  }
+
+  const settleDebtMovement = async (movementId: number) => {
+    const reauth = await requestMoneyReauth()
+    if (!reauth) return
+
+    try {
+      await settlePortfolioDebtMutation.mutateAsync({ movementId, payload: reauth })
+    } catch (error) {
+      window.alert(extractErrorMessage(error))
+    }
   }
 
   const triggerDownloadSalesReport = async (report: SalesReportVersion) => {
@@ -1123,20 +1157,22 @@ function App() {
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     const f = new FormData(form)
-    const direction = String(f.get('direction') ?? 'add') as 'add' | 'deduct' | 'transfer'
+    const direction = String(f.get('direction') ?? 'add') as 'add' | 'deduct' | 'transfer' | 'debt'
     const targetBusinessId = Number(f.get('target_business_id') ?? 0)
     await createPortfolioCapitalMutation.mutateAsync({
       amount: parseNonNegativeAmount(f.get('amount')),
       direction,
       target_business_id: direction === 'transfer' && targetBusinessId ? targetBusinessId : undefined,
       occurred_on: String(f.get('occurred_on') ?? ''),
-      notes: portfolioNotes.trim(),
+      notes: portfolioNotes.trim() || undefined,
+      remarks: direction === 'debt' ? portfolioRemarks.trim() : undefined,
       ...reauth,
     })
     e.currentTarget.reset()
     setPortfolioAmountPreview('0')
     setPortfolioDirectionPreview('add')
     setPortfolioNotes('')
+    setPortfolioRemarks('')
   }
 
   const submitBusinessCapital = async (e: FormEvent<HTMLFormElement>) => {
@@ -1914,9 +1950,9 @@ function App() {
                       {run.payment_history.length > 0 && (
                         <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
                           Payment events: {run.payment_history.length} · Last settled deductions:{' '}
-                          {run.payment_history[run.payment_history.length - 1]?.settled_deductions.length ?? 0} · Portfolio deduction:{' '}
-                          {run.payment_history[run.payment_history.length - 1]?.portfolio_deduction
-                            ? formatCurrency(parseAmount(run.payment_history[run.payment_history.length - 1]?.portfolio_deduction?.amount))
+                          {run.payment_history[run.payment_history.length - 1]?.settled_deductions.length ?? 0} · Business deduction:{' '}
+                          {(run.payment_history[run.payment_history.length - 1]?.business_deduction ?? run.payment_history[run.payment_history.length - 1]?.portfolio_deduction)
+                            ? formatCurrency(parseAmount((run.payment_history[run.payment_history.length - 1]?.business_deduction ?? run.payment_history[run.payment_history.length - 1]?.portfolio_deduction)?.amount))
                             : 'N/A'}
                         </p>
                       )}
@@ -3017,10 +3053,14 @@ function App() {
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>
                   <div className="flex flex-wrap gap-2">
-                    {(['add', 'deduct', 'transfer'] as const).map((d) => (
+                    {(['add', 'deduct', 'transfer', 'debt'] as const).map((d) => (
                       <label key={d} className={optionPillClass}>
                         <input type="radio" name="direction" value={d} checked={portfolioDirectionPreview === d} onChange={() => setPortfolioDirectionPreview(d)} className="sr-only" />
-                        {d === 'transfer' ? 'Transfer to business' : d.charAt(0).toUpperCase() + d.slice(1)}
+                        {d === 'transfer'
+                          ? 'Transfer to business'
+                          : d === 'debt'
+                            ? 'Debt'
+                            : d.charAt(0).toUpperCase() + d.slice(1)}
                       </label>
                     ))}
                   </div>
@@ -3037,12 +3077,22 @@ function App() {
                   <input name="occurred_on" type="date" required className="dashboard-input" />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                  Remarks {portfolioDirectionPreview === 'transfer' ? '(optional for transfer)' : '(required)'}
+                  Notes {portfolioDirectionPreview === 'transfer' || portfolioDirectionPreview === 'debt' ? '(optional)' : '(required)'}
                   <input
                     name="notes"
                     value={portfolioNotes}
-                    required={portfolioDirectionPreview !== 'transfer'}
+                    required={portfolioDirectionPreview === 'add' || portfolioDirectionPreview === 'deduct'}
                     onChange={(e) => setPortfolioNotes(e.target.value)}
+                    className="dashboard-input"
+                  />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Debt remarks {portfolioDirectionPreview === 'debt' ? '(required)' : '(optional)'}
+                  <input
+                    name="remarks"
+                    value={portfolioRemarks}
+                    required={portfolioDirectionPreview === 'debt'}
+                    onChange={(e) => setPortfolioRemarks(e.target.value)}
                     className="dashboard-input"
                   />
                 </label>
@@ -3066,14 +3116,34 @@ function App() {
                         <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                           movement.direction === 'add'
                             ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
-                            : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
+                            : movement.direction === 'debt'
+                              ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
+                              : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
                         }`}>
                           {movement.direction}
                         </span>
                         <p className="text-xs text-[var(--neutral-rosewood)]">{formatCompactDate(movement.occurred_on)}</p>
-                        {movement.notes && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {movement.notes}</p>}
+                        {movement.notes && <p className="text-xs text-[var(--neutral-rosewood)]">Notes: {movement.notes}</p>}
+                        {movement.remarks && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {movement.remarks}</p>}
+                        {movement.direction === 'debt' && (
+                          <p className="text-xs text-[var(--neutral-rosewood)]">
+                            Status: {movement.debt_status ?? 'outstanding'}
+                          </p>
+                        )}
                       </div>
-                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
+                        {movement.direction === 'debt' && movement.debt_status === 'outstanding' && (
+                          <button
+                            type="button"
+                            onClick={() => settleDebtMovement(movement.id)}
+                            disabled={settlePortfolioDebtMutation.isPending}
+                            className="dashboard-button-secondary"
+                          >
+                            {settlePortfolioDebtMutation.isPending ? 'Settling…' : 'Settle'}
+                          </button>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>

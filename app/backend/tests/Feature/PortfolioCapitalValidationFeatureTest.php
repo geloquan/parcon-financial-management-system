@@ -97,6 +97,48 @@ class PortfolioCapitalValidationFeatureTest extends TestCase
         ]);
     }
 
+    public function test_settling_debt_marks_record_and_adds_portfolio_inflow(): void
+    {
+        [$user, $token] = $this->createAdminUserWithToken();
+
+        $movement = CapitalMovement::query()->create([
+            'initiated_by_user_id' => $user->id,
+            'amount' => 350,
+            'direction' => 'debt',
+            'source_type' => 'portfolio',
+            'source_business_id' => null,
+            'target_business_id' => null,
+            'occurred_on' => now()->toDateString(),
+            'remarks' => 'For urgent supplier payment',
+            'debt_status' => 'outstanding',
+        ]);
+
+        $response = $this->withHeaders($this->authHeaders($token))
+            ->postJson("/api/portfolio_capital/movements/{$movement->id}/settle", [
+                'reauth_username' => $user->username,
+                'reauth_password' => 'password123',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.id', $movement->id)
+            ->assertJsonPath('data.debt_status', 'settled');
+
+        $this->assertDatabaseHas('capital_movements', [
+            'id' => $movement->id,
+            'debt_status' => 'settled',
+            'settled_by_user_id' => $user->id,
+        ]);
+
+        $this->assertDatabaseHas('capital_movements', [
+            'initiated_by_user_id' => $user->id,
+            'amount' => 350,
+            'direction' => 'add',
+            'source_type' => 'portfolio',
+            'notes' => "Debt settlement received for record #{$movement->id}.",
+            'remarks' => 'For urgent supplier payment',
+        ]);
+    }
+
     private function createAdminUserWithToken(): array
     {
         Role::findOrCreate('admin');
