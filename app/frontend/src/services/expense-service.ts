@@ -6,8 +6,8 @@ export type CreateExpensePayload = {
   amount: number
   description: string
   purpose: 'business' | 'business_portfolio' | 'service'
-  payment_type: 'one_time' | 'repeat'
   recurrence_reference?: string
+  proof?: File | null
   reauth_username: string
   reauth_password: string
 }
@@ -17,8 +17,21 @@ export const fetchExpenses = async (businessId: number): Promise<ApiCollectionRe
 }
 
 export const createExpense = async (businessId: number, payload: CreateExpensePayload): Promise<Expense> => {
+  const formData = new FormData()
+  formData.set('date_issued', payload.date_issued)
+  formData.set('amount', String(payload.amount))
+  formData.set('description', payload.description)
+  formData.set('purpose', payload.purpose)
+  formData.set('recurrence_reference', payload.recurrence_reference ?? '')
+  formData.set('reauth_username', payload.reauth_username)
+  formData.set('reauth_password', payload.reauth_password)
+
+  if (payload.proof) {
+    formData.set('proof', payload.proof)
+  }
+
   return apiRequest<Expense>(`/businesses/${businessId}/expenses`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: formData,
   })
 }

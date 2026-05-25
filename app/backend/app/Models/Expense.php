@@ -16,8 +16,8 @@ class Expense extends Model
         'amount',
         'description',
         'purpose',
-        'payment_type',
         'recurrence_reference',
+        'proof_path',
     ];
 
     protected $casts = [

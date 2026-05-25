@@ -27,8 +27,8 @@ class StoreExpenseRequest extends FormRequest
             'amount' => ['required', 'numeric', 'min:0'],
             'description' => ['required', 'string', 'max:500'],
             'purpose' => ['required', 'in:business,business_portfolio,service'],
-            'payment_type' => ['required', 'in:one_time,repeat'],
             'recurrence_reference' => ['nullable', 'string', 'max:255'],
+            'proof' => ['nullable', 'image', 'max:1024'],
             ...$this->moneyReauthRules(),
         ];
     }

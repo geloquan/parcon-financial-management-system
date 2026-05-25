@@ -342,11 +342,12 @@ const formGridClass = 'mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3'
 // Uses CSS has-[:checked] so the label reacts to the actual DOM checked state —
 // works for both controlled (checked=) and uncontrolled (defaultChecked) inputs.
 const optionPillClass =
-  'flex cursor-pointer select-none items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all ' +
+  'flex cursor-pointer select-none items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-all ' +
   'border-[var(--neutral-linen)] bg-[var(--surface-card)] text-[var(--neutral-rosewood)] ' +
-  'hover:border-[var(--burgundy-200)] hover:text-[var(--burgundy-800)] ' +
+  'hover:border-[var(--burgundy-400)] hover:bg-[var(--burgundy-50)] hover:text-[var(--burgundy-800)] ' +
+  'focus-within:border-[var(--burgundy-600)] focus-within:ring-2 focus-within:ring-[var(--burgundy-100)] ' +
   'has-[:checked]:border-[var(--burgundy-600)] has-[:checked]:bg-[var(--burgundy-50)] ' +
-  'has-[:checked]:text-[var(--burgundy-800)] has-[:checked]:font-medium'
+  'has-[:checked]:text-[var(--burgundy-800)] has-[:checked]:shadow-[inset_0_0_0_1px_var(--burgundy-600)]'
 
 // Section heading inside a card
 function SectionHeading({
@@ -435,6 +436,7 @@ function App() {
   const [pdfBusinessId, setPdfBusinessId] = useState<number | null>(_initial.businessId)
   const [reportScope, setReportScope] = useState<'portfolio' | 'business'>(_initial.scope)
   const [reportPeriod, setReportPeriod] = useState<'today' | 'date_range'>(_initial.period)
+  const [actionGuidance, setActionGuidance] = useState<string | null>(null)
 
   const [latestSalesReport, setLatestSalesReport] = useState<SalesReport | null>(null)
   const [editingReferenceItemId, setEditingReferenceItemId] = useState<number | null>(null)
@@ -736,6 +738,25 @@ function App() {
     return formatDateTimeLocal(start)
   }, [meQuery.data?.role])
 
+  const showActionGuidance = useCallback((message: string) => {
+    setActionGuidance(message)
+  }, [])
+
+  const requireBusinessSelection = useCallback(
+    (action: string) => {
+      if (selectedBusinessId) return true
+      showActionGuidance(`Select a business first to ${action}.`)
+      return false
+    },
+    [selectedBusinessId, showActionGuidance],
+  )
+
+  useEffect(() => {
+    if (selectedBusinessId) {
+      setActionGuidance(null)
+    }
+  }, [selectedBusinessId])
+
   useEffect(() => {
     if (!moneyReauthModalOpen) {
       setMoneyReauthUsername(meQuery.data?.username ?? '')
@@ -760,9 +781,12 @@ function App() {
     resolver?.(credentials)
   }
 
-  // ─── Submit handlers (unchanged) ──────────────────────────────────────────
   const submitLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (loginMutation.isPending) {
+      showActionGuidance('Login is already processing. Please wait.')
+      return
+    }
     const f = new FormData(e.currentTarget)
     await loginMutation.mutateAsync({
       username: String(f.get('username') ?? ''),
@@ -772,7 +796,11 @@ function App() {
 
   const submitStaff = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('add staff')) return
+    if (createStaffMutation.isPending) {
+      showActionGuidance('Staff creation is already processing. Please wait.')
+      return
+    }
     const f = new FormData(e.currentTarget)
     await createStaffMutation.mutateAsync({
       full_name: String(f.get('full_name') ?? ''),
@@ -788,7 +816,16 @@ function App() {
   }
 
   const markStaffInactive = async (staffId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('update staff status')) return
+    if (updateStaffMutation.isPending) {
+      showActionGuidance('A staff update is already processing. Please wait.')
+      return
+    }
+    const target = staffEntries.find((entry) => entry.id === staffId)
+    if (!target?.is_active) {
+      showActionGuidance('This staff member is already inactive.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     await updateStaffMutation.mutateAsync({
@@ -798,7 +835,16 @@ function App() {
   }
 
   const endStaffEmployment = async (staffId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('end employment')) return
+    if (updateStaffMutation.isPending) {
+      showActionGuidance('A staff update is already processing. Please wait.')
+      return
+    }
+    const target = staffEntries.find((entry) => entry.id === staffId)
+    if (target?.employment_end_date) {
+      showActionGuidance('Employment is already ended for this staff member.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     await updateStaffMutation.mutateAsync({
@@ -808,7 +854,11 @@ function App() {
   }
 
   const voidStaffRecord = async (staffId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('remove staff')) return
+    if (deleteStaffMutation.isPending) {
+      showActionGuidance('Staff removal is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     await deleteStaffMutation.mutateAsync({ staffId, payload: reauth })
@@ -816,7 +866,11 @@ function App() {
 
   const submitStaffDayOff = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('add day off')) return
+    if (createStaffDayOffMutation.isPending) {
+      showActionGuidance('Day-off creation is already processing. Please wait.')
+      return
+    }
     const f = new FormData(e.currentTarget)
     await createStaffDayOffMutation.mutateAsync({
       staff_id: Number(f.get('staff_id') ?? 0),
@@ -828,7 +882,11 @@ function App() {
 
   const submitStaffAbsence = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('add absence')) return
+    if (createStaffAbsenceMutation.isPending) {
+      showActionGuidance('Absence creation is already processing. Please wait.')
+      return
+    }
     const f = new FormData(e.currentTarget)
     await createStaffAbsenceMutation.mutateAsync({
       staff_id: Number(f.get('staff_id') ?? 0),
@@ -839,14 +897,22 @@ function App() {
   }
 
   const removeStaffDayOff = async (dayOffId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('remove day off')) return
+    if (deleteStaffDayOffMutation.isPending) {
+      showActionGuidance('Day-off removal is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     await deleteStaffDayOffMutation.mutateAsync({ dayOffId, payload: reauth })
   }
 
   const removeStaffAbsence = async (absenceId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('remove absence')) return
+    if (deleteStaffAbsenceMutation.isPending) {
+      showActionGuidance('Absence removal is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     await deleteStaffAbsenceMutation.mutateAsync({ absenceId, payload: reauth })
@@ -854,7 +920,11 @@ function App() {
 
   const submitCompensationRun = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('compute compensation')) return
+    if (createCompensationRunMutation.isPending) {
+      showActionGuidance('Compensation computation is already processing. Please wait.')
+      return
+    }
     const f = new FormData(e.currentTarget)
     const mode = String(f.get('computation_mode') ?? 'today') as 'today' | 'specific_date'
     await createCompensationRunMutation.mutateAsync({
@@ -866,7 +936,11 @@ function App() {
   }
 
   const finalizeCompensationRun = async (runId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('finalize compensation')) return
+    if (finalizeCompensationRunMutation.isPending) {
+      showActionGuidance('Compensation finalization is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     finalizeCompensationRunMutation.reset()
@@ -878,6 +952,10 @@ function App() {
   }
 
   const settleDebtMovement = async (movementId: number) => {
+    if (settlePortfolioDebtMutation.isPending) {
+      showActionGuidance('Debt settlement is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
 
@@ -890,6 +968,10 @@ function App() {
   }
 
   const triggerDownloadSalesReport = async (report: SalesReportVersion) => {
+    if (downloadSalesReportMutation.isPending || downloadPortfolioSalesReportMutation.isPending) {
+      showActionGuidance('A report download is already processing. Please wait.')
+      return
+    }
     const reportScope = report.metadata.report_scope ?? report.details.report_scope ?? 'business'
     const download = reportScope === 'all_businesses'
       ? await downloadPortfolioSalesReportMutation.mutateAsync(report.id)
@@ -904,18 +986,22 @@ function App() {
 
   const submitExpense = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
-    const form = e.currentTarget            // ← capture BEFORE any await
+    if (!requireBusinessSelection('add expense')) return
+    if (createExpenseMutation.isPending) {
+      showActionGuidance('Expense creation is already processing. Please wait.')
+      return
+    }
+    const form = e.currentTarget
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    const f = new FormData(form)
+      const f = new FormData(form)
     await createExpenseMutation.mutateAsync({
       date_issued: String(f.get('date_issued') ?? ''),
       amount: parseNonNegativeAmount(f.get('amount')),
       description: String(f.get('description') ?? ''),
       purpose: String(f.get('purpose') ?? 'business') as 'business' | 'business_portfolio' | 'service',
-      payment_type: String(f.get('payment_type') ?? 'one_time') as 'one_time' | 'repeat',
       recurrence_reference: String(f.get('recurrence_reference') ?? ''),
+      proof: f.get('proof') instanceof File && (f.get('proof') as File).size > 0 ? (f.get('proof') as File) : null,
       ...reauth,
     })
     e.currentTarget.reset()
@@ -923,7 +1009,11 @@ function App() {
 
   const submitReferenceItem = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('add reference item')) return
+    if (createReferenceItemMutation.isPending) {
+      showActionGuidance('Reference item creation is already processing. Please wait.')
+      return
+    }
     const f = new FormData(e.currentTarget)
     await createReferenceItemMutation.mutateAsync({
       item_type: String(f.get('item_type') ?? 'product') as 'product' | 'service',
@@ -972,7 +1062,11 @@ function App() {
   }
 
   const removeReferenceItem = async (itemId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('remove reference item')) return
+    if (deleteReferenceItemMutation.isPending) {
+      showActionGuidance('Reference item removal is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     await deleteReferenceItemMutation.mutateAsync({
@@ -986,11 +1080,15 @@ function App() {
 
   const submitGcash = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
-    const form = e.currentTarget            // ← capture BEFORE any await
+    if (!requireBusinessSelection('add GCash sale')) return
+    if (createGcashMutation.isPending) {
+      showActionGuidance('GCash sale creation is already processing. Please wait.')
+      return
+    }
+    const form = e.currentTarget
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    const f = new FormData(form)            // ← use captured ref
+      const f = new FormData(form)
     const selectedReferenceItem = gcashReferenceItemId ? referenceItemById.get(gcashReferenceItemId) : undefined
     await createGcashMutation.mutateAsync({
       transaction_recipient: gcashRecipient.trim() || undefined,
@@ -1017,7 +1115,11 @@ function App() {
     setGcashRemarks('')
   }
   const voidGcashSale = async (saleId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('remove GCash sale')) return
+    if (deleteGcashMutation.isPending) {
+      showActionGuidance('GCash sale removal is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     await deleteGcashMutation.mutateAsync({ saleId, payload: reauth })
@@ -1025,7 +1127,11 @@ function App() {
 
   const submitCoffee = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('add coffee sale')) return
+    if (createCoffeeMutation.isPending) {
+      showActionGuidance('Coffee sale creation is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     const entries = coffeeItems.map((item) => {
@@ -1056,7 +1162,11 @@ function App() {
   }
 
   const voidCoffeeSale = async (saleId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('remove coffee sale')) return
+    if (deleteCoffeeMutation.isPending) {
+      showActionGuidance('Coffee sale removal is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     await deleteCoffeeMutation.mutateAsync({ saleId, payload: reauth })
@@ -1064,7 +1174,11 @@ function App() {
 
   const submitPrint = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('add print sale')) return
+    if (createPrintMutation.isPending) {
+      showActionGuidance('Print sale creation is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     const entries = printItems.map((item) => {
@@ -1096,7 +1210,11 @@ function App() {
   }
 
   const voidPrintSale = async (saleId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('remove print sale')) return
+    if (deletePrintMutation.isPending) {
+      showActionGuidance('Print sale removal is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     await deletePrintMutation.mutateAsync({ saleId, payload: reauth })
@@ -1104,7 +1222,11 @@ function App() {
 
   const submitEthereal = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('add ethereal sale')) return
+    if (createEtherealMutation.isPending) {
+      showActionGuidance('Ethereal sale creation is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     const entries = etherealItems.map((item) => {
@@ -1142,7 +1264,11 @@ function App() {
   }
 
   const voidEtherealSale = async (saleId: number) => {
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('remove ethereal sale')) return
+    if (deleteEtherealMutation.isPending) {
+      showActionGuidance('Ethereal sale removal is already processing. Please wait.')
+      return
+    }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
     await deleteEtherealMutation.mutateAsync({ saleId, payload: reauth })
@@ -1150,11 +1276,15 @@ function App() {
 
   const submitPortfolioCapital = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (createPortfolioCapitalMutation.isPending) {
+      showActionGuidance('Portfolio capital movement is already processing. Please wait.')
+      return
+    }
     createPortfolioCapitalMutation.reset()
     const form = e.currentTarget            // ← capture BEFORE any await
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    const f = new FormData(form)
+      const f = new FormData(form)
     const direction = String(f.get('direction') ?? 'add') as 'add' | 'deduct' | 'transfer' | 'debt'
     const targetBusinessId = Number(f.get('target_business_id') ?? 0)
     await createPortfolioCapitalMutation.mutateAsync({
@@ -1175,12 +1305,16 @@ function App() {
 
   const submitBusinessCapital = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
+    if (!requireBusinessSelection('add business capital movement')) return
+    if (createBusinessCapitalMutation.isPending) {
+      showActionGuidance('Business capital movement is already processing. Please wait.')
+      return
+    }
     createBusinessCapitalMutation.reset()
     const form = e.currentTarget            // ← capture BEFORE any await
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-  const f = new FormData(form)
+    const f = new FormData(form)
     await createBusinessCapitalMutation.mutateAsync({
       amount: parseNonNegativeAmount(f.get('amount')),
       direction: String(f.get('direction') ?? 'add') as 'add' | 'deduct',
@@ -1195,6 +1329,10 @@ function App() {
 
   const submitSalesReport = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (generateSalesReportMutation.isPending) {
+      showActionGuidance('Report generation is already processing. Please wait.')
+      return
+    }
     const f = new FormData(e.currentTarget)
     const scope = String(f.get('scope') ?? 'portfolio') as 'portfolio' | 'business'
     const period = String(f.get('period') ?? 'today') as 'today' | 'date_range'
@@ -1214,6 +1352,11 @@ function App() {
   const submitPdfSalesReport = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
+    if (createSalesReportMutation.isPending) {
+      showActionGuidance('Report generation is already processing. Please wait.')
+      return
+    }
+
     const f = new FormData(e.currentTarget)
     const reportScope = String(f.get('report_scope') ?? 'business') as 'business' | 'all_businesses'
     const selectedPdfBusinessId = Number(f.get('business_id') ?? 0)
@@ -1221,7 +1364,10 @@ function App() {
     const requestBusinessId = reportScope === 'business'
       ? (selectedPdfBusinessId > 0 ? selectedPdfBusinessId : null)
       : (selectedPdfBusinessId > 0 ? selectedPdfBusinessId : fallbackBusinessId)
-    if (!requestBusinessId) return
+    if (!requestBusinessId) {
+      showActionGuidance('Select a business to generate a business-scoped report.')
+      return
+    }
 
     await createSalesReportMutation.mutateAsync({
       businessId: requestBusinessId,
@@ -1322,7 +1468,7 @@ function App() {
                 Password
                 <input name="password" type="password" required className="dashboard-input" placeholder="••••••••" />
               </label>
-              <button type="submit" disabled={loginMutation.isPending} className="dashboard-button-primary mt-1">
+              <button type="submit" className="dashboard-button-primary mt-1">
                 <span className="inline-flex items-center justify-center gap-2">
                   <LogIn className="h-4 w-4" />
                   {loginMutation.isPending ? 'Signing in…' : 'Sign in'}
@@ -1354,6 +1500,12 @@ function App() {
         <option value="1000" />
       </datalist>
       <div className="mx-auto grid w-full max-w-[1460px] gap-6 px-4 py-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+
+        {actionGuidance ? (
+          <div className="lg:col-span-2 rounded-lg border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3 text-sm text-[var(--status-info-text)]">
+            {actionGuidance}
+          </div>
+        ) : null}
 
         {/* ── Sidebar ───────────────────────────────────────────────────── */}
         <aside className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-4 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:overflow-auto">
@@ -1440,8 +1592,13 @@ function App() {
               </div>
               <button
                 type="button"
-                onClick={() => logoutMutation.mutate()}
-                disabled={logoutMutation.isPending}
+                onClick={() => {
+                  if (logoutMutation.isPending) {
+                    showActionGuidance('Logout is already processing. Please wait.')
+                    return
+                  }
+                  logoutMutation.mutate()
+                }}
                 className="dashboard-button-secondary"
               >
                 {logoutMutation.isPending ? 'Signing out…' : 'Sign out'}
@@ -1686,7 +1843,7 @@ function App() {
                     <option value="0">Inactive</option>
                   </select>
                 </label>
-                <button type="submit" disabled={!selectedBusinessId || createStaffMutation.isPending} className="dashboard-button-primary">
+                <button type="submit" className="dashboard-button-primary">
                   {createStaffMutation.isPending ? 'Adding…' : 'Add staff member'}
                 </button>
               </form>
@@ -1727,24 +1884,24 @@ function App() {
                             <button
                               type="button"
                               onClick={() => markStaffInactive(staff.id)}
-                              disabled={!staff.is_active || updateStaffMutation.isPending}
-                              className="rounded-md bg-[var(--status-warning-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)] disabled:opacity-60"
+                             
+                              className="rounded-md bg-[var(--status-warning-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]"
                             >
                               Inactive
                             </button>
                             <button
                               type="button"
                               onClick={() => endStaffEmployment(staff.id)}
-                              disabled={Boolean(staff.employment_end_date) || updateStaffMutation.isPending}
-                              className="rounded-md bg-[var(--status-danger-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger-text)] disabled:opacity-60"
+                             
+                              className="rounded-md bg-[var(--status-danger-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger-text)]"
                             >
                               End
                             </button>
                             <button
                               type="button"
                               onClick={() => voidStaffRecord(staff.id)}
-                              disabled={deleteStaffMutation.isPending}
-                              className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)] disabled:opacity-60"
+                             
+                              className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
                             >
                               Void
                             </button>
@@ -1789,7 +1946,7 @@ function App() {
                 </label>
                 <button
                   type="submit"
-                  disabled={!selectedBusinessId || createStaffDayOffMutation.isPending}
+                 
                   className="dashboard-button-primary"
                 >
                   {createStaffDayOffMutation.isPending ? 'Saving…' : 'Mark day-off'}
@@ -1819,7 +1976,7 @@ function App() {
                 </label>
                 <button
                   type="submit"
-                  disabled={!selectedBusinessId || createStaffAbsenceMutation.isPending}
+                 
                   className="dashboard-button-primary"
                 >
                   {createStaffAbsenceMutation.isPending ? 'Saving…' : 'Mark absent'}
@@ -1924,7 +2081,7 @@ function App() {
                 )}
                 <button
                   type="submit"
-                  disabled={!selectedBusinessId || createCompensationRunMutation.isPending}
+                 
                   className="dashboard-button-primary"
                 >
                   {createCompensationRunMutation.isPending ? 'Computing…' : 'Run payroll'}
@@ -1975,8 +2132,8 @@ function App() {
                         <button
                           type="button"
                           onClick={() => finalizeCompensationRun(run.id)}
-                          disabled={finalizeCompensationRunMutation.isPending}
-                          className="mt-2 rounded-lg bg-[var(--burgundy-600)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--burgundy-800)] disabled:opacity-60"
+                         
+                          className="mt-2 rounded-lg bg-[var(--burgundy-600)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--burgundy-800)]"
                         >
                           {finalizeCompensationRunMutation.isPending ? 'Finalizing…' : 'Finalize payout'}
                         </button>
@@ -2021,7 +2178,7 @@ function App() {
                   Description (optional)
                   <input name="description" className="dashboard-input" />
                 </label>
-                <button type="submit" disabled={!selectedBusinessId || createReferenceItemMutation.isPending} className="dashboard-button-primary">
+                <button type="submit" className="dashboard-button-primary">
                   {createReferenceItemMutation.isPending ? 'Saving…' : 'Save reference item'}
                 </button>
               </form>
@@ -2082,7 +2239,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => void saveReferenceItemEdit()}
-                              disabled={updateReferenceItemMutation.isPending}
+                             
                               className="dashboard-button-primary"
                             >
                               {updateReferenceItemMutation.isPending ? 'Saving…' : 'Save'}
@@ -2119,8 +2276,8 @@ function App() {
                             <button
                               type="button"
                               onClick={() => void removeReferenceItem(item.id)}
-                              disabled={deleteReferenceItemMutation.isPending}
-                              className="rounded-md border border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger-text)] disabled:opacity-60"
+                             
+                              className="rounded-md border border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger-text)]"
                             >
                               Remove
                             </button>
@@ -2137,7 +2294,7 @@ function App() {
           {/* EXPENSES */}
           {tab === 'expenses' && (
             <section className={cardClass}>
-              <SectionHeading icon={ReceiptText} title="Expenses" description="Track one-time and recurring business expenses." />
+              <SectionHeading icon={ReceiptText} title="Expenses" description="Track business expenses with optional proof images." />
               <form onSubmit={submitExpense} className={formGridClass}>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date issued
@@ -2159,18 +2316,15 @@ function App() {
                     <option value="service">service</option>
                   </select>
                 </label>
-                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                  Payment type
-                  <select name="payment_type" defaultValue="one_time" className="dashboard-input">
-                    <option value="one_time">one time</option>
-                    <option value="repeat">repeat</option>
-                  </select>
-                </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Recurrence reference
-                  <input name="recurrence_reference" className="dashboard-input" />
+                  <input name="recurrence_reference" className="dashboard-input" placeholder="Optional recurring batch reference" />
                 </label>
-                <button type="submit" disabled={!selectedBusinessId || createExpenseMutation.isPending} className="dashboard-button-primary">
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Proof image (optional)
+                  <input name="proof" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" className="dashboard-input" />
+                </label>
+                <button type="submit" className="dashboard-button-primary">
                   {createExpenseMutation.isPending ? 'Adding…' : 'Add expense'}
                 </button>
               </form>
@@ -2190,9 +2344,21 @@ function App() {
                           {formatDateTimeDisplay(expense.date_issued)} · {formatRelative(expense.date_issued)}
                         </p>
                       </div>
-                      <span className="tabular-nums font-semibold text-[var(--status-danger-text)]">
-                        {formatCurrency(parseAmount(expense.amount))}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {expense.proof_download_url ? (
+                          <a
+                            href={expense.proof_download_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-md border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-info-text)]"
+                          >
+                            View proof
+                          </a>
+                        ) : null}
+                        <span className="tabular-nums font-semibold text-[var(--status-danger-text)]">
+                          {formatCurrency(parseAmount(expense.amount))}
+                        </span>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -2287,7 +2453,7 @@ function App() {
                   Transaction date
                   <input name="transaction_date" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
                 </label>
-                <button type="submit" disabled={!selectedBusinessId || createGcashMutation.isPending} className="dashboard-button-primary">
+                <button type="submit" className="dashboard-button-primary">
                   {createGcashMutation.isPending ? 'Adding…' : 'Add GCash entry'}
                 </button>
               </form>
@@ -2327,8 +2493,8 @@ function App() {
                         <button
                           type="button"
                           onClick={() => voidGcashSale(sale.id)}
-                          disabled={deleteGcashMutation.isPending}
-                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)] disabled:opacity-60"
+                         
+                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
                         >
                           Void
                         </button>
@@ -2489,7 +2655,7 @@ function App() {
                     + Add another order
                   </button>
                 </div>
-                <button type="submit" disabled={!selectedBusinessId || createCoffeeMutation.isPending} className="dashboard-button-primary">
+                <button type="submit" className="dashboard-button-primary">
                   {createCoffeeMutation.isPending ? 'Submitting…' : 'Add coffee sale'}
                 </button>
               </form>
@@ -2523,8 +2689,8 @@ function App() {
                         <button
                           type="button"
                           onClick={() => voidCoffeeSale(sale.id)}
-                          disabled={deleteCoffeeMutation.isPending}
-                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)] disabled:opacity-60"
+                         
+                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
                         >
                           Void
                         </button>
@@ -2699,7 +2865,7 @@ function App() {
                     + Add another print job
                   </button>
                 </div>
-                <button type="submit" disabled={!selectedBusinessId || createPrintMutation.isPending} className="dashboard-button-primary">
+                <button type="submit" className="dashboard-button-primary">
                   {createPrintMutation.isPending ? 'Submitting…' : 'Add print sale'}
                 </button>
               </form>
@@ -2731,8 +2897,8 @@ function App() {
                         <button
                           type="button"
                           onClick={() => voidPrintSale(sale.id)}
-                          disabled={deletePrintMutation.isPending}
-                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)] disabled:opacity-60"
+                         
+                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
                         >
                           Void
                         </button>
@@ -2910,7 +3076,7 @@ function App() {
                     + Add another service
                   </button>
                 </div>
-                <button type="submit" disabled={!selectedBusinessId || createEtherealMutation.isPending} className="dashboard-button-primary">
+                <button type="submit" className="dashboard-button-primary">
                   {createEtherealMutation.isPending ? 'Submitting…' : 'Add ethereal sale'}
                 </button>
               </form>
@@ -2943,8 +3109,8 @@ function App() {
                         <button
                           type="button"
                           onClick={() => voidEtherealSale(sale.id)}
-                          disabled={deleteEtherealMutation.isPending}
-                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)] disabled:opacity-60"
+                         
+                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
                         >
                           Void
                         </button>
@@ -3010,7 +3176,7 @@ function App() {
                     </label>
                   </>
                 )}
-                <button type="submit" disabled={generateSalesReportMutation.isPending} className="dashboard-button-primary">
+                <button type="submit" className="dashboard-button-primary">
                   {generateSalesReportMutation.isPending ? 'Generating…' : 'Generate sales report'}
                 </button>
               </form>
@@ -3130,7 +3296,7 @@ function App() {
                   />
                   <FieldErrorText messages={portfolioMovementFieldErrors.remarks} />
                 </label>
-                <button type="submit" disabled={createPortfolioCapitalMutation.isPending} className="dashboard-button-primary">
+                <button type="submit" className="dashboard-button-primary">
                   {createPortfolioCapitalMutation.isPending ? 'Processing…' : 'Save portfolio movement'}
                 </button>
               </form>
@@ -3183,7 +3349,7 @@ function App() {
                           <button
                             type="button"
                             onClick={() => settleDebtMovement(movement.id)}
-                            disabled={settlePortfolioDebtMutation.isPending}
+                           
                             className="dashboard-button-secondary"
                           >
                             {settlePortfolioDebtMutation.isPending ? 'Settling…' : 'Settle'}
@@ -3243,7 +3409,7 @@ function App() {
                   <input name="notes" className="dashboard-input" />
                   <FieldErrorText messages={businessMovementFieldErrors.notes} />
                 </label>
-                <button type="submit" disabled={!selectedBusinessId || createBusinessCapitalMutation.isPending} className="dashboard-button-primary">
+                <button type="submit" className="dashboard-button-primary">
                   {createBusinessCapitalMutation.isPending ? 'Processing…' : 'Save business movement'}
                 </button>
               </form>
@@ -3343,7 +3509,7 @@ function App() {
                   </label>
                   <button
                     type="submit"
-                    disabled={(pdfReportScope === 'business' && !pdfBusinessId) || createSalesReportMutation.isPending}
+                   
                     className="dashboard-button-primary"
                   >
                     {createSalesReportMutation.isPending ? 'Generating…' : 'Generate report version'}
@@ -3366,7 +3532,7 @@ function App() {
                           <button
                             type="button"
                             onClick={() => triggerDownloadSalesReport(report)}
-                            disabled={downloadSalesReportMutation.isPending || downloadPortfolioSalesReportMutation.isPending}
+                           
                             className="dashboard-button-secondary"
                           >
                             Download PDF
@@ -3424,8 +3590,13 @@ function App() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => setSalesReportPage((prev) => Math.max(prev - 1, 1))}
-                        disabled={salesReportPage <= 1}
+                        onClick={() => {
+                          if (salesReportPage <= 1) {
+                            showActionGuidance('You are already on the first page.')
+                            return
+                          }
+                          setSalesReportPage((prev) => Math.max(prev - 1, 1))
+                        }}
                         className="dashboard-button-secondary"
                       >
                         Prev
@@ -3433,8 +3604,18 @@ function App() {
                       <span className="text-xs text-[var(--neutral-rosewood)]">Page {salesReportPage}</span>
                       <button
                         type="button"
-                        onClick={() => setSalesReportPage((prev) => prev + 1)}
-                        disabled={!(pdfReportScope === 'all_businesses' ? portfolioSalesReportsQuery.data?.links?.next : salesReportsQuery.data?.links?.next)}
+                        onClick={() => {
+                          const hasNextPage = Boolean(
+                            pdfReportScope === 'all_businesses'
+                              ? portfolioSalesReportsQuery.data?.links?.next
+                              : salesReportsQuery.data?.links?.next,
+                          )
+                          if (!hasNextPage) {
+                            showActionGuidance('No additional report pages are available.')
+                            return
+                          }
+                          setSalesReportPage((prev) => prev + 1)
+                        }}
                         className="dashboard-button-secondary"
                       >
                         Next

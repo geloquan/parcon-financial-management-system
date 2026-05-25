@@ -19,8 +19,11 @@ export const apiRequest = async <T>(
   token?: string,
 ): Promise<T> => {
   const headers = new Headers(options.headers)
-  headers.set('Content-Type', 'application/json')
   headers.set('Accept', 'application/json')
+
+  if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
 
   const authToken = token ?? getStoredToken()
   if (authToken) {

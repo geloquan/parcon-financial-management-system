@@ -42,4 +42,17 @@ class ExpenseController extends Controller
 
         return ['message' => 'Expense deleted successfully.'];
     }
+    public function downloadProof(Business $business, Expense $expense)
+    {
+        abort_if($expense->business_id !== $business->id, 404);
+
+        $download = $this->expenseService->getProofDownload($expense);
+        abort_unless($download, 404, 'Proof file not found.');
+
+        return response($download['content'], 200, [
+            'Content-Type' => $download['mime_type'],
+            'Content-Disposition' => sprintf('inline; filename="%s"', $download['filename']),
+        ]);
+    }
+
 }

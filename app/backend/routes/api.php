@@ -60,6 +60,8 @@ Route::middleware('auth.api')->group(function (): void {
         ->middleware('portfolio.reauth');
       Route::delete('expenses/{expense}', [ExpenseController::class, 'destroy'])
         ->middleware('portfolio.reauth');
+      Route::get('expenses/{expense}/proof', [ExpenseController::class, 'downloadProof'])
+        ->name('expenses.proof.download');
       Route::apiResource('reference_items', BusinessReferenceItemController::class)
         ->parameters(['reference_items' => 'businessReferenceItem'])
         ->only(['index', 'store']);

@@ -45,8 +45,9 @@ export type Expense = {
   amount: string
   description: string
   purpose: 'business' | 'business_portfolio' | 'service'
-  payment_type: 'one_time' | 'repeat'
   recurrence_reference: string | null
+  proof_file_name: string | null
+  proof_download_url: string | null
 }
 
 export type BusinessReferenceItem = {
