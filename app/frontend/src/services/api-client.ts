@@ -1,4 +1,5 @@
 import type { ApiError } from '../types/api'
+import { createApiRequestError } from './api-error'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/api'
 
@@ -40,11 +41,7 @@ export const apiRequest = async <T>(
       parsedError = { message: 'Request failed.' }
     }
 
-    const firstFieldError = parsedError.errors
-      ? Object.values(parsedError.errors).find((messages) => Array.isArray(messages) && messages.length > 0)?.[0]
-      : undefined
-
-    throw new Error(firstFieldError ?? parsedError.message)
+    throw createApiRequestError(parsedError, response.status)
   }
 
   return (await response.json()) as T

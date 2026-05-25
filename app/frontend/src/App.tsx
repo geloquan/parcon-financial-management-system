@@ -53,6 +53,8 @@ import {
   useSettlePortfolioDebt,
 } from './hooks/use-capital-movements'
 import { formatCompactDate } from './services/formatDate.ts'
+import { ActionErrorPanel, FieldErrorText } from './components/action-error-panel'
+import { getFieldErrorsFor } from './services/api-error'
 
 type Tab =
   | 'overview'
@@ -181,14 +183,6 @@ const parseAmount = (value: unknown) => {
 
 const parseNonNegativeAmount = (value: unknown) => {
   return Math.max(parseAmount(value), 0)
-}
-
-const extractErrorMessage = (error: unknown): string => {
-  if (error instanceof Error && error.message.trim() !== '') {
-    return error.message
-  }
-
-  return 'Request failed.'
 }
 
 const toNonNegativeInputValue = (value: string) => {
@@ -874,10 +868,11 @@ function App() {
     if (!selectedBusinessId) return
     const reauth = await requestMoneyReauth()
     if (!reauth) return
+    finalizeCompensationRunMutation.reset()
     try {
       await finalizeCompensationRunMutation.mutateAsync({ runId, payload: reauth })
-    } catch (error) {
-      window.alert(extractErrorMessage(error))
+    } catch {
+      // Error is presented via ActionErrorPanel.
     }
   }
 
@@ -885,10 +880,11 @@ function App() {
     const reauth = await requestMoneyReauth()
     if (!reauth) return
 
+    settlePortfolioDebtMutation.reset()
     try {
       await settlePortfolioDebtMutation.mutateAsync({ movementId, payload: reauth })
-    } catch (error) {
-      window.alert(extractErrorMessage(error))
+    } catch {
+      // Error is presented via ActionErrorPanel.
     }
   }
 
@@ -1153,6 +1149,7 @@ function App() {
 
   const submitPortfolioCapital = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    createPortfolioCapitalMutation.reset()
     const form = e.currentTarget            // ← capture BEFORE any await
     const reauth = await requestMoneyReauth()
     if (!reauth) return
@@ -1178,6 +1175,7 @@ function App() {
   const submitBusinessCapital = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedBusinessId) return
+    createBusinessCapitalMutation.reset()
     const form = e.currentTarget            // ← capture BEFORE any await
     const reauth = await requestMoneyReauth()
     if (!reauth) return
@@ -1238,6 +1236,45 @@ function App() {
       reauth_username: moneyReauthUsername,
       reauth_password: moneyReauthPassword,
     })
+  }
+
+  const moneyReauthFieldLabels: Record<string, string> = {
+    reauth_username: 'Re-auth username',
+    reauth_password: 'Re-auth password',
+  }
+
+  const portfolioMovementFieldLabels: Record<string, string> = {
+    amount: 'Amount',
+    direction: 'Direction',
+    target_business_id: 'Transfer target',
+    occurred_on: 'Date',
+    notes: 'Notes',
+    remarks: 'Debt remarks',
+    ...moneyReauthFieldLabels,
+  }
+
+  const businessMovementFieldLabels: Record<string, string> = {
+    amount: 'Amount',
+    direction: 'Direction',
+    occurred_on: 'Date',
+    notes: 'Notes',
+    ...moneyReauthFieldLabels,
+  }
+
+  const portfolioMovementFieldErrors = {
+    amount: getFieldErrorsFor(createPortfolioCapitalMutation.error, 'amount'),
+    direction: getFieldErrorsFor(createPortfolioCapitalMutation.error, 'direction'),
+    target_business_id: getFieldErrorsFor(createPortfolioCapitalMutation.error, 'target_business_id'),
+    occurred_on: getFieldErrorsFor(createPortfolioCapitalMutation.error, 'occurred_on'),
+    notes: getFieldErrorsFor(createPortfolioCapitalMutation.error, 'notes'),
+    remarks: getFieldErrorsFor(createPortfolioCapitalMutation.error, 'remarks'),
+  }
+
+  const businessMovementFieldErrors = {
+    amount: getFieldErrorsFor(createBusinessCapitalMutation.error, 'amount'),
+    direction: getFieldErrorsFor(createBusinessCapitalMutation.error, 'direction'),
+    occurred_on: getFieldErrorsFor(createBusinessCapitalMutation.error, 'occurred_on'),
+    notes: getFieldErrorsFor(createBusinessCapitalMutation.error, 'notes'),
   }
 
   // ─── Login screen ─────────────────────────────────────────────────────────
@@ -1902,6 +1939,12 @@ function App() {
                   {createCompensationRunMutation.isPending ? 'Computing…' : 'Run payroll'}
                 </button>
               </form>
+              <ActionErrorPanel
+                error={finalizeCompensationRunMutation.error}
+                actionLabel="Finalize payout"
+                fieldLabels={moneyReauthFieldLabels}
+                className="mt-4"
+              />
 
               <SectionDivider label="Payroll runs" />
               {compensationRunsQuery.isLoading ? (
@@ -3049,6 +3092,7 @@ function App() {
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
                   <input name="amount" type="number" list="quick-number-values" required value={portfolioAmountPreview} onChange={(e) => setPortfolioAmountPreview(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
+                  <FieldErrorText messages={portfolioMovementFieldErrors.amount} />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>
@@ -3064,6 +3108,7 @@ function App() {
                       </label>
                     ))}
                   </div>
+                  <FieldErrorText messages={portfolioMovementFieldErrors.direction} />
                 </div>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transfer target
@@ -3071,10 +3116,12 @@ function App() {
                     <option value="">Select business (required for transfer)</option>
                     {businesses.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
+                  <FieldErrorText messages={portfolioMovementFieldErrors.target_business_id} />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date
                   <input name="occurred_on" type="date" required className="dashboard-input" />
+                  <FieldErrorText messages={portfolioMovementFieldErrors.occurred_on} />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Notes {portfolioDirectionPreview === 'transfer' || portfolioDirectionPreview === 'debt' ? '(optional)' : '(required)'}
@@ -3085,6 +3132,7 @@ function App() {
                     onChange={(e) => setPortfolioNotes(e.target.value)}
                     className="dashboard-input"
                   />
+                  <FieldErrorText messages={portfolioMovementFieldErrors.notes} />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Debt remarks {portfolioDirectionPreview === 'debt' ? '(required)' : '(optional)'}
@@ -3095,15 +3143,28 @@ function App() {
                     onChange={(e) => setPortfolioRemarks(e.target.value)}
                     className="dashboard-input"
                   />
+                  <FieldErrorText messages={portfolioMovementFieldErrors.remarks} />
                 </label>
                 <button type="submit" disabled={createPortfolioCapitalMutation.isPending} className="dashboard-button-primary">
                   {createPortfolioCapitalMutation.isPending ? 'Processing…' : 'Save portfolio movement'}
                 </button>
               </form>
+              <ActionErrorPanel
+                error={createPortfolioCapitalMutation.error}
+                actionLabel="Save portfolio movement"
+                fieldLabels={portfolioMovementFieldLabels}
+                className="mt-4"
+              />
               <LivePreview>
                 After action: <strong className="font-semibold">{formatCurrency(portfolioAfterPreview)}</strong>
                 {' '}(current {formatCurrency(capitalBalances.portfolioBalance)} {portfolioDirectionPreview === 'add' ? '+' : '−'} {formatCurrency(parseAmount(portfolioAmountPreview))})
               </LivePreview>
+              <ActionErrorPanel
+                error={settlePortfolioDebtMutation.error}
+                actionLabel="Settle portfolio debt"
+                fieldLabels={moneyReauthFieldLabels}
+                className="mt-4"
+              />
 
               <SectionDivider label={`${portfolioMovements.length} movement${portfolioMovements.length === 1 ? '' : 's'}`} />
               {portfolioMovements.length === 0 ? (
@@ -3172,6 +3233,7 @@ function App() {
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
                   <input name="amount" type="number" list="quick-number-values" required value={businessAmountPreview} onChange={(e) => setBusinessAmountPreview(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
+                  <FieldErrorText messages={businessMovementFieldErrors.amount} />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>
@@ -3183,19 +3245,28 @@ function App() {
                       </label>
                     ))}
                   </div>
+                  <FieldErrorText messages={businessMovementFieldErrors.direction} />
                 </div>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date
                   <input name="occurred_on" type="date" required className="dashboard-input" />
+                  <FieldErrorText messages={businessMovementFieldErrors.occurred_on} />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Notes
                   <input name="notes" className="dashboard-input" />
+                  <FieldErrorText messages={businessMovementFieldErrors.notes} />
                 </label>
                 <button type="submit" disabled={!selectedBusinessId || createBusinessCapitalMutation.isPending} className="dashboard-button-primary">
                   {createBusinessCapitalMutation.isPending ? 'Processing…' : 'Save business movement'}
                 </button>
               </form>
+              <ActionErrorPanel
+                error={createBusinessCapitalMutation.error}
+                actionLabel="Save business movement"
+                fieldLabels={businessMovementFieldLabels}
+                className="mt-4"
+              />
               <LivePreview>
                 After action: <strong className="font-semibold">{formatCurrency(businessAfterPreview)}</strong>
                 {' '}(current {formatCurrency(capitalBalances.businessBalance)} {businessDirectionPreview === 'add' ? '+' : '−'} {formatCurrency(parseAmount(businessAmountPreview))})
