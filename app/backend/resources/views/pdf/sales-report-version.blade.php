@@ -102,6 +102,30 @@
     .date-divider { background: #F7ECEE; color: #5C1220; font-weight: 700; }
     .tight p { margin: 0 0 2px; }
     .tiny { font-size: 10px; }
+    .graph-list { margin-top: 8px; }
+    .graph-row { margin: 6px 0; }
+    .graph-label {
+      margin-bottom: 2px;
+      font-size: 10px;
+      color: #7A6A5A;
+    }
+    .graph-track {
+      width: 100%;
+      height: 12px;
+      background: #F7ECEE;
+      border: 1px solid #E0DBD5;
+    }
+    .graph-fill {
+      height: 100%;
+      background: #852030;
+    }
+    .graph-value {
+      margin-top: 2px;
+      text-align: right;
+      font-size: 10px;
+      color: #2C2422;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -206,6 +230,64 @@
   </div>
 
   <div class="section">
+    <h3>Sales Graph by Business</h3>
+    @php
+      $maxBusinessSales = collect($businessSummary)
+        ->map(fn ($summary) => (float) ($summary['total_sales'] ?? 0))
+        ->max();
+      $maxBusinessSales = $maxBusinessSales > 0 ? $maxBusinessSales : 1;
+    @endphp
+    @if(count($businessSummary) === 0)
+      <p class="muted">No business sales data available for graph.</p>
+    @else
+      <div class="graph-list">
+        @foreach($businessSummary as $summary)
+          @php
+            $totalSales = (float) ($summary['total_sales'] ?? 0);
+            $barWidth = max(0, min(100, ($totalSales / $maxBusinessSales) * 100));
+          @endphp
+          <div class="graph-row">
+            <div class="graph-label">{{ $summary['business_name'] ?? 'Business' }}</div>
+            <div class="graph-track">
+              <div class="graph-fill" style="width: {{ number_format($barWidth, 2, '.', '') }}%;"></div>
+            </div>
+            <div class="graph-value">{{ number_format($totalSales, 2) }}</div>
+          </div>
+        @endforeach
+      </div>
+    @endif
+  </div>
+
+  <div class="section">
+    <h3>Sales Graph by Module</h3>
+    @php
+      $moduleGraph = [
+        ['label' => 'GCash', 'value' => (float) ($salesTotals['gcash_sales'] ?? 0)],
+        ['label' => 'Coffee', 'value' => (float) ($salesTotals['coffee_sales'] ?? 0)],
+        ['label' => 'Print', 'value' => (float) ($salesTotals['print_sales'] ?? 0)],
+        ['label' => 'Ethereal', 'value' => (float) ($salesTotals['ethereal_sales'] ?? 0)],
+      ];
+      $maxModuleSales = collect($moduleGraph)->map(fn ($module) => (float) ($module['value'] ?? 0))->max();
+      $maxModuleSales = $maxModuleSales > 0 ? $maxModuleSales : 1;
+    @endphp
+    <div class="graph-list">
+      @foreach($moduleGraph as $module)
+        @php
+          $moduleValue = (float) ($module['value'] ?? 0);
+          $moduleWidth = max(0, min(100, ($moduleValue / $maxModuleSales) * 100));
+        @endphp
+        <div class="graph-row">
+          <div class="graph-label">{{ $module['label'] }}</div>
+          <div class="graph-track">
+            <div class="graph-fill" style="width: {{ number_format($moduleWidth, 2, '.', '') }}%;"></div>
+          </div>
+          <div class="graph-value">{{ number_format($moduleValue, 2) }}</div>
+        </div>
+      @endforeach
+    </div>
+  </div>
+
+  <div class="section">
     <h3>Sales Detail Entries</h3>
     @if(count($salesEntries) === 0)
       <p class="muted">No sales entries in the selected range.</p>
@@ -215,6 +297,7 @@
         <tr>
           <th>#</th>
           <th>Module</th>
+          <th>Business</th>
           <th>Item & Sale</th>
           <th class="num">Pricing</th>
           <th>Details</th>
@@ -249,16 +332,16 @@
           @if($currentDateLabel !== $dateLabel)
             @php $currentDateLabel = $dateLabel; @endphp
             <tr>
-              <td colspan="5" class="date-divider">{{ $currentDateLabel }}</td>
+              <td colspan="6" class="date-divider">{{ $currentDateLabel }}</td>
             </tr>
           @endif
           <tr>
             <td>{{ $index + 1 }}</td>
             <td><span class="chip {{ $moduleClass }}">{{ $moduleIcon }} {{ $entry['module'] ?? '—' }}</span></td>
+            <td>{{ $entry['business_name'] ?? '—' }}</td>
             <td class="tight">
               <p><strong>{{ $entry['reference_item_name'] ?? '—' }}</strong></p>
               <p class="tiny muted">{{ $entry['sale_name'] ?? '—' }}</p>
-              <p class="tiny muted">{{ $entry['business_name'] ?? '—' }}</p>
             </td>
             <td class="num">
               <div><span class="muted tiny">Original:</span> {{ $originalPrice > 0 ? number_format($originalPrice, 2) : '—' }}</div>
@@ -340,6 +423,7 @@
       <table>
         <thead>
         <tr>
+          <th>Business</th>
           <th>Run</th>
           <th>Status</th>
           <th>Period</th>
@@ -350,8 +434,9 @@
         <tbody>
         @foreach($compensationEntries as $entry)
           <tr>
-            <td>{{ $entry['entry_name'] ?? '' }}</td>
-            <td>{{ $entry['metadata']['payment_status'] ?? '' }}</td>
+          <td>{{ $entry['business_name'] ?? '—' }}</td>
+          <td>{{ $entry['entry_name'] ?? '' }}</td>
+          <td>{{ $entry['metadata']['payment_status'] ?? '' }}</td>
             <td>
               {{ isset($entry['metadata']['period_start']) ? \Carbon\Carbon::parse($entry['metadata']['period_start'])->format('M j, Y') : '—' }}
               –

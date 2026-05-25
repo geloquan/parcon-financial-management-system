@@ -34,13 +34,15 @@ export const useSalesReports = (
   })
 }
 
-export const useCreateSalesReport = (businessId: number | null, page: number, reportScope: 'business' | 'all_businesses') => {
+export const useCreateSalesReport = (page: number, reportScope: 'business' | 'all_businesses') => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (payload: CreateSalesReportPayload) => createSalesReport(businessId as number, payload),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['sales-reports', businessId, page, reportScope] })
+    mutationFn: async ({ businessId, payload }: { businessId: number; payload: CreateSalesReportPayload }) =>
+      createSalesReport(businessId, payload),
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ['sales-reports', variables.businessId, page, reportScope] })
+      await queryClient.invalidateQueries({ queryKey: ['portfolio-sales-reports'] })
     },
   })
 }
@@ -58,9 +60,10 @@ export const usePortfolioSalesReports = (
   })
 }
 
-export const useDownloadSalesReport = (businessId: number | null) => {
+export const useDownloadSalesReport = () => {
   return useMutation({
-    mutationFn: async (reportId: number) => downloadSalesReport(businessId as number, reportId),
+    mutationFn: async ({ businessId, reportId }: { businessId: number; reportId: number }) =>
+      downloadSalesReport(businessId, reportId),
   })
 }
 

@@ -431,7 +431,8 @@ function App() {
   const [scheduleDateFilter, setScheduleDateFilter] = useState<string>(_initial.date)
   const [compensationMode, setCompensationMode] = useState<'today' | 'specific_date'>(_initial.mode)
   const [salesReportPage, setSalesReportPage] = useState(_initial.page)
-  const [pdfReportScope, setPdfReportScope] = useState<'business' | 'all_businesses'>('business')
+  const [pdfReportScope, setPdfReportScope] = useState<'business' | 'all_businesses'>('all_businesses')
+  const [pdfBusinessId, setPdfBusinessId] = useState<number | null>(_initial.businessId)
   const [reportScope, setReportScope] = useState<'portfolio' | 'business'>(_initial.scope)
   const [reportPeriod, setReportPeriod] = useState<'today' | 'date_range'>(_initial.period)
 
@@ -490,7 +491,7 @@ function App() {
     const onPopState = () => {
       const s = readUrlState()
       setTabState(s.tab)
-      if (s.businessId) setSelectedBusinessId(s.businessId)
+      setSelectedBusinessId(s.businessId)
       setScheduleDateFilter(s.date)
       setSalesReportPage(s.page)
       setReportScope(s.scope)
@@ -500,12 +501,6 @@ function App() {
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, []) // intentionally empty — only registers/unregisters the listener
-
-  useEffect(() => {
-    if (!selectedBusinessId && businesses.length > 0) {
-      setSelectedBusinessId(businesses[0].id)
-    }
-  }, [businesses, selectedBusinessId])
 
   const staffQuery = useStaff(selectedBusinessId)
   const createStaffMutation = useCreateStaff(selectedBusinessId)
@@ -543,14 +538,14 @@ function App() {
   const settlePortfolioDebtMutation = useSettlePortfolioDebt()
   const createBusinessCapitalMutation = useCreateBusinessCapitalMovement(selectedBusinessId)
   const generateSalesReportMutation = useGenerateSalesReport()
-  const salesReportsQuery = useSalesReports(selectedBusinessId, salesReportPage, pdfReportScope, { enabled: pdfReportScope === 'business' })
+  const salesReportsQuery = useSalesReports(pdfBusinessId, salesReportPage, pdfReportScope, { enabled: pdfReportScope === 'business' && Boolean(pdfBusinessId) })
   const portfolioSalesReportsQuery = usePortfolioSalesReports(salesReportPage, { enabled: pdfReportScope === 'all_businesses' })
-  const createSalesReportMutation = useCreateSalesReport(selectedBusinessId, salesReportPage, pdfReportScope)
-  const downloadSalesReportMutation = useDownloadSalesReport(selectedBusinessId)
+  const createSalesReportMutation = useCreateSalesReport(salesReportPage, pdfReportScope)
+  const downloadSalesReportMutation = useDownloadSalesReport()
   const downloadPortfolioSalesReportMutation = useDownloadPortfolioSalesReport()
 
   const selectedBusinessName = useMemo(
-    () => businesses.find((b) => b.id === selectedBusinessId)?.name ?? null,
+    () => selectedBusinessId ? businesses.find((b) => b.id === selectedBusinessId)?.name ?? null : 'All businesses',
     [businesses, selectedBusinessId],
   )
 
@@ -560,10 +555,16 @@ function App() {
   )
 
   const businessMovements = useMemo(
-    () =>
-      (capitalMovementsQuery.data?.data ?? []).filter(
-        (m) => m.source_business_id === selectedBusinessId || m.target_business_id === selectedBusinessId,
-      ),
+    () => {
+      const allMovements = capitalMovementsQuery.data?.data ?? []
+      if (!selectedBusinessId) {
+        return allMovements.filter((movement) => movement.source_type === 'business' || movement.target_business_id !== null)
+      }
+
+      return allMovements.filter(
+        (movement) => movement.source_business_id === selectedBusinessId || movement.target_business_id === selectedBusinessId,
+      )
+    },
     [capitalMovementsQuery.data, selectedBusinessId],
   )
 
@@ -648,11 +649,11 @@ function App() {
     const businessBalance = all.reduce((bal, m) => {
       const amt = parseAmount(m.amount)
 
-      if (m.source_type === 'portfolio' && m.direction === 'transfer' && m.target_business_id === selectedBusinessId) {
+      if (m.source_type === 'portfolio' && m.direction === 'transfer' && (!selectedBusinessId || m.target_business_id === selectedBusinessId)) {
         return bal + amt
       }
 
-      if (m.source_type === 'business' && m.source_business_id === selectedBusinessId) {
+      if (m.source_type === 'business' && (!selectedBusinessId || m.source_business_id === selectedBusinessId)) {
         return m.direction === 'add' ? bal + amt : bal - amt
       }
 
@@ -892,7 +893,7 @@ function App() {
     const reportScope = report.metadata.report_scope ?? report.details.report_scope ?? 'business'
     const download = reportScope === 'all_businesses'
       ? await downloadPortfolioSalesReportMutation.mutateAsync(report.id)
-      : await downloadSalesReportMutation.mutateAsync(report.id)
+      : await downloadSalesReportMutation.mutateAsync({ businessId: report.business_id, reportId: report.id })
     const url = URL.createObjectURL(download.blob)
     const anchor = document.createElement('a')
     anchor.href = url
@@ -1212,20 +1213,30 @@ function App() {
 
   const submitPdfSalesReport = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!selectedBusinessId) return
 
     const f = new FormData(e.currentTarget)
     const reportScope = String(f.get('report_scope') ?? 'business') as 'business' | 'all_businesses'
+    const selectedPdfBusinessId = Number(f.get('business_id') ?? 0)
+    const fallbackBusinessId = businesses[0]?.id ?? null
+    const requestBusinessId = reportScope === 'business'
+      ? (selectedPdfBusinessId > 0 ? selectedPdfBusinessId : null)
+      : (selectedPdfBusinessId > 0 ? selectedPdfBusinessId : fallbackBusinessId)
+    if (!requestBusinessId) return
+
     await createSalesReportMutation.mutateAsync({
-      start_date: String(f.get('start_date') ?? ''),
-      end_date: String(f.get('end_date') ?? ''),
-      document_title: String(f.get('document_title') ?? '').trim() || undefined,
-      report_type: String(f.get('report_type') ?? 'sales') as 'sales' | 'compensation' | 'combined',
-      report_scope: reportScope,
+      businessId: requestBusinessId,
+      payload: {
+        start_date: String(f.get('start_date') ?? ''),
+        end_date: String(f.get('end_date') ?? ''),
+        document_title: String(f.get('document_title') ?? '').trim() || undefined,
+        report_type: String(f.get('report_type') ?? 'sales') as 'sales' | 'compensation' | 'combined',
+        report_scope: reportScope,
+      },
     })
 
     e.currentTarget.reset()
     setPdfReportScope(reportScope)
+    setPdfBusinessId(requestBusinessId)
     setSalesReportPage(1)
   }
 
@@ -1441,30 +1452,23 @@ function App() {
             {businesses.length > 0 && SHOW_BUSINESS_SELECTOR_TABS.includes(tab) && (
               <div className="mt-5">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--neutral-rosewood)]">
-                  Active business
+                  Business filter
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {businesses.map((business) => {
-                    const active = selectedBusinessId === business.id
-                    return (
-                      <button
-                        key={business.id}
-                        type="button"
-                        onClick={() => setSelectedBusinessId(business.id)}
-                        className={`rounded-lg border px-4 py-2 text-left text-sm transition-all ${
-                          active
-                            ? 'border-[var(--burgundy-600)] bg-[var(--burgundy-600)] text-white shadow-sm'
-                            : 'border-[var(--neutral-linen)] bg-[var(--surface-card)] text-[var(--neutral-rosewood)] hover:border-[var(--burgundy-200)] hover:text-[var(--burgundy-800)]'
-                        }`}
-                      >
-                        <p className="font-semibold">{business.name}</p>
-                        <p className={`text-[10px] ${active ? 'text-white/70' : 'text-[var(--neutral-rosewood)]'}`}>
-                          {business.slug}
-                        </p>
-                      </button>
-                    )
-                  })}
-                </div>
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Select business explicitly
+                  <select
+                    value={selectedBusinessId ?? ''}
+                    onChange={(event) => setSelectedBusinessId(event.target.value ? Number(event.target.value) : null)}
+                    className="dashboard-input"
+                  >
+                    <option value="">All businesses (default)</option>
+                    {businesses.map((business) => (
+                      <option key={business.id} value={business.id}>
+                        {business.name} ({business.slug})
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
             )}
           </header>
@@ -1675,17 +1679,13 @@ function App() {
                   Commission (% per service)
                   <input name="commission_rate_percent" type="number" list="quick-number-values" defaultValue="0" required className="dashboard-input" />
                 </label>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Status</p>
-                  <div className="flex gap-2">
-                    {(['1', '0'] as const).map((val) => (
-                      <label key={val} className={optionPillClass}>
-                        <input type="radio" name="is_active" value={val} defaultChecked={val === '1'} className="sr-only" />
-                        {val === '1' ? 'Active' : 'Inactive'}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Status
+                  <select name="is_active" defaultValue="1" className="dashboard-input">
+                    <option value="1">Active</option>
+                    <option value="0">Inactive</option>
+                  </select>
+                </label>
                 <button type="submit" disabled={!selectedBusinessId || createStaffMutation.isPending} className="dashboard-button-primary">
                   {createStaffMutation.isPending ? 'Adding…' : 'Add staff member'}
                 </button>
@@ -1904,27 +1904,18 @@ function App() {
                 description="Run payroll using salary, ethereal commissions, attendance records, and cash-advance deductions."
               />
               <form onSubmit={submitCompensationRun} className={formGridClass}>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Computation mode</p>
-                  <div className="flex gap-2">
-                    {([
-                      { value: 'today', label: 'Today' },
-                      { value: 'specific_date', label: 'Specific date' },
-                    ] as const).map((mode) => (
-                      <label key={mode.value} className={optionPillClass}>
-                        <input
-                          type="radio"
-                          name="computation_mode"
-                          value={mode.value}
-                          checked={compensationMode === mode.value}
-                          onChange={() => setCompensationMode(mode.value)}
-                          className="sr-only"
-                        />
-                        {mode.label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Computation mode
+                  <select
+                    name="computation_mode"
+                    value={compensationMode}
+                    onChange={(event) => setCompensationMode(event.target.value as 'today' | 'specific_date')}
+                    className="dashboard-input"
+                  >
+                    <option value="today">Today</option>
+                    <option value="specific_date">Specific date</option>
+                  </select>
+                </label>
                 {compensationMode === 'specific_date' && (
                   <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                     Specific date
@@ -2011,17 +2002,13 @@ function App() {
             <section className={cardClass}>
               <SectionHeading icon={NotebookPen} title="Reference Items" description="Product and service catalog for autocomplete and pricing." />
               <form onSubmit={submitReferenceItem} className={formGridClass}>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Item type</p>
-                  <div className="flex gap-2">
-                    {(['product', 'service'] as const).map((t) => (
-                      <label key={t} className={optionPillClass}>
-                        <input type="radio" name="item_type" value={t} defaultChecked={t === 'product'} className="sr-only" />
-                        {t.charAt(0).toUpperCase() + t.slice(1)}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Item type
+                  <select name="item_type" defaultValue="product" className="dashboard-input">
+                    <option value="product">Product</option>
+                    <option value="service">Service</option>
+                  </select>
+                </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Item name
                   <input name="name" required className="dashboard-input" />
@@ -2164,28 +2151,21 @@ function App() {
                   Description
                   <input name="description" required className="dashboard-input" />
                 </label>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Purpose</p>
-                  <div className="flex flex-wrap gap-2">
-                    {(['business', 'business_portfolio', 'service'] as const).map((p, i) => (
-                      <label key={p} className={optionPillClass}>
-                        <input type="radio" name="purpose" value={p} defaultChecked={i === 0} className="sr-only" />
-                        {p.replace(/_/g, ' ')}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Payment type</p>
-                  <div className="flex gap-2">
-                    {(['one_time', 'repeat'] as const).map((p, i) => (
-                      <label key={p} className={optionPillClass}>
-                        <input type="radio" name="payment_type" value={p} defaultChecked={i === 0} className="sr-only" />
-                        {p.replace('_', ' ')}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Purpose
+                  <select name="purpose" defaultValue="business" className="dashboard-input">
+                    <option value="business">business</option>
+                    <option value="business_portfolio">business portfolio</option>
+                    <option value="service">service</option>
+                  </select>
+                </label>
+                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Payment type
+                  <select name="payment_type" defaultValue="one_time" className="dashboard-input">
+                    <option value="one_time">one time</option>
+                    <option value="repeat">repeat</option>
+                  </select>
+                </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Recurrence reference
                   <input name="recurrence_reference" className="dashboard-input" />
@@ -2296,17 +2276,13 @@ function App() {
                     className="dashboard-input"
                   />
                 </label>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Transaction type</p>
-                  <div className="flex gap-2">
-                    {(['cash_in', 'cash_out'] as const).map((t, i) => (
-                      <label key={t} className={optionPillClass}>
-                        <input type="radio" name="transaction_type" value={t} defaultChecked={i === 0} className="sr-only" />
-                        {t.replace('_', ' ')}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Transaction type
+                  <select name="transaction_type" defaultValue="cash_in" className="dashboard-input">
+                    <option value="cash_in">cash in</option>
+                    <option value="cash_out">cash out</option>
+                  </select>
+                </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transaction date
                   <input name="transaction_date" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
@@ -2436,17 +2412,22 @@ function App() {
                         Coffee type
                         <input list="coffee-reference-items" required value={item.coffee_type} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, coffee_type: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Size</p>
-                        <div className="flex flex-wrap gap-2">
+                      <label className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Size
+                        <select
+                          value={item.size}
+                          onChange={(event) =>
+                            setCoffeeItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? { ...entry, size: event.target.value as CoffeeDraftItem['size'] } : entry))
+                          }
+                          className="dashboard-input"
+                        >
                           {(['8oz', '9oz', '12oz', '16oz', '18oz'] as const).map((size) => (
-                            <label key={`${size}-${index}`} className={optionPillClass}>
-                              <input type="radio" name={`coffee-size-${index}`} value={size} checked={item.size === size} onChange={() => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, size } : en))} className="sr-only" />
+                            <option key={`${size}-${index}`} value={size}>
                               {size}
-                            </label>
+                            </option>
                           ))}
-                        </div>
-                      </div>
+                        </select>
+                      </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Add-on price
                         <input type="number" list="quick-number-values" required value={item.add_on_price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, add_on_price: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
@@ -2608,43 +2589,55 @@ function App() {
                           ))}
                         </select>
                       </div>
-                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Job type</p>
-                        <div className="flex flex-wrap gap-2">
-                          {(['xerox', 'document', 'other'] as const).map((jt) => (
-                            <label key={`${jt}-${index}`} className={optionPillClass}>
-                              <input type="radio" name={`print-job-${index}`} value={jt} checked={item.job_type === jt} onChange={() => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, job_type: jt } : en))} className="sr-only" />
-                              {jt}
-                            </label>
+                      <label className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Job type
+                        <select
+                          value={item.job_type}
+                          onChange={(event) =>
+                            setPrintItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? { ...entry, job_type: event.target.value } : entry))
+                          }
+                          className="dashboard-input"
+                        >
+                          {(['xerox', 'document', 'other'] as const).map((jobType) => (
+                            <option key={`${jobType}-${index}`} value={jobType}>
+                              {jobType}
+                            </option>
                           ))}
-                        </div>
-                      </div>
+                        </select>
+                      </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Description
                         <input list="print-reference-items" required value={item.description} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, description: e.target.value } : en))} className="dashboard-input" />
                       </label>
-                      <div className="grid gap-1.5">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Color mode</p>
-                        <div className="flex gap-2">
-                          {(['black', 'white'] as const).map((cm) => (
-                            <label key={`${cm}-${index}`} className={optionPillClass}>
-                              <input type="radio" name={`print-color-${index}`} value={cm} checked={item.color_mode === cm} onChange={() => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, color_mode: cm } : en))} className="sr-only" />
-                              {cm}
-                            </label>
+                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Color mode
+                        <select
+                          value={item.color_mode}
+                          onChange={(event) =>
+                            setPrintItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? { ...entry, color_mode: event.target.value as PrintDraftItem['color_mode'] } : entry))
+                          }
+                          className="dashboard-input"
+                        >
+                          <option value="black">black</option>
+                          <option value="white">white</option>
+                        </select>
+                      </label>
+                      <label className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Print size
+                        <select
+                          value={item.print_size}
+                          onChange={(event) =>
+                            setPrintItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? { ...entry, print_size: event.target.value } : entry))
+                          }
+                          className="dashboard-input"
+                        >
+                          {(['short', 'long', 'a4', 'legal'] as const).map((printSize) => (
+                            <option key={`${printSize}-${index}`} value={printSize}>
+                              {printSize}
+                            </option>
                           ))}
-                        </div>
-                      </div>
-                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Print size</p>
-                        <div className="flex flex-wrap gap-2">
-                          {(['short', 'long', 'a4', 'legal'] as const).map((ps) => (
-                            <label key={`${ps}-${index}`} className={optionPillClass}>
-                              <input type="radio" name={`print-size-${index}`} value={ps} checked={item.print_size === ps} onChange={() => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, print_size: ps } : en))} className="sr-only" />
-                              {ps}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
+                        </select>
+                      </label>
                       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Paper count
                         <input type="number" list="quick-number-values" required value={item.paper_count} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, paper_count: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
@@ -2848,17 +2841,22 @@ function App() {
                         Discount %
                         <input type="number" list="quick-number-values" required value={item.discount_percentage} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_percentage: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
                       </label>
-                      <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Discount type</p>
-                        <div className="flex flex-wrap gap-2">
-                          {(['family/friends/church-mem', 'promo', 'new-customer'] as const).map((dt) => (
-                            <label key={`${dt}-${index}`} className={optionPillClass}>
-                              <input type="radio" name={`ethereal-discount-${index}`} value={dt} checked={item.discount_type === dt} onChange={() => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_type: dt } : en))} className="sr-only" />
-                              {dt}
-                            </label>
+                      <label className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Discount type
+                        <select
+                          value={item.discount_type}
+                          onChange={(event) =>
+                            setEtherealItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? { ...entry, discount_type: event.target.value } : entry))
+                          }
+                          className="dashboard-input"
+                        >
+                          {(['family/friends/church-mem', 'promo', 'new-customer'] as const).map((discountType) => (
+                            <option key={`${discountType}-${index}`} value={discountType}>
+                              {discountType}
+                            </option>
                           ))}
-                        </div>
-                      </div>
+                        </select>
+                      </label>
                       <div className="md:col-span-2 lg:col-span-3">
                         <label className={optionPillClass}>
                           <input
@@ -2963,24 +2961,18 @@ function App() {
             <section className={cardClass}>
               <SectionHeading icon={FileText} title="Quick Report" description="On-screen sales snapshot by scope and period (no document export)." />
               <form onSubmit={submitSalesReport} className={formGridClass}>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Scope</p>
-                  <div className="flex gap-2">
-                    {(['portfolio', 'business'] as const).map((scope) => (
-                      <label key={scope} className={optionPillClass}>
-                        <input
-                          type="radio"
-                          name="scope"
-                          value={scope}
-                          checked={reportScope === scope}
-                          onChange={() => setReportScope(scope)}
-                          className="sr-only"
-                        />
-                        {scope === 'portfolio' ? 'Portfolio' : 'Specific business'}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Scope
+                  <select
+                    name="scope"
+                    value={reportScope}
+                    onChange={(event) => setReportScope(event.target.value as 'portfolio' | 'business')}
+                    className="dashboard-input"
+                  >
+                    <option value="portfolio">Portfolio</option>
+                    <option value="business">Specific business</option>
+                  </select>
+                </label>
                 {reportScope === 'business' && (
                   <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                     Business
@@ -2994,24 +2986,18 @@ function App() {
                     </select>
                   </label>
                 )}
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Period</p>
-                  <div className="flex gap-2">
-                    {(['today', 'date_range'] as const).map((period) => (
-                      <label key={period} className={optionPillClass}>
-                        <input
-                          type="radio"
-                          name="period"
-                          value={period}
-                          checked={reportPeriod === period}
-                          onChange={() => setReportPeriod(period)}
-                          className="sr-only"
-                        />
-                        {period === 'today' ? 'Today' : 'Date range'}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Period
+                  <select
+                    name="period"
+                    value={reportPeriod}
+                    onChange={(event) => setReportPeriod(event.target.value as 'today' | 'date_range')}
+                    className="dashboard-input"
+                  >
+                    <option value="today">Today</option>
+                    <option value="date_range">Date range</option>
+                  </select>
+                </label>
                 {reportPeriod === 'date_range' && (
                   <>
                     <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
@@ -3094,22 +3080,21 @@ function App() {
                   <input name="amount" type="number" list="quick-number-values" required value={portfolioAmountPreview} onChange={(e) => setPortfolioAmountPreview(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
                   <FieldErrorText messages={portfolioMovementFieldErrors.amount} />
                 </label>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>
-                  <div className="flex flex-wrap gap-2">
-                    {(['add', 'deduct', 'transfer', 'debt'] as const).map((d) => (
-                      <label key={d} className={optionPillClass}>
-                        <input type="radio" name="direction" value={d} checked={portfolioDirectionPreview === d} onChange={() => setPortfolioDirectionPreview(d)} className="sr-only" />
-                        {d === 'transfer'
-                          ? 'Transfer to business'
-                          : d === 'debt'
-                            ? 'Debt'
-                            : d.charAt(0).toUpperCase() + d.slice(1)}
-                      </label>
-                    ))}
-                  </div>
+                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Direction
+                  <select
+                    name="direction"
+                    value={portfolioDirectionPreview}
+                    onChange={(event) => setPortfolioDirectionPreview(event.target.value as 'add' | 'deduct' | 'transfer' | 'debt')}
+                    className="dashboard-input"
+                  >
+                    <option value="add">Add</option>
+                    <option value="deduct">Deduct</option>
+                    <option value="transfer">Transfer to business</option>
+                    <option value="debt">Debt</option>
+                  </select>
                   <FieldErrorText messages={portfolioMovementFieldErrors.direction} />
-                </div>
+                </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transfer target
                   <select name="target_business_id" defaultValue="" className="dashboard-input">
@@ -3235,18 +3220,19 @@ function App() {
                   <input name="amount" type="number" list="quick-number-values" required value={businessAmountPreview} onChange={(e) => setBusinessAmountPreview(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
                   <FieldErrorText messages={businessMovementFieldErrors.amount} />
                 </label>
-                <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Direction</p>
-                  <div className="flex flex-wrap gap-2">
-                    {([['add', 'Add from portfolio'], ['deduct', 'Deduct to portfolio']] as const).map(([val, label]) => (
-                      <label key={val} className={optionPillClass}>
-                        <input type="radio" name="direction" value={val} checked={businessDirectionPreview === val} onChange={() => setBusinessDirectionPreview(val)} className="sr-only" />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
+                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  Direction
+                  <select
+                    name="direction"
+                    value={businessDirectionPreview}
+                    onChange={(event) => setBusinessDirectionPreview(event.target.value as 'add' | 'deduct')}
+                    className="dashboard-input"
+                  >
+                    <option value="add">Add from portfolio</option>
+                    <option value="deduct">Deduct to portfolio</option>
+                  </select>
                   <FieldErrorText messages={businessMovementFieldErrors.direction} />
-                </div>
+                </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date
                   <input name="occurred_on" type="date" required className="dashboard-input" />
@@ -3335,13 +3321,29 @@ function App() {
                       onChange={(event) => setPdfReportScope(event.target.value as 'business' | 'all_businesses')}
                       className="dashboard-input"
                     >
-                      <option value="business">Selected business only</option>
-                      <option value="all_businesses">All businesses</option>
+                      <option value="all_businesses">All businesses (default)</option>
+                      <option value="business">Specific business</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                    Business
+                    <select
+                      name="business_id"
+                      value={pdfBusinessId ?? ''}
+                      onChange={(event) => setPdfBusinessId(event.target.value ? Number(event.target.value) : null)}
+                      className="dashboard-input"
+                    >
+                      <option value="">Select business</option>
+                      {businesses.map((business) => (
+                        <option key={business.id} value={business.id}>
+                          {business.name}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <button
                     type="submit"
-                    disabled={!selectedBusinessId || createSalesReportMutation.isPending}
+                    disabled={(pdfReportScope === 'business' && !pdfBusinessId) || createSalesReportMutation.isPending}
                     className="dashboard-button-primary"
                   >
                     {createSalesReportMutation.isPending ? 'Generating…' : 'Generate report version'}
@@ -3372,6 +3374,8 @@ function App() {
                         </div>
                         <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
                           Range {formatCompactDate(report.start_date)} – {formatCompactDate(report.end_date)}
+                          {' · '}
+                          Business: {report.metadata.business_name ?? 'N/A'}
                           {' · '}
                           {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
                           {' · '}
