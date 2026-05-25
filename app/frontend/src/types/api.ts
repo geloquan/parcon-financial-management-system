@@ -145,12 +145,16 @@ export type CapitalMovement = {
   id: number
   initiated_by_user_id: number
   amount: string
-  direction: 'add' | 'deduct' | 'transfer'
+  direction: 'add' | 'deduct' | 'transfer' | 'debt'
   source_type: 'portfolio' | 'business'
   source_business_id: number | null
   target_business_id: number | null
   occurred_on: string
   notes: string | null
+  remarks: string | null
+  debt_status: 'outstanding' | 'settled' | null
+  settled_at: string | null
+  settled_by_user_id: number | null
 }
 
 export type SalesReportTotals = {
@@ -218,6 +222,12 @@ export type CompensationPaymentHistoryItem = {
   finalized_at: string
   finalized_by_user_id: number
   finalized_by_name: string
+  business_deduction?: {
+    capital_movement_id: number
+    amount: string
+    occurred_on: string
+  }
+  /** @deprecated use business_deduction */
   portfolio_deduction?: {
     capital_movement_id: number
     amount: string

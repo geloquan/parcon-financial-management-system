@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Capital\SettlePortfolioDebtRequest;
 use App\Http\Requests\Capital\StoreBusinessCapitalMovementRequest;
 use App\Http\Requests\Capital\StorePortfolioCapitalMovementRequest;
 use App\Http\Resources\CapitalMovementResource;
 use App\Models\Business;
+use App\Models\CapitalMovement;
 use App\Services\CapitalMovementService;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -32,6 +34,13 @@ class CapitalMovementController extends Controller
     {
         return new CapitalMovementResource(
             $this->capitalMovementService->storeBusinessMovement($request->user(), $business, $request->validated())
+        );
+    }
+
+    public function settleDebt(SettlePortfolioDebtRequest $request, CapitalMovement $capitalMovement): CapitalMovementResource
+    {
+        return new CapitalMovementResource(
+            $this->capitalMovementService->settleDebt($capitalMovement, $request->user())
         );
     }
 }

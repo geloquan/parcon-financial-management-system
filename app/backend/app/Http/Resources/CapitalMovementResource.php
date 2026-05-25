@@ -20,6 +20,10 @@ class CapitalMovementResource extends JsonResource
             'target_business_id' => $this->target_business_id,
             'occurred_on' => $this->occurred_on?->toDateString(),
             'notes' => $this->notes,
+            'remarks' => $this->remarks,
+            'debt_status' => $this->debt_status,
+            'settled_at' => $this->settled_at?->toIso8601String(),
+            'settled_by_user_id' => $this->settled_by_user_id,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

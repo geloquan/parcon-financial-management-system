@@ -19,10 +19,15 @@ class CapitalMovement extends Model
         'target_business_id',
         'occurred_on',
         'notes',
+        'remarks',
+        'debt_status',
+        'settled_at',
+        'settled_by_user_id',
     ];
 
     protected $casts = [
         'occurred_on' => 'date',
+        'settled_at' => 'datetime',
     ];
 
     public function initiatedByUser(): BelongsTo
@@ -38,5 +43,10 @@ class CapitalMovement extends Model
     public function targetBusiness(): BelongsTo
     {
         return $this->belongsTo(Business::class, 'target_business_id');
+    }
+
+    public function settledByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'settled_by_user_id');
     }
 }

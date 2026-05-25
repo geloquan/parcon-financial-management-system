@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Business;
+use App\Models\CapitalMovement;
 use App\Models\CoffeeSale;
 use App\Models\CompensationRun;
 use App\Models\EtherealSale;
@@ -224,7 +225,8 @@ class SalesReportService
     {
         $includeSales = in_array($reportType, ['sales', 'combined'], true);
         $includeCompensation = in_array($reportType, ['compensation', 'combined'], true);
-        $targetBusiness = $reportScope === 'all_businesses' ? null : $business;
+        $isAllBusinesses = $reportScope === 'all_businesses';
+        $targetBusiness = $isAllBusinesses ? null : $business;
 
         $salesDetails = $includeSales
             ? $this->collectSalesDetails($targetBusiness, $startDate, $endDate)
@@ -264,6 +266,10 @@ class SalesReportService
                 'entries' => [],
             ];
 
+        $capitalFlowDetails = $isAllBusinesses
+            ? $this->collectCapitalFlowDetails($startDate, $endDate)
+            : ['entries' => [], 'totals' => []];
+
         return [
             'report_type' => $reportType,
             'report_scope' => $reportScope,
@@ -278,6 +284,8 @@ class SalesReportService
             'compensation_totals' => $compensationDetails['totals'],
             'compensation_counts' => $compensationDetails['counts'],
             'compensation_entries' => $compensationDetails['entries'],
+            'capital_flow_entries' => $capitalFlowDetails['entries'],
+            'capital_flow_totals' => $capitalFlowDetails['totals'],
         ];
     }
 
@@ -521,6 +529,84 @@ class SalesReportService
                 'runs_finalized' => $runs->where('payment_status', 'finalized')->count(),
             ],
             'entries' => $entries,
+        ];
+    }
+
+    private function collectCapitalFlowDetails(Carbon $startDate, Carbon $endDate): array
+    {
+        $movements = CapitalMovement::query()
+            ->with(['initiatedByUser:id,name,username', 'sourceBusiness:id,name', 'targetBusiness:id,name', 'settledByUser:id,name'])
+            ->whereBetween('occurred_on', [$startDate->toDateString(), $endDate->toDateString()])
+            ->orderBy('occurred_on')
+            ->orderBy('id')
+            ->get();
+
+        $entries = $movements->map(function (CapitalMovement $movement): array {
+            $initiatedBy = $movement->initiatedByUser;
+            $sourceBusiness = $movement->sourceBusiness;
+            $targetBusiness = $movement->targetBusiness;
+            $settledBy = $movement->settledByUser;
+
+            $who = $initiatedBy ? sprintf('%s (@%s)', $initiatedBy->name, $initiatedBy->username) : 'Unknown';
+
+            $what = match ($movement->direction) {
+                'add' => 'Capital Added',
+                'deduct' => 'Capital Deducted',
+                'transfer' => 'Capital Transfer',
+                'debt' => 'Debt Recorded',
+                default => ucfirst((string) $movement->direction),
+            };
+
+            if ($movement->direction === 'transfer') {
+                $where = sprintf(
+                    'Portfolio → %s',
+                    $targetBusiness ? $targetBusiness->name : sprintf('Business #%d', $movement->target_business_id)
+                );
+            } elseif ($movement->source_type === 'business') {
+                $where = $sourceBusiness
+                    ? sprintf('Business: %s', $sourceBusiness->name)
+                    : sprintf('Business #%d', $movement->source_business_id);
+            } else {
+                $where = 'Portfolio';
+            }
+
+            $entry = [
+                'movement_id' => $movement->id,
+                'direction' => $movement->direction,
+                'source_type' => $movement->source_type,
+                'amount' => round((float) $movement->amount, 2),
+                'occurred_on' => $movement->occurred_on?->toDateString(),
+                'who' => $who,
+                'what' => $what,
+                'where' => $where,
+                'notes' => $movement->notes,
+                'remarks' => $movement->remarks,
+                'debt_status' => $movement->debt_status,
+                'settled_at' => $movement->settled_at?->toDateString(),
+                'settled_by' => $settledBy ? sprintf('%s (@%s)', $settledBy->name, $settledBy->username) : null,
+            ];
+
+            return $entry;
+        })->values()->all();
+
+        $portfolioInflows = round((float) $movements->where('source_type', 'portfolio')->whereIn('direction', ['add'])->sum('amount'), 2);
+        $portfolioOutflows = round((float) $movements->where('source_type', 'portfolio')->whereIn('direction', ['deduct', 'transfer'])->sum('amount'), 2);
+        $businessInflows = round((float) $movements->where('source_type', 'business')->where('direction', 'add')->sum('amount'), 2);
+        $businessOutflows = round((float) $movements->where('source_type', 'business')->where('direction', 'deduct')->sum('amount'), 2);
+        $totalDebtsOutstanding = round((float) $movements->where('direction', 'debt')->where('debt_status', 'outstanding')->sum('amount'), 2);
+        $totalDebtsSettled = round((float) $movements->where('direction', 'debt')->where('debt_status', 'settled')->sum('amount'), 2);
+
+        return [
+            'entries' => $entries,
+            'totals' => [
+                'portfolio_inflows' => $portfolioInflows,
+                'portfolio_outflows' => $portfolioOutflows,
+                'business_inflows' => $businessInflows,
+                'business_outflows' => $businessOutflows,
+                'debts_outstanding' => $totalDebtsOutstanding,
+                'debts_settled' => $totalDebtsSettled,
+                'total_movements' => count($entries),
+            ],
         ];
     }
 

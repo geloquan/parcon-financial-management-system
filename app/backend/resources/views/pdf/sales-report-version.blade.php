@@ -118,12 +118,15 @@
   $compensationTotals = $details['compensation_totals'] ?? [];
   $compensationCounts = $details['compensation_counts'] ?? [];
   $compensationEntries = $details['compensation_entries'] ?? [];
+  $capitalFlowEntries = $details['capital_flow_entries'] ?? [];
+  $capitalFlowTotals = $details['capital_flow_totals'] ?? [];
+  $reportScope = $details['report_scope'] ?? ($metadata['report_scope'] ?? 'business');
 @endphp
 
 <h1>{{ $report->document_title }}</h1>
 <div class="meta-grid">
   <p><strong>Business:</strong> {{ $metadata['business_name'] ?? 'N/A' }}</p>
-  <p><strong>Scope:</strong> {{ ucfirst(str_replace('_', ' ', $details['report_scope'] ?? ($metadata['report_scope'] ?? 'business'))) }}</p>
+  <p><strong>Scope:</strong> {{ ucfirst(str_replace('_', ' ', $reportScope)) }}</p>
   <p><strong>Report Type:</strong> {{ ucfirst($reportType) }}</p>
   <p><strong>Version:</strong> {{ $report->version }}</p>
   <p><strong>Date Range:</strong>
@@ -374,6 +377,115 @@
     @endif
   </div>
 @endif
+
+@if($reportScope === 'all_businesses' && (count($capitalFlowEntries) > 0 || !empty($capitalFlowTotals)))
+  <div class="section">
+    <h2>Capital &amp; Financial Flows</h2>
+    <p class="muted tiny">All portfolio and business money movements in the selected date range, including debts and settlements.</p>
+
+    @if(!empty($capitalFlowTotals))
+      <table>
+        <thead>
+        <tr>
+          <th>Flow Type</th>
+          <th class="num">Amount</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td>Portfolio Inflows (Add)</td>
+          <td class="num profit">{{ number_format((float) ($capitalFlowTotals['portfolio_inflows'] ?? 0), 2) }}</td>
+        </tr>
+        <tr>
+          <td>Portfolio Outflows (Deduct / Transfer)</td>
+          <td class="num loss">{{ number_format((float) ($capitalFlowTotals['portfolio_outflows'] ?? 0), 2) }}</td>
+        </tr>
+        <tr>
+          <td>Business Inflows (Add)</td>
+          <td class="num profit">{{ number_format((float) ($capitalFlowTotals['business_inflows'] ?? 0), 2) }}</td>
+        </tr>
+        <tr>
+          <td>Business Outflows (Deduct)</td>
+          <td class="num loss">{{ number_format((float) ($capitalFlowTotals['business_outflows'] ?? 0), 2) }}</td>
+        </tr>
+        <tr>
+          <td>Debts Outstanding</td>
+          <td class="num" style="color:#633806;">{{ number_format((float) ($capitalFlowTotals['debts_outstanding'] ?? 0), 2) }}</td>
+        </tr>
+        <tr>
+          <td>Debts Settled</td>
+          <td class="num profit">{{ number_format((float) ($capitalFlowTotals['debts_settled'] ?? 0), 2) }}</td>
+        </tr>
+        <tr>
+          <td><strong>Total Movements</strong></td>
+          <td class="num"><strong>{{ $capitalFlowTotals['total_movements'] ?? 0 }}</strong></td>
+        </tr>
+        </tbody>
+      </table>
+    @endif
+
+    <h3>Capital Flow Detail</h3>
+    @if(count($capitalFlowEntries) === 0)
+      <p class="muted">No capital movements in the selected range.</p>
+    @else
+      <table>
+        <thead>
+        <tr>
+          <th>Date</th>
+          <th>What / Where</th>
+          <th>Who</th>
+          <th class="num">Amount</th>
+          <th>Notes / Remarks</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach($capitalFlowEntries as $flow)
+          @php
+            $isDebt = ($flow['direction'] ?? '') === 'debt';
+            $isSettled = $isDebt && ($flow['debt_status'] ?? '') === 'settled';
+            $isOutstanding = $isDebt && ($flow['debt_status'] ?? '') === 'outstanding';
+            $amountClass = in_array($flow['direction'] ?? '', ['add']) ? 'profit' : (in_array($flow['direction'] ?? '', ['deduct', 'transfer']) ? 'loss' : '');
+            if ($isOutstanding) $amountClass = 'loss';
+            if ($isSettled) $amountClass = 'profit';
+          @endphp
+          <tr>
+            <td class="tiny">{{ $flow['occurred_on'] ?? '—' }}</td>
+            <td class="tight">
+              <p><strong>{{ $flow['what'] ?? '—' }}</strong></p>
+              <p class="tiny muted">{{ $flow['where'] ?? '—' }}</p>
+              @if($isDebt)
+                <p class="tiny" style="color:{{ $isSettled ? '#27500A' : '#633806' }};">
+                  {{ $isSettled ? '✔ Settled' : '⚠ Outstanding' }}
+                  @if($isSettled && !empty($flow['settled_at']))
+                    on {{ $flow['settled_at'] }}
+                    @if(!empty($flow['settled_by']))
+                      by {{ $flow['settled_by'] }}
+                    @endif
+                  @endif
+                </p>
+              @endif
+            </td>
+            <td class="tiny">{{ $flow['who'] ?? '—' }}</td>
+            <td class="num {{ $amountClass }}">{{ number_format((float) ($flow['amount'] ?? 0), 2) }}</td>
+            <td class="tight tiny">
+              @if(!empty($flow['notes']))
+                <p>{{ $flow['notes'] }}</p>
+              @endif
+              @if(!empty($flow['remarks']))
+                <p style="color:#852030;"><em>Remarks: {{ $flow['remarks'] }}</em></p>
+              @endif
+              @if(empty($flow['notes']) && empty($flow['remarks']))
+                <span class="muted">—</span>
+              @endif
+            </td>
+          </tr>
+        @endforeach
+        </tbody>
+      </table>
+    @endif
+  </div>
+@endif
+
 {{-- Page number footer, rendered by dompdf on every page --}}
 <style>
   /* push page content up to leave room for footer */

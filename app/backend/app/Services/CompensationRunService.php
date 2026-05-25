@@ -11,12 +11,18 @@ use App\Models\Staff;
 use App\Models\StaffCashAdvance;
 use App\Models\StaffDayOff;
 use App\Models\User;
+use App\Services\CapitalMovementService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CompensationRunService
 {
+    public function __construct(private readonly CapitalMovementService $capitalMovementService)
+    {
+    }
+
     public function paginate(Business $business): LengthAwarePaginator
     {
         return CompensationRun::query()
@@ -223,12 +229,34 @@ class CompensationRunService
             }
 
             $history = $run->payment_history ?? [];
-            $portfolioDeduction = CapitalMovement::query()->create([
+
+            $business = Business::query()->findOrFail($run->business_id);
+            $businessBalance = $this->capitalMovementService->getBusinessBalance($business);
+            $netPay = round((float) $run->net_pay, 2);
+
+            if ($businessBalance < $netPay) {
+                $needed = round($netPay - $businessBalance, 2);
+                throw ValidationException::withMessages([
+                    'business_balance' => [
+                        sprintf(
+                            'Insufficient business funds. Current balance: ₱%s. Required: ₱%s. Please add at least ₱%s to the business before finalizing compensation.',
+                            number_format($businessBalance, 2),
+                            number_format($netPay, 2),
+                            number_format($needed, 2)
+                        ),
+                    ],
+                    'recommended_top_up' => [$needed],
+                    'current_balance' => [$businessBalance],
+                    'required_amount' => [$netPay],
+                ]);
+            }
+
+            $businessDeduction = CapitalMovement::query()->create([
                 'initiated_by_user_id' => $user->id,
-                'amount' => round((float) $run->net_pay, 2),
+                'amount' => $netPay,
                 'direction' => 'deduct',
-                'source_type' => 'portfolio',
-                'source_business_id' => null,
+                'source_type' => 'business',
+                'source_business_id' => $run->business_id,
                 'target_business_id' => null,
                 'occurred_on' => now()->toDateString(),
                 'notes' => sprintf(
@@ -243,10 +271,10 @@ class CompensationRunService
                 'finalized_by_user_id' => $user->id,
                 'finalized_by_name' => $user->name,
                 'settled_deductions' => $settledDeductions,
-                'portfolio_deduction' => [
-                    'capital_movement_id' => $portfolioDeduction->id,
-                    'amount' => $portfolioDeduction->amount,
-                    'occurred_on' => $portfolioDeduction->occurred_on?->toDateString(),
+                'business_deduction' => [
+                    'capital_movement_id' => $businessDeduction->id,
+                    'amount' => $businessDeduction->amount,
+                    'occurred_on' => $businessDeduction->occurred_on?->toDateString(),
                 ],
             ];
 
