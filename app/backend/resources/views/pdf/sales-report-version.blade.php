@@ -180,7 +180,11 @@
 
 <h1>{{ $report->document_title }}</h1>
 <div class="meta-grid">
-  <p><strong>Business:</strong> {{ $metadata['business_name'] ?? 'N/A' }}</p>
+  @if($reportScope === 'all_businesses')
+    <p><strong>Businesses:</strong> All Businesses</p>
+  @else
+    <p><strong>Business:</strong> {{ $metadata['business_name'] ?? 'N/A' }}</p>
+  @endif
   <p><strong>Scope:</strong> {{ ucfirst(str_replace('_', ' ', $reportScope)) }}</p>
   <p><strong>Report Type:</strong> {{ ucfirst($reportType) }}</p>
   <p><strong>Version:</strong> {{ $report->version }}</p>

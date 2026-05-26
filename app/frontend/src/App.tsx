@@ -2429,8 +2429,10 @@ function App() {
                       const selectedItem = selectedId ? referenceItemById.get(selectedId) : undefined
                       setGcashReferenceItemId(selectedId)
                       if (selectedItem) {
+                        const copiedSalesAmount = toNonNegativeInputValue(String(parseAmount(selectedItem.price)))
                         setGcashRecipient(selectedItem.name)
-                        setGcashSalesAmount(String(parseAmount(selectedItem.price)))
+                        setGcashSalesAmount(copiedSalesAmount)
+                        setGcashChargedAmount(copiedSalesAmount)
                       }
                     }}
                     className="dashboard-input"
@@ -2458,7 +2460,23 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Sales amount
-                  <input name="sales_amount" type="number" list="quick-number-values" required value={gcashSalesAmount} onChange={(e) => setGcashSalesAmount(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
+                  <input
+                    name="sales_amount"
+                    type="number"
+                    list="quick-number-values"
+                    required
+                    value={gcashSalesAmount}
+                    onChange={(e) => {
+                      const nextSalesAmount = toNonNegativeInputValue(e.target.value)
+                      setGcashSalesAmount(nextSalesAmount)
+                      setGcashChargedAmount((previousChargedAmount) => (
+                        previousChargedAmount.trim() === '' || previousChargedAmount === gcashSalesAmount
+                          ? nextSalesAmount
+                          : previousChargedAmount
+                      ))
+                    }}
+                    className="dashboard-input"
+                  />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3">
                   <label className={optionPillClass}>
@@ -2500,7 +2518,7 @@ function App() {
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transaction date
-                  <input name="transaction_date" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
+                  <input name="transaction_date" type="datetime-local" max={dateInputMax} defaultValue={dateInputMax} required className="dashboard-input" />
                 </label>
                 <button type="submit" className="dashboard-button-primary">
                   {createGcashMutation.isPending ? 'Adding…' : 'Add GCash entry'}

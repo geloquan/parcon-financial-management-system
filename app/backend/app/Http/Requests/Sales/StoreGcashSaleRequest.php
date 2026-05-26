@@ -19,10 +19,6 @@ class StoreGcashSaleRequest extends FormRequest
     {
         $transactionDateRules = ['required', 'date', 'before_or_equal:now'];
 
-        if (! ($this->user()?->hasAnyRole(['admin', 'owner']) ?? false)) {
-            $transactionDateRules[] = 'after_or_equal:today';
-        }
-
         return [
             'transaction_recipient' => ['nullable', 'string', 'max:255'],
             'reference_item_name' => ['nullable', 'string', 'max:255'],
