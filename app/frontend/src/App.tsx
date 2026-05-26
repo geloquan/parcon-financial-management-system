@@ -994,7 +994,7 @@ function App() {
     const form = e.currentTarget
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-      const f = new FormData(form)
+    const f = new FormData(form)
     await createExpenseMutation.mutateAsync({
       date_issued: String(f.get('date_issued') ?? ''),
       amount: parseNonNegativeAmount(f.get('amount')),
@@ -1088,7 +1088,7 @@ function App() {
     const form = e.currentTarget
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-      const f = new FormData(form)
+    const f = new FormData(form)
     const selectedReferenceItem = gcashReferenceItemId ? referenceItemById.get(gcashReferenceItemId) : undefined
     await createGcashMutation.mutateAsync({
       transaction_recipient: gcashRecipient.trim() || undefined,
@@ -1142,9 +1142,9 @@ function App() {
       return {
         ...(selectedReferenceItem
           ? {
-              reference_item_name: selectedReferenceItem.name,
-              reference_item_original_price: parseAmount(selectedReferenceItem.price),
-            }
+            reference_item_name: selectedReferenceItem.name,
+            reference_item_original_price: parseAmount(selectedReferenceItem.price),
+          }
           : {}),
         price: parseNonNegativeAmount(item.price),
         coffee_type: item.coffee_type,
@@ -1189,9 +1189,9 @@ function App() {
       return {
         ...(selectedReferenceItem
           ? {
-              reference_item_name: selectedReferenceItem.name,
-              reference_item_original_price: parseAmount(selectedReferenceItem.price),
-            }
+            reference_item_name: selectedReferenceItem.name,
+            reference_item_original_price: parseAmount(selectedReferenceItem.price),
+          }
           : {}),
         job_type: item.job_type,
         description: item.description,
@@ -1237,9 +1237,9 @@ function App() {
       return {
         ...(selectedReferenceItem
           ? {
-              reference_item_name: selectedReferenceItem.name,
-              reference_item_original_price: parseAmount(selectedReferenceItem.price),
-            }
+            reference_item_name: selectedReferenceItem.name,
+            reference_item_original_price: parseAmount(selectedReferenceItem.price),
+          }
           : {}),
         staff_ids: item.staff_ids,
         service_name: item.service_name,
@@ -1284,7 +1284,7 @@ function App() {
     const form = e.currentTarget            // ← capture BEFORE any await
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-      const f = new FormData(form)
+    const f = new FormData(form)
     const direction = String(f.get('direction') ?? 'add') as 'add' | 'deduct' | 'transfer' | 'debt'
     const targetBusinessId = Number(f.get('target_business_id') ?? 0)
     await createPortfolioCapitalMutation.mutateAsync({
@@ -1633,41 +1633,41 @@ function App() {
           {/* ── KPI stat cards ────────────────────────────────────────── */}
           {tab === 'overview' && (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {/* Active business */}
-            <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              {/* Active business */}
+              <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--burgundy-50)]">
                 <Building2 className="h-5 w-5 text-[var(--burgundy-600)]" />
               </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Business</p>
-                <p className="truncate text-base font-semibold">{selectedBusinessName ?? '—'}</p>
-              </div>
-            </article>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Business</p>
+                  <p className="truncate text-base font-semibold">{selectedBusinessName ?? '—'}</p>
+                </div>
+              </article>
 
-            {/* Sales total */}
-            <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              {/* Sales total */}
+              <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--teal-light)]">
                 <TrendingUp className="h-5 w-5 text-[var(--teal-dark)]" />
               </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Sales total</p>
-                <p className="truncate text-base font-semibold text-[var(--accent-gold)]">{formatCurrency(salesTotal)}</p>
-              </div>
-            </article>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Sales total</p>
+                  <p className="truncate text-base font-semibold text-[var(--accent-gold)]">{formatCurrency(salesTotal)}</p>
+                </div>
+              </article>
 
-            {/* Expenses total */}
-            <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              {/* Expenses total */}
+              <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--status-danger-bg)]">
                 <TrendingDown className="h-5 w-5 text-[var(--status-danger-text)]" />
               </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Expenses</p>
-                <p className="truncate text-base font-semibold text-[var(--status-danger-text)]">{formatCurrency(expenseTotal)}</p>
-              </div>
-            </article>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Expenses</p>
+                  <p className="truncate text-base font-semibold text-[var(--status-danger-text)]">{formatCurrency(expenseTotal)}</p>
+                </div>
+              </article>
 
-            {/* Profit snapshot */}
-            <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              {/* Profit snapshot */}
+              <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                   profitSnapshot >= 0 ? 'bg-[var(--status-success-bg)]' : 'bg-[var(--status-danger-bg)]'
@@ -1677,17 +1677,17 @@ function App() {
                   className={`h-5 w-5 ${profitSnapshot >= 0 ? 'text-[var(--status-success-text)]' : 'text-[var(--status-danger-text)]'}`}
                 />
               </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Profit</p>
-                <p
-                  className={`truncate text-base font-semibold ${
-                    profitSnapshot >= 0 ? 'text-[var(--teal-mid)]' : 'text-[var(--status-danger-text)]'
-                  }`}
-                >
-                  {formatCurrency(profitSnapshot)}
-                </p>
-              </div>
-            </article>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Profit</p>
+                  <p
+                    className={`truncate text-base font-semibold ${
+                      profitSnapshot >= 0 ? 'text-[var(--teal-mid)]' : 'text-[var(--status-danger-text)]'
+                    }`}
+                  >
+                    {formatCurrency(profitSnapshot)}
+                  </p>
+                </div>
+              </article>
             </div>
           )}
 
@@ -1884,7 +1884,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => markStaffInactive(staff.id)}
-                             
+
                               className="rounded-md bg-[var(--status-warning-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]"
                             >
                               Inactive
@@ -1892,7 +1892,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => endStaffEmployment(staff.id)}
-                             
+
                               className="rounded-md bg-[var(--status-danger-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger-text)]"
                             >
                               End
@@ -1900,7 +1900,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => voidStaffRecord(staff.id)}
-                             
+
                               className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
                             >
                               Void
@@ -1946,7 +1946,7 @@ function App() {
                 </label>
                 <button
                   type="submit"
-                 
+
                   className="dashboard-button-primary"
                 >
                   {createStaffDayOffMutation.isPending ? 'Saving…' : 'Mark day-off'}
@@ -1976,7 +1976,7 @@ function App() {
                 </label>
                 <button
                   type="submit"
-                 
+
                   className="dashboard-button-primary"
                 >
                   {createStaffAbsenceMutation.isPending ? 'Saving…' : 'Mark absent'}
@@ -2081,7 +2081,7 @@ function App() {
                 )}
                 <button
                   type="submit"
-                 
+
                   className="dashboard-button-primary"
                 >
                   {createCompensationRunMutation.isPending ? 'Computing…' : 'Run payroll'}
@@ -2132,7 +2132,7 @@ function App() {
                         <button
                           type="button"
                           onClick={() => finalizeCompensationRun(run.id)}
-                         
+
                           className="mt-2 rounded-lg bg-[var(--burgundy-600)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--burgundy-800)]"
                         >
                           {finalizeCompensationRunMutation.isPending ? 'Finalizing…' : 'Finalize payout'}
@@ -2239,7 +2239,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => void saveReferenceItemEdit()}
-                             
+
                               className="dashboard-button-primary"
                             >
                               {updateReferenceItemMutation.isPending ? 'Saving…' : 'Save'}
@@ -2276,7 +2276,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => void removeReferenceItem(item.id)}
-                             
+
                               className="rounded-md border border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger-text)]"
                             >
                               Remove
@@ -2493,7 +2493,7 @@ function App() {
                         <button
                           type="button"
                           onClick={() => voidGcashSale(sale.id)}
-                         
+
                           className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
                         >
                           Void
@@ -2689,7 +2689,7 @@ function App() {
                         <button
                           type="button"
                           onClick={() => voidCoffeeSale(sale.id)}
-                         
+
                           className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
                         >
                           Void
@@ -2897,7 +2897,7 @@ function App() {
                         <button
                           type="button"
                           onClick={() => voidPrintSale(sale.id)}
-                         
+
                           className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
                         >
                           Void
@@ -3109,7 +3109,7 @@ function App() {
                         <button
                           type="button"
                           onClick={() => voidEtherealSale(sale.id)}
-                         
+
                           className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
                         >
                           Void
@@ -3349,7 +3349,7 @@ function App() {
                           <button
                             type="button"
                             onClick={() => settleDebtMovement(movement.id)}
-                           
+
                             className="dashboard-button-secondary"
                           >
                             {settlePortfolioDebtMutation.isPending ? 'Settling…' : 'Settle'}
@@ -3509,7 +3509,7 @@ function App() {
                   </label>
                   <button
                     type="submit"
-                   
+
                     className="dashboard-button-primary"
                   >
                     {createSalesReportMutation.isPending ? 'Generating…' : 'Generate report version'}
@@ -3532,7 +3532,7 @@ function App() {
                           <button
                             type="button"
                             onClick={() => triggerDownloadSalesReport(report)}
-                           
+
                             className="dashboard-button-secondary"
                           >
                             Download PDF
