@@ -360,6 +360,42 @@
     @endif
   </div>
 
+  @if($includeTargetProgress)
+    <div class="section">
+      <h2>Sales Target Progress</h2>
+      @if(count($salesTargetProgress) === 0)
+        <p class="muted">No sales target progress data available.</p>
+      @else
+        <table>
+          <thead>
+          <tr>
+            <th>Business</th>
+            <th class="num">Target</th>
+            <th class="num">Sales</th>
+            <th class="num">Profit</th>
+            <th class="num">Progress</th>
+            <th class="num">Days Rendered</th>
+            <th class="num">Days Left</th>
+          </tr>
+          </thead>
+          <tbody>
+          @foreach($salesTargetProgress as $targetRow)
+            <tr>
+              <td>{{ $targetRow['business_name'] ?? 'Business' }}</td>
+              <td class="num">{{ number_format((float) ($targetRow['sales_target'] ?? 0), 2) }}</td>
+              <td class="num">{{ number_format((float) ($targetRow['total_sales'] ?? 0), 2) }}</td>
+              <td class="num profit">{{ number_format((float) ($targetRow['total_profit'] ?? 0), 2) }}</td>
+              <td class="num">{{ number_format((float) ($targetRow['progress_percent'] ?? 0), 2) }}%</td>
+              <td class="num">{{ $targetRow['days_rendered'] ?? 0 }}/{{ $targetRow['days_total'] ?? 0 }}</td>
+              <td class="num">{{ $targetRow['days_left'] ?? 0 }}</td>
+            </tr>
+          @endforeach
+          </tbody>
+        </table>
+      @endif
+    </div>
+  @endif
+
   <div class="section">
     <h3>Sales Detail Entries</h3>
     @if(count($salesEntries) === 0)
@@ -427,42 +463,6 @@
                 <div class="tiny" style="font-weight:400;">
                   {{ $amountCharged < $originalPrice ? '▼' : '▲' }}
                   {{ number_format(abs($amountCharged - $originalPrice), 2) }}
-                </div>
-              @endif
-
-              @if($includeTargetProgress)
-                <div class="section">
-                  <h2>Sales Target Progress</h2>
-                  @if(count($salesTargetProgress) === 0)
-                    <p class="muted">No sales target progress data available.</p>
-                  @else
-                    <table>
-                      <thead>
-                      <tr>
-                        <th>Business</th>
-                        <th class="num">Target</th>
-                        <th class="num">Sales</th>
-                        <th class="num">Profit</th>
-                        <th class="num">Progress</th>
-                        <th class="num">Days Rendered</th>
-                        <th class="num">Days Left</th>
-                      </tr>
-                      </thead>
-                      <tbody>
-                      @foreach($salesTargetProgress as $targetRow)
-                        <tr>
-                          <td>{{ $targetRow['business_name'] ?? 'Business' }}</td>
-                          <td class="num">{{ number_format((float) ($targetRow['sales_target'] ?? 0), 2) }}</td>
-                          <td class="num">{{ number_format((float) ($targetRow['total_sales'] ?? 0), 2) }}</td>
-                          <td class="num profit">{{ number_format((float) ($targetRow['total_profit'] ?? 0), 2) }}</td>
-                          <td class="num">{{ number_format((float) ($targetRow['progress_percent'] ?? 0), 2) }}%</td>
-                          <td class="num">{{ $targetRow['days_rendered'] ?? 0 }}/{{ $targetRow['days_total'] ?? 0 }}</td>
-                          <td class="num">{{ $targetRow['days_left'] ?? 0 }}</td>
-                        </tr>
-                      @endforeach
-                      </tbody>
-                    </table>
-                  @endif
                 </div>
               @endif
             </td>
