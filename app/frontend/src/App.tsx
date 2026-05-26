@@ -1131,7 +1131,6 @@ function App() {
 
   const submitGcash = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!requireBusinessSelection('add GCash sale')) return
     if (createGcashMutation.isPending) {
       showActionGuidance('GCash sale creation is already processing. Please wait.')
       return
