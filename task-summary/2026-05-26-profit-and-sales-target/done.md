@@ -1,0 +1,22 @@
+# Done
+
+- Added backend `sales_target` setting for businesses:
+  - new migration `2026_05_26_000030_add_sales_target_to_businesses_table.php`
+  - `Business` model fillable update
+  - business store/update FormRequest validation update
+  - `BusinessResource` response now includes `sales_target`
+- Added frontend support for updating per-business sales target in the **Businesses** tab (admin/owner only).
+- Fixed and expanded sales profit reporting:
+  - per-module profit totals in quick sales report API response
+  - per-business profit summary in quick sales report API response
+  - daily profit summary in quick sales report API response
+  - corrected sales report details aggregation so non-GCash modules also contribute profit
+- Added sales target progress metrics to reports:
+  - days total, days rendered, days left
+  - target, sales achieved, remaining target, progress %
+- Added new optional report section: `sales_target_progress`.
+- Updated PDF report template to render:
+  - daily sales/profit table
+  - optional sales target progress table
+- Updated frontend/API TypeScript contracts to match the new backend response fields and new include section.
+- Added overall profit badge to generated PDF report version cards.

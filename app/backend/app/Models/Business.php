@@ -14,6 +14,7 @@ class Business extends Model
         'name',
         'slug',
         'description',
+        'sales_target',
     ];
 
     public function staff(): HasMany

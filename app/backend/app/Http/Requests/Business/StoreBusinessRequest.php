@@ -17,6 +17,7 @@ class StoreBusinessRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:businesses,slug'],
             'description' => ['nullable', 'string'],
+            'sales_target' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

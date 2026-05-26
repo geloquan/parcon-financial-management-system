@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useRef, useState, type FormEvent, useCallback} from 'react'
 import {useLogin, useLogout, useMe} from './hooks/use-auth'
-import {useBusinesses} from './hooks/use-businesses'
+import {useBusinesses, useUpdateBusiness} from './hooks/use-businesses'
 import {useCreateExpense, useExpenses} from './hooks/use-expenses'
 import {useCreateGcashSale, useDeleteGcashSale, useGcashSales} from './hooks/use-gcash-sales'
 import {useCreateCoffeeSale, useDeleteCoffeeSale, useCoffeeSales} from './hooks/use-coffee-sales'
@@ -359,6 +359,7 @@ type ReportIncludeSection =
   | 'sales_coffee'
   | 'sales_print'
   | 'sales_ethereal'
+  | 'sales_target_progress'
   | 'portfolio_business_money'
 
 const reportIncludeSectionOptions: Array<{ value: ReportIncludeSection; label: string }> = [
@@ -371,11 +372,12 @@ const reportIncludeSectionOptions: Array<{ value: ReportIncludeSection; label: s
   {value: 'sales_coffee', label: 'Sales: Coffee'},
   {value: 'sales_print', label: 'Sales: Print'},
   {value: 'sales_ethereal', label: 'Sales: Ethereal'},
+  {value: 'sales_target_progress', label: 'Sales Target Progress'},
   {value: 'portfolio_business_money', label: 'Portfolio/Business Money'},
 ]
 
 const defaultReportIncludeSections = reportIncludeSectionOptions.map((option) => option.value)
-const salesIncludeSections: ReportIncludeSection[] = ['sales_gcash', 'sales_coffee', 'sales_print', 'sales_ethereal']
+const salesIncludeSections: ReportIncludeSection[] = ['sales_gcash', 'sales_coffee', 'sales_print', 'sales_ethereal', 'sales_target_progress']
 
 // Section heading inside a card
 function SectionHeading({
@@ -469,6 +471,7 @@ function App() {
   const [actionGuidance, setActionGuidance] = useState<string | null>(null)
 
   const [latestSalesReport, setLatestSalesReport] = useState<SalesReport | null>(null)
+  const [businessTargetDrafts, setBusinessTargetDrafts] = useState<Record<number, string>>({})
   const [editingReferenceItemId, setEditingReferenceItemId] = useState<number | null>(null)
   const [editingReferenceItemForm, setEditingReferenceItemForm] = useState<ReferenceItemFormState>(createReferenceItemFormState())
   const [moneyReauthModalOpen, setMoneyReauthModalOpen] = useState(false)
@@ -573,8 +576,17 @@ function App() {
   const salesReportsQuery = useSalesReports(pdfBusinessId, salesReportPage, pdfReportScope, {enabled: pdfReportScope === 'business' && Boolean(pdfBusinessId)})
   const portfolioSalesReportsQuery = usePortfolioSalesReports(salesReportPage, {enabled: pdfReportScope === 'all_businesses'})
   const createSalesReportMutation = useCreateSalesReport(salesReportPage, pdfReportScope)
+  const updateBusinessMutation = useUpdateBusiness()
   const downloadSalesReportMutation = useDownloadSalesReport()
   const downloadPortfolioSalesReportMutation = useDownloadPortfolioSalesReport()
+
+  useEffect(() => {
+    setBusinessTargetDrafts(
+      Object.fromEntries(
+        businesses.map((business) => [business.id, String(parseAmount(business.sales_target))]),
+      ),
+    )
+  }, [businesses])
 
   const selectedBusinessName = useMemo(
     () => selectedBusinessId ? businesses.find((b) => b.id === selectedBusinessId)?.name ?? null : 'All businesses',
@@ -628,6 +640,10 @@ function App() {
 
     return data.role ? [data.role] : []
   }, [meQuery.data])
+  const canManageBusinessSettings = useMemo(
+    () => userRoles.includes('admin') || userRoles.includes('owner'),
+    [userRoles],
+  )
 
   const expenseTotal = useMemo(
     () => expenseEntries.reduce((t, i) => t + parseAmount(i.amount), 0),
@@ -641,9 +657,29 @@ function App() {
       etherealEntries.reduce((t, i) => t + parseAmount(i.net_amount), 0),
     [coffeeEntries, etherealEntries, gcashEntries, printEntries],
   )
+  const gcashProfitTotal = useMemo(
+    () => gcashEntries.reduce((total, entry) => total + parseAmount(entry.profit_amount), 0),
+    [gcashEntries],
+  )
+  const coffeeProfitTotal = useMemo(
+    () => coffeeEntries.reduce((total, entry) => total + parseAmount(entry.charged_amount ?? entry.total_amount), 0),
+    [coffeeEntries],
+  )
+  const printProfitTotal = useMemo(
+    () => printEntries.reduce((total, entry) => total + parseAmount(entry.charged_amount ?? entry.sales_amount), 0),
+    [printEntries],
+  )
+  const etherealProfitTotal = useMemo(
+    () => etherealEntries.reduce((total, entry) => total + parseAmount(entry.charged_amount ?? entry.net_amount), 0),
+    [etherealEntries],
+  )
+  const grossProfitTotal = useMemo(
+    () => gcashProfitTotal + coffeeProfitTotal + printProfitTotal + etherealProfitTotal,
+    [coffeeProfitTotal, etherealProfitTotal, gcashProfitTotal, printProfitTotal],
+  )
   const profitSnapshot = useMemo(
-    () => gcashEntries.reduce((t, i) => t + parseAmount(i.profit_amount), 0) - expenseTotal,
-    [expenseTotal, gcashEntries],
+    () => grossProfitTotal - expenseTotal,
+    [expenseTotal, grossProfitTotal],
   )
   const gcashProfitPreview = useMemo(
     () => parseAmount(gcashSalesAmount) - parseAmount(gcashAmountMoved),
@@ -1401,6 +1437,33 @@ function App() {
     setLatestSalesReport(report)
   }
 
+  const submitBusinessSalesTarget = async (businessId: number) => {
+    if (!canManageBusinessSettings) {
+      showActionGuidance('Only admin or owner can update sales targets.')
+      return
+    }
+    if (updateBusinessMutation.isPending) {
+      showActionGuidance('Business sales target update is already processing. Please wait.')
+      return
+    }
+    const targetBusiness = businesses.find((business) => business.id === businessId)
+    if (!targetBusiness) {
+      showActionGuidance('Business not found.')
+      return
+    }
+
+    const salesTarget = parseNonNegativeAmount(businessTargetDrafts[businessId] ?? targetBusiness.sales_target)
+    await updateBusinessMutation.mutateAsync({
+      businessId,
+      payload: {
+        name: targetBusiness.name,
+        slug: targetBusiness.slug,
+        description: targetBusiness.description ?? undefined,
+        sales_target: salesTarget,
+      },
+    })
+  }
+
   const submitPdfSalesReport = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
@@ -1917,16 +1980,47 @@ function App() {
                 {businesses.map((business) => (
                   <article
                     key={business.id}
-                    className="flex items-center gap-3 rounded-xl border border-[var(--neutral-linen)] p-4 hover:border-[var(--burgundy-200)] hover:bg-[var(--burgundy-50)] transition-colors"
+                    className="rounded-xl border border-[var(--neutral-linen)] p-4 hover:border-[var(--burgundy-200)] hover:bg-[var(--burgundy-50)] transition-colors"
                   >
-                    <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--burgundy-50)]">
-                      <Building2 className="h-4 w-4 text-[var(--burgundy-600)]"/>
-                    </span>
-                    <div>
-                      <p className="font-semibold">{business.name}</p>
-                      <p className="text-xs text-[var(--neutral-rosewood)]">{business.slug}</p>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--burgundy-50)]">
+                        <Building2 className="h-4 w-4 text-[var(--burgundy-600)]"/>
+                      </span>
+                      <div>
+                        <p className="font-semibold">{business.name}</p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">{business.slug}</p>
+                        <p className="text-xs text-[var(--neutral-rosewood)]">
+                          Sales target: {formatCurrency(parseAmount(business.sales_target))}
+                        </p>
+                      </div>
                     </div>
+                    {canManageBusinessSettings && (
+                      <div className="mt-3 flex items-end gap-2">
+                        <label className="flex-1 grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                          Sales target
+                          <input
+                            type="number"
+                            list="quick-number-values"
+                            value={businessTargetDrafts[business.id] ?? String(parseAmount(business.sales_target))}
+                            onChange={(event) =>
+                              setBusinessTargetDrafts((prev) => ({
+                                ...prev,
+                                [business.id]: toNonNegativeInputValue(event.target.value),
+                              }))
+                            }
+                            className="dashboard-input"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => void submitBusinessSalesTarget(business.id)}
+                          className="dashboard-button-secondary"
+                        >
+                          {updateBusinessMutation.isPending ? 'Saving…' : 'Save'}
+                        </button>
+                      </div>
+                    )}
                   </article>
                 ))}
               </div>
@@ -2713,9 +2807,14 @@ function App() {
                           <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">
-                          {formatCurrency(parseAmount(sale.charged_amount ?? sale.sales_amount))}
-                        </span>
+                        <div className="text-right">
+                          <p className="tabular-nums font-semibold text-[var(--accent-gold)]">
+                            {formatCurrency(parseAmount(sale.charged_amount ?? sale.sales_amount))}
+                          </p>
+                          <p className="text-xs font-semibold text-[var(--teal-mid)]">
+                            Profit: {formatCurrency(parseAmount(sale.profit_amount))}
+                          </p>
+                        </div>
                         <button
                           type="button"
                           onClick={() => voidGcashSale(sale.id)}
@@ -2954,9 +3053,14 @@ function App() {
                             <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
                         </div>
                         <div className="flex items-center gap-3">
-                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">
-                          {formatCurrency(parseAmount(sale.charged_amount ?? sale.total_amount))}
-                        </span>
+                          <div className="text-right">
+                            <p className="tabular-nums font-semibold text-[var(--accent-gold)]">
+                              {formatCurrency(parseAmount(sale.charged_amount ?? sale.total_amount))}
+                            </p>
+                            <p className="text-xs font-semibold text-[var(--teal-mid)]">
+                              Profit: {formatCurrency(parseAmount(sale.charged_amount ?? sale.total_amount))}
+                            </p>
+                          </div>
                           <button
                             type="button"
                             onClick={() => voidCoffeeSale(sale.id)}
@@ -3217,8 +3321,14 @@ function App() {
                             <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span
-                            className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.charged_amount ?? sale.sales_amount))}</span>
+                          <div className="text-right">
+                            <p className="tabular-nums font-semibold text-[var(--accent-gold)]">
+                              {formatCurrency(parseAmount(sale.charged_amount ?? sale.sales_amount))}
+                            </p>
+                            <p className="text-xs font-semibold text-[var(--teal-mid)]">
+                              Profit: {formatCurrency(parseAmount(sale.charged_amount ?? sale.sales_amount))}
+                            </p>
+                          </div>
                           <button
                             type="button"
                             onClick={() => voidPrintSale(sale.id)}
@@ -3483,8 +3593,14 @@ function App() {
                             <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span
-                            className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.charged_amount ?? sale.net_amount))}</span>
+                          <div className="text-right">
+                            <p className="tabular-nums font-semibold text-[var(--accent-gold)]">
+                              {formatCurrency(parseAmount(sale.charged_amount ?? sale.net_amount))}
+                            </p>
+                            <p className="text-xs font-semibold text-[var(--teal-mid)]">
+                              Profit: {formatCurrency(parseAmount(sale.charged_amount ?? sale.net_amount))}
+                            </p>
+                          </div>
                           <button
                             type="button"
                             onClick={() => voidEtherealSale(sale.id)}
@@ -3569,7 +3685,7 @@ function App() {
               {latestSalesReport && (
                 <>
                   <SectionDivider label={`Generated ${formatDateTimeDisplay(latestSalesReport.generated_at)}`}/>
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <div
                       className="rounded-lg border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3">
                       <p
@@ -3597,24 +3713,36 @@ function App() {
                         className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">GCash</p>
                       <p
                         className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.gcash_sales_total))}</p>
+                      <p className="text-xs font-semibold text-[var(--teal-mid)]">
+                        Profit: {formatCurrency(parseAmount(latestSalesReport.totals.gcash_profit_total))}
+                      </p>
                     </div>
                     <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
                       <p
                         className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Coffee</p>
                       <p
                         className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.coffee_sales_total))}</p>
+                      <p className="text-xs font-semibold text-[var(--teal-mid)]">
+                        Profit: {formatCurrency(parseAmount(latestSalesReport.totals.coffee_profit_total))}
+                      </p>
                     </div>
                     <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
                       <p
                         className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Print</p>
                       <p
                         className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.print_sales_total))}</p>
+                      <p className="text-xs font-semibold text-[var(--teal-mid)]">
+                        Profit: {formatCurrency(parseAmount(latestSalesReport.totals.print_profit_total))}
+                      </p>
                     </div>
                     <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
                       <p
                         className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Ethereal</p>
                       <p
                         className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.ethereal_sales_total))}</p>
+                      <p className="text-xs font-semibold text-[var(--teal-mid)]">
+                        Profit: {formatCurrency(parseAmount(latestSalesReport.totals.ethereal_profit_total))}
+                      </p>
                     </div>
                     <div
                       className="rounded-lg border border-[var(--burgundy-200)] bg-[var(--burgundy-50)] px-4 py-3 md:col-span-2 xl:col-span-2">
@@ -3623,7 +3751,67 @@ function App() {
                       <p
                         className="mt-1 tabular-nums text-lg font-semibold text-[var(--burgundy-800)]">{formatCurrency(parseAmount(latestSalesReport.totals.sales_total))}</p>
                     </div>
+                    <div
+                      className="rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3 md:col-span-2 xl:col-span-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">
+                        Profit total
+                      </p>
+                      <p className="mt-1 tabular-nums text-lg font-semibold text-[var(--status-success-text)]">
+                        {formatCurrency(parseAmount(latestSalesReport.totals.profit_total))}
+                      </p>
+                    </div>
                   </div>
+                  {latestSalesReport.business_summary.length > 0 && (
+                    <>
+                      <SectionDivider label="Business profit"/>
+                      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        {latestSalesReport.business_summary.map((summary) => (
+                          <article key={`business-profit-${summary.business_id}`} className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
+                            <p className="text-sm font-semibold">{summary.business_name}</p>
+                            <p className="text-xs text-[var(--neutral-rosewood)]">
+                              Sales {formatCurrency(summary.total_sales)} · Profit {formatCurrency(summary.total_profit)}
+                            </p>
+                          </article>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {latestSalesReport.daily_profit_summary.length > 0 && (
+                    <>
+                      <SectionDivider label="Daily profit"/>
+                      <div className="grid gap-2">
+                        {latestSalesReport.daily_profit_summary.map((dailyRow) => (
+                          <div
+                            key={`daily-profit-${dailyRow.date}`}
+                            className="flex items-center justify-between rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3"
+                          >
+                            <p className="text-sm font-semibold">{formatCompactDate(dailyRow.date)}</p>
+                            <p className="text-xs text-[var(--neutral-rosewood)]">{dailyRow.entries_count} entr{dailyRow.entries_count === 1 ? 'y' : 'ies'}</p>
+                            <p className="tabular-nums text-sm font-semibold text-[var(--accent-gold)]">{formatCurrency(dailyRow.sales_total)}</p>
+                            <p className="tabular-nums text-sm font-semibold text-[var(--teal-mid)]">Profit {formatCurrency(dailyRow.profit_total)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {latestSalesReport.sales_target_progress.length > 0 && (
+                    <>
+                      <SectionDivider label="Sales target progress"/>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {latestSalesReport.sales_target_progress.map((targetRow) => (
+                          <article key={`target-progress-${targetRow.business_id}`} className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
+                            <p className="text-sm font-semibold">{targetRow.business_name}</p>
+                            <p className="text-xs text-[var(--neutral-rosewood)]">
+                              Target {formatCurrency(targetRow.sales_target)} · Progress {targetRow.progress_percent.toFixed(2)}%
+                            </p>
+                            <p className="text-xs text-[var(--neutral-rosewood)]">
+                              Rendered {targetRow.days_rendered}/{targetRow.days_total} day(s) · {targetRow.days_left} day(s) left
+                            </p>
+                          </article>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </section>
@@ -4034,6 +4222,12 @@ function App() {
                             <span
                               className="inline-flex rounded-full border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-info-text)]">
                     Overall sales: {formatCurrency(parseAmount(report.details.totals.overall_sales))}
+                  </span>
+                          )}
+                          {report.report_type !== 'compensation' && (
+                            <span
+                              className="inline-flex rounded-full border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-success-text)]">
+                    Overall profit: {formatCurrency(parseAmount(report.details.totals.overall_profit ?? 0))}
                   </span>
                           )}
                           {report.report_type !== 'sales' && (

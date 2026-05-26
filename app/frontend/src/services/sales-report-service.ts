@@ -25,6 +25,7 @@ export type CreateSalesReportPayload = {
     | 'sales_coffee'
     | 'sales_print'
     | 'sales_ethereal'
+    | 'sales_target_progress'
     | 'portfolio_business_money'
   >
 }

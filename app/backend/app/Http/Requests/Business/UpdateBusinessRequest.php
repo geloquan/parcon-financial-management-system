@@ -22,6 +22,7 @@ class UpdateBusinessRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'alpha_dash', Rule::unique('businesses', 'slug')->ignore($business->id)],
             'description' => ['nullable', 'string'],
+            'sales_target' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

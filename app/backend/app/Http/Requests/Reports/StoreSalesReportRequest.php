@@ -20,7 +20,7 @@ class StoreSalesReportRequest extends FormRequest
             'report_type' => ['nullable', 'in:sales,compensation,combined'],
             'report_scope' => ['nullable', 'in:business,all_businesses'],
             'include_sections' => ['nullable', 'array', 'min:1'],
-            'include_sections.*' => ['string', 'in:staff,schedule_attendance,compensation,reference_items,expenses,sales_gcash,sales_coffee,sales_print,sales_ethereal,portfolio_business_money'],
+            'include_sections.*' => ['string', 'in:staff,schedule_attendance,compensation,reference_items,expenses,sales_gcash,sales_coffee,sales_print,sales_ethereal,sales_target_progress,portfolio_business_money'],
         ];
     }
 }

@@ -34,6 +34,7 @@ class SalesReportService
     'sales_coffee',
     'sales_print',
     'sales_ethereal',
+    'sales_target_progress',
     'portfolio_business_money',
   ];
 
@@ -81,52 +82,56 @@ class SalesReportService
   public function generate(array $validated): array
   {
     [$startAt, $endAt] = $this->resolvePeriod($validated);
-    $businessId = $validated['scope'] === 'business' ? (int)$validated['business_id'] : null;
-    $businessName = $businessId ? Business::query()->whereKey($businessId)->value('name') : null;
-
-    $gcashQuery = GcashSale::query();
-    $coffeeQuery = CoffeeSale::query();
-    $printQuery = PrintSale::query();
-    $etherealQuery = EtherealSale::query();
-
-    if ($businessId) {
-      $gcashQuery->where('business_id', $businessId);
-      $coffeeQuery->where('business_id', $businessId);
-      $printQuery->where('business_id', $businessId);
-      $etherealQuery->where('business_id', $businessId);
+    $business = null;
+    if (($validated['scope'] ?? 'portfolio') === 'business') {
+      $business = Business::query()->find((int)($validated['business_id'] ?? 0));
     }
+    $businessName = $business?->name;
 
-    $this->applyDateRange($gcashQuery, 'transaction_date', $startAt, $endAt);
-    $this->applyDateRange($coffeeQuery, 'sale_date', $startAt, $endAt);
-    $this->applyDateRange($printQuery, 'sale_date', $startAt, $endAt);
-    $this->applyDateRange($etherealQuery, 'service_date', $startAt, $endAt);
+    $salesDetails = $this->collectSalesDetails($business, $startAt, $endAt, self::SALES_INCLUDE_SECTIONS);
+    $salesTotals = $salesDetails['totals'] ?? [];
+    $overallProfit =
+      (float)($salesTotals['gcash_profit'] ?? 0)
+      + (float)($salesTotals['coffee_profit'] ?? 0)
+      + (float)($salesTotals['print_profit'] ?? 0)
+      + (float)($salesTotals['ethereal_profit'] ?? 0);
+    $businessSummary = array_map(static function (array $summary): array {
+      $summary['total_profit'] = round(
+        (float)($summary['gcash_profit'] ?? 0)
+        + (float)($summary['coffee_profit'] ?? 0)
+        + (float)($summary['print_profit'] ?? 0)
+        + (float)($summary['ethereal_profit'] ?? 0),
+        2
+      );
 
-    $gcashTotal = (float)(clone $gcashQuery)->sum('sales_amount');
-    $coffeeTotal = (float)((clone $coffeeQuery)->selectRaw('COALESCE(SUM(price + add_on_price), 0) as total_amount')->value('total_amount') ?? 0);
-    $printTotal = (float)(clone $printQuery)->sum('sales_amount');
-    $etherealTotal = (float)(clone $etherealQuery)->sum('net_amount');
-    $salesTotal = $gcashTotal + $coffeeTotal + $printTotal + $etherealTotal;
-    $transactionCount = (int)(clone $gcashQuery)->count()
-      + (int)(clone $coffeeQuery)->count()
-      + (int)(clone $printQuery)->count()
-      + (int)(clone $etherealQuery)->count();
+      return $summary;
+    }, $salesDetails['business_summary'] ?? []);
+    $targetProgress = $this->collectSalesTargetProgress($business, $startAt, $endAt, $businessSummary);
 
     return [
       'scope' => $validated['scope'],
       'period' => $validated['period'],
-      'business_id' => $businessId,
+      'business_id' => $business?->id,
       'business_name' => $businessName,
       'start_date' => $startAt->toDateString(),
       'end_date' => $endAt->toDateString(),
       'generated_at' => now()->toIso8601String(),
       'totals' => [
-        'gcash_sales_total' => $this->toMoneyString($gcashTotal),
-        'coffee_sales_total' => $this->toMoneyString($coffeeTotal),
-        'print_sales_total' => $this->toMoneyString($printTotal),
-        'ethereal_sales_total' => $this->toMoneyString($etherealTotal),
-        'sales_total' => $this->toMoneyString($salesTotal),
-        'total_transactions' => $transactionCount,
+        'gcash_sales_total' => $this->toMoneyString((float)($salesTotals['gcash_sales'] ?? 0)),
+        'gcash_profit_total' => $this->toMoneyString((float)($salesTotals['gcash_profit'] ?? 0)),
+        'coffee_sales_total' => $this->toMoneyString((float)($salesTotals['coffee_sales'] ?? 0)),
+        'coffee_profit_total' => $this->toMoneyString((float)($salesTotals['coffee_profit'] ?? 0)),
+        'print_sales_total' => $this->toMoneyString((float)($salesTotals['print_sales'] ?? 0)),
+        'print_profit_total' => $this->toMoneyString((float)($salesTotals['print_profit'] ?? 0)),
+        'ethereal_sales_total' => $this->toMoneyString((float)($salesTotals['ethereal_sales'] ?? 0)),
+        'ethereal_profit_total' => $this->toMoneyString((float)($salesTotals['ethereal_profit'] ?? 0)),
+        'sales_total' => $this->toMoneyString((float)($salesTotals['overall_sales'] ?? 0)),
+        'profit_total' => $this->toMoneyString($overallProfit),
+        'total_transactions' => (int)($salesDetails['counts']['all_entries'] ?? 0),
       ],
+      'business_summary' => $businessSummary,
+      'daily_profit_summary' => $salesDetails['daily_profit_summary'] ?? [],
+      'sales_target_progress' => $targetProgress,
     ];
   }
 
@@ -248,14 +253,20 @@ class SalesReportService
   private function collectDetails(Business $business, Carbon $startDate, Carbon $endDate, string $reportType, string $reportScope, array $includeSections): array
   {
     $salesSectionsToInclude = array_values(array_intersect(self::SALES_INCLUDE_SECTIONS, $includeSections));
-    $includeSales = in_array($reportType, ['sales', 'combined'], true) && count($salesSectionsToInclude) > 0;
+    $includeTargetProgress = in_array('sales_target_progress', $includeSections, true);
+    $includeSales = in_array($reportType, ['sales', 'combined'], true) && (count($salesSectionsToInclude) > 0 || $includeTargetProgress);
     $includeCompensation = in_array($reportType, ['compensation', 'combined'], true)
       && in_array('compensation', $includeSections, true);
     $isAllBusinesses = $reportScope === 'all_businesses';
     $targetBusiness = $isAllBusinesses ? null : $business;
 
     $salesDetails = $includeSales
-      ? $this->collectSalesDetails($targetBusiness, $startDate, $endDate, $salesSectionsToInclude)
+      ? $this->collectSalesDetails(
+        $targetBusiness,
+        $startDate,
+        $endDate,
+        count($salesSectionsToInclude) > 0 ? $salesSectionsToInclude : self::SALES_INCLUDE_SECTIONS
+      )
       : [
         'totals' => [
           'gcash_sales' => 0.0,
@@ -278,19 +289,15 @@ class SalesReportService
         ],
         'business_summary' => [],
         'entries' => [],
+        'daily_profit_summary' => [],
       ];
 
-    // Aggregate overall_profit from all module profits.
-    // collectSalesDetails is expected to populate the *_profit keys per module;
-    // any missing key safely defaults to 0.
     $salesDetails['totals']['overall_profit'] =
       ($salesDetails['totals']['gcash_profit'] ?? 0.0) +
       ($salesDetails['totals']['coffee_profit'] ?? 0.0) +
       ($salesDetails['totals']['print_profit'] ?? 0.0) +
       ($salesDetails['totals']['ethereal_profit'] ?? 0.0);
 
-    // Carry a total_profit into each business_summary row, derived from
-    // per-module profit keys that collectSalesDetails should populate.
     $salesDetails['business_summary'] = array_map(
       static function (array $summary): array {
         $summary['total_profit'] =
@@ -302,6 +309,9 @@ class SalesReportService
       },
       $salesDetails['business_summary'] ?? [],
     );
+    $salesTargetProgress = $includeTargetProgress
+      ? $this->collectSalesTargetProgress($targetBusiness, $startDate, $endDate, $salesDetails['business_summary'])
+      : [];
 
     $compensationDetails = $includeCompensation
       ? $this->collectCompensationDetails($targetBusiness, $startDate, $endDate)
@@ -372,6 +382,8 @@ class SalesReportService
       'counts' => $salesDetails['counts'],
       'business_summary' => $salesDetails['business_summary'],
       'entries' => $salesDetails['entries'],
+      'daily_profit_summary' => $salesDetails['daily_profit_summary'] ?? [],
+      'sales_target_progress' => $salesTargetProgress,
       'compensation_totals' => $compensationDetails['totals'],
       'compensation_counts' => $compensationDetails['counts'],
       'compensation_entries' => $compensationDetails['entries'],
@@ -422,6 +434,7 @@ class SalesReportService
       $businessDirectory[$business->id] = [
         'name' => $business->name,
         'slug' => $business->slug,
+        'sales_target' => round((float)$business->sales_target, 2),
       ];
     }
 
@@ -453,8 +466,8 @@ class SalesReportService
         $businessSummary[$businessId] = $this->accumulateBusinessSummary(
           $businessSummary[$businessId] ?? null,
           $businessId, $businessMeta['name'], $businessMeta['slug'],
-          $amount, true,
-          $profit, // pass profit so accumulateBusinessSummary can track it per-business
+          $amount, $profit, 'gcash',
+          (float)($businessMeta['sales_target'] ?? 0),
         );
 
         $entries[] = [
@@ -464,6 +477,7 @@ class SalesReportService
           'business_name' => $businessMeta['name'],
           'sale_name' => $sale->transaction_recipient ?: 'GCash transaction',
           'amount' => $amount,
+          'profit_amount' => $profit,
           'sale_date' => $sale->transaction_date?->toIso8601String(),
           'reference_item_name' => $sale->reference_item_name,
           'reference_item_original_price' => $sale->reference_item_original_price !== null
@@ -487,14 +501,17 @@ class SalesReportService
           ?? ['name' => sprintf('Business #%d', $businessId), 'slug' => sprintf('business-%d', $businessId)];
 
         $totalAmount = round((float)$sale->price + (float)$sale->add_on_price, 2);
+        $profit = round((float)($sale->charged_amount ?? $totalAmount), 2);
 
         $moduleTotals['coffee'] += $totalAmount;
+        $moduleProfits['coffee'] += $profit;
         $moduleCounts['coffee']++;
 
         $businessSummary[$businessId] = $this->accumulateBusinessSummary(
           $businessSummary[$businessId] ?? null,
           $businessId, $businessMeta['name'], $businessMeta['slug'],
-          $totalAmount, false,
+          $totalAmount, $profit, 'coffee',
+          (float)($businessMeta['sales_target'] ?? 0),
         );
 
         $entries[] = [
@@ -504,6 +521,7 @@ class SalesReportService
           'business_name' => $businessMeta['name'],
           'sale_name' => $sale->coffee_type,
           'amount' => $totalAmount,
+          'profit_amount' => $profit,
           'sale_date' => $sale->sale_date?->toIso8601String(),
           'reference_item_name' => $sale->reference_item_name,
           'reference_item_original_price' => $sale->reference_item_original_price !== null
@@ -528,14 +546,17 @@ class SalesReportService
           ?? ['name' => sprintf('Business #%d', $businessId), 'slug' => sprintf('business-%d', $businessId)];
 
         $amount = round((float)$sale->sales_amount, 2);
+        $profit = round((float)($sale->charged_amount ?? $amount), 2);
 
         $moduleTotals['print'] += $amount;
+        $moduleProfits['print'] += $profit;
         $moduleCounts['print']++;
 
         $businessSummary[$businessId] = $this->accumulateBusinessSummary(
           $businessSummary[$businessId] ?? null,
           $businessId, $businessMeta['name'], $businessMeta['slug'],
-          $amount, false,
+          $amount, $profit, 'print',
+          (float)($businessMeta['sales_target'] ?? 0),
         );
 
         $entries[] = [
@@ -545,6 +566,7 @@ class SalesReportService
           'business_name' => $businessMeta['name'],
           'sale_name' => $sale->description,
           'amount' => $amount,
+          'profit_amount' => $profit,
           'sale_date' => $sale->sale_date?->toIso8601String(),
           'reference_item_name' => $sale->reference_item_name,
           'reference_item_original_price' => $sale->reference_item_original_price !== null
@@ -573,14 +595,17 @@ class SalesReportService
           ->filter()->values()->all();
 
         $amount = round((float)$sale->net_amount, 2);
+        $profit = round((float)($sale->charged_amount ?? $amount), 2);
 
         $moduleTotals['ethereal'] += $amount;
+        $moduleProfits['ethereal'] += $profit;
         $moduleCounts['ethereal']++;
 
         $businessSummary[$businessId] = $this->accumulateBusinessSummary(
           $businessSummary[$businessId] ?? null,
           $businessId, $businessMeta['name'], $businessMeta['slug'],
-          $amount, false,
+          $amount, $profit, 'ethereal',
+          (float)($businessMeta['sales_target'] ?? 0),
         );
 
         $entries[] = [
@@ -590,6 +615,7 @@ class SalesReportService
           'business_name' => $businessMeta['name'],
           'sale_name' => $sale->service_name ?: 'Beauty service',
           'amount' => $amount,
+          'profit_amount' => $profit,
           'sale_date' => $sale->service_date?->toIso8601String(),
           'reference_item_name' => $sale->reference_item_name,
           'reference_item_original_price' => $sale->reference_item_original_price !== null
@@ -636,6 +662,7 @@ class SalesReportService
       ],
       'business_summary' => $businessSummaryRows,
       'entries' => $entries,
+      'daily_profit_summary' => $this->buildDailyProfitSummary($entries),
     ];
   }
 
@@ -1061,11 +1088,12 @@ class SalesReportService
 
     return Business::query()
       ->whereIn('id', $businessIds)
-      ->get(['id', 'name', 'slug'])
+      ->get(['id', 'name', 'slug', 'sales_target'])
       ->keyBy('id')
       ->map(fn(Business $business): array => [
         'name' => $business->name,
         'slug' => $business->slug,
+        'sales_target' => round((float)$business->sales_target, 2),
       ])
       ->all();
   }
@@ -1076,7 +1104,9 @@ class SalesReportService
     string $businessName,
     string $businessSlug,
     float  $amount,
-    bool   $isGcash
+    float  $profitAmount,
+    string $module,
+    float  $salesTarget
   ): array
   {
     $summary = $current ?? [
@@ -1084,20 +1114,114 @@ class SalesReportService
       'business_name' => $businessName,
       'business_slug' => $businessSlug,
       'entries_count' => 0,
+      'sales_target' => round($salesTarget, 2),
       'total_sales' => 0.0,
+      'total_profit' => 0.0,
       'gcash_sales' => 0.0,
       'module_sales' => 0.0,
+      'gcash_profit' => 0.0,
+      'coffee_profit' => 0.0,
+      'print_profit' => 0.0,
+      'ethereal_profit' => 0.0,
     ];
 
     $summary['entries_count']++;
     $summary['total_sales'] = round(((float)$summary['total_sales']) + $amount, 2);
-    if ($isGcash) {
+    $summary['total_profit'] = round(((float)$summary['total_profit']) + $profitAmount, 2);
+    if ($module === 'gcash') {
       $summary['gcash_sales'] = round(((float)$summary['gcash_sales']) + $amount, 2);
+      $summary['gcash_profit'] = round(((float)$summary['gcash_profit']) + $profitAmount, 2);
     } else {
       $summary['module_sales'] = round(((float)$summary['module_sales']) + $amount, 2);
     }
+    if ($module === 'coffee') {
+      $summary['coffee_profit'] = round(((float)$summary['coffee_profit']) + $profitAmount, 2);
+    }
+    if ($module === 'print') {
+      $summary['print_profit'] = round(((float)$summary['print_profit']) + $profitAmount, 2);
+    }
+    if ($module === 'ethereal') {
+      $summary['ethereal_profit'] = round(((float)$summary['ethereal_profit']) + $profitAmount, 2);
+    }
 
     return $summary;
+  }
+
+  private function buildDailyProfitSummary(array $salesEntries): array
+  {
+    $summaryMap = [];
+
+    foreach ($salesEntries as $entry) {
+      $rawDate = (string)($entry['sale_date'] ?? '');
+      $dateKey = $rawDate !== '' ? Carbon::parse($rawDate)->toDateString() : null;
+      if (!$dateKey) {
+        continue;
+      }
+
+      if (!isset($summaryMap[$dateKey])) {
+        $summaryMap[$dateKey] = [
+          'date' => $dateKey,
+          'sales_total' => 0.0,
+          'profit_total' => 0.0,
+          'entries_count' => 0,
+        ];
+      }
+
+      $summaryMap[$dateKey]['sales_total'] = round(
+        (float)$summaryMap[$dateKey]['sales_total'] + (float)($entry['amount'] ?? 0),
+        2
+      );
+      $summaryMap[$dateKey]['profit_total'] = round(
+        (float)$summaryMap[$dateKey]['profit_total'] + (float)($entry['profit_amount'] ?? 0),
+        2
+      );
+      $summaryMap[$dateKey]['entries_count']++;
+    }
+
+    ksort($summaryMap);
+
+    return array_values($summaryMap);
+  }
+
+  private function collectSalesTargetProgress(?Business $business, Carbon $startDate, Carbon $endDate, array $businessSummary): array
+  {
+    $daysTotal = $startDate->copy()->startOfDay()->diffInDays($endDate->copy()->startOfDay()) + 1;
+    $renderLimit = now()->lessThan($endDate) ? now()->startOfDay() : $endDate->copy()->startOfDay();
+    $renderedDays = $renderLimit->lessThan($startDate->copy()->startOfDay())
+      ? 0
+      : $startDate->copy()->startOfDay()->diffInDays($renderLimit) + 1;
+    $daysLeft = max($daysTotal - $renderedDays, 0);
+
+    $summaryByBusiness = collect($businessSummary)->keyBy('business_id');
+
+    $businesses = $business
+      ? collect([$business])
+      : Business::query()->orderBy('name')->get(['id', 'name', 'slug', 'sales_target']);
+
+    return $businesses->map(function (Business $item) use ($daysLeft, $daysTotal, $renderedDays, $summaryByBusiness): array {
+      $summary = $summaryByBusiness->get($item->id, []);
+      $totalSales = round((float)($summary['total_sales'] ?? 0), 2);
+      $totalProfit = round((float)($summary['total_profit'] ?? 0), 2);
+      $salesTarget = round((float)$item->sales_target, 2);
+      $progressPercent = $salesTarget > 0
+        ? round(($totalSales / $salesTarget) * 100, 2)
+        : 0.0;
+
+      return [
+        'business_id' => (int)$item->id,
+        'business_name' => $item->name,
+        'business_slug' => $item->slug,
+        'sales_target' => $salesTarget,
+        'total_sales' => $totalSales,
+        'total_profit' => $totalProfit,
+        'remaining_target' => round(max($salesTarget - $totalSales, 0), 2),
+        'progress_percent' => $progressPercent,
+        'is_target_met' => $salesTarget > 0 && $totalSales >= $salesTarget,
+        'days_total' => $daysTotal,
+        'days_rendered' => $renderedDays,
+        'days_left' => $daysLeft,
+      ];
+    })->values()->all();
   }
 
   private function generatePdf(SalesReportVersion $report): string
@@ -1160,6 +1284,7 @@ class SalesReportService
           'sales_coffee' => 'Sales Coffee',
           'sales_print' => 'Sales Print',
           'sales_ethereal' => 'Sales Ethereal',
+          'sales_target_progress' => 'Sales Target Progress',
           'portfolio_business_money' => 'Portfolio/Business Money & All-Time Debts',
           default => ucwords(str_replace('_', ' ', $section)),
         };

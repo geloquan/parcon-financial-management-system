@@ -36,6 +36,7 @@ export type Business = {
   name: string
   slug: string
   description: string | null
+  sales_target: string
 }
 
 export type Expense = {
@@ -160,10 +161,15 @@ export type CapitalMovement = {
 
 export type SalesReportTotals = {
   gcash_sales_total: string
+  gcash_profit_total: string
   coffee_sales_total: string
+  coffee_profit_total: string
   print_sales_total: string
+  print_profit_total: string
   ethereal_sales_total: string
+  ethereal_profit_total: string
   sales_total: string
+  profit_total: string
   total_transactions: number
 }
 
@@ -176,6 +182,35 @@ export type SalesReport = {
   end_date: string
   generated_at: string
   totals: SalesReportTotals
+  business_summary: Array<{
+    business_id: number
+    business_name: string
+    business_slug: string
+    sales_target: number
+    total_sales: number
+    total_profit: number
+    entries_count: number
+  }>
+  daily_profit_summary: Array<{
+    date: string
+    sales_total: number
+    profit_total: number
+    entries_count: number
+  }>
+  sales_target_progress: Array<{
+    business_id: number
+    business_name: string
+    business_slug: string
+    sales_target: number
+    total_sales: number
+    total_profit: number
+    remaining_target: number
+    progress_percent: number
+    is_target_met: boolean
+    days_total: number
+    days_rendered: number
+    days_left: number
+  }>
 }
 
 export type StaffDayOff = {
@@ -303,6 +338,7 @@ export type SalesReportVersion = {
       | 'sales_coffee'
       | 'sales_print'
       | 'sales_ethereal'
+      | 'sales_target_progress'
       | 'portfolio_business_money'
     >
     range: {
@@ -328,10 +364,16 @@ export type SalesReportVersion = {
       business_id: number
       business_name: string
       business_slug: string
+      sales_target?: number
       entries_count: number
       total_sales: number
       gcash_sales: number
       module_sales: number
+      total_profit?: number
+      gcash_profit?: number
+      coffee_profit?: number
+      print_profit?: number
+      ethereal_profit?: number
     }>
     entries: Array<{
       module: string
@@ -457,6 +499,26 @@ export type SalesReportVersion = {
         recurrence_reference: string | null
       }>
     }
+    daily_profit_summary?: Array<{
+      date: string
+      sales_total: number
+      profit_total: number
+      entries_count: number
+    }>
+    sales_target_progress?: Array<{
+      business_id: number
+      business_name: string
+      business_slug: string
+      sales_target: number
+      total_sales: number
+      total_profit: number
+      remaining_target: number
+      progress_percent: number
+      is_target_met: boolean
+      days_total: number
+      days_rendered: number
+      days_left: number
+    }>
   }
   pdf_verification?: {
     status: 'verified' | 'mismatch' | 'missing_file'

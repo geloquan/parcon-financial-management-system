@@ -139,6 +139,8 @@
   $salesTotals = $details['totals'] ?? [];
   $salesCounts = $details['counts'] ?? [];
   $salesEntries = $details['entries'] ?? [];
+  $dailyProfitSummary = $details['daily_profit_summary'] ?? [];
+  $salesTargetProgress = $details['sales_target_progress'] ?? [];
   $compensationTotals = $details['compensation_totals'] ?? [];
   $compensationCounts = $details['compensation_counts'] ?? [];
   $compensationEntries = $details['compensation_entries'] ?? [];
@@ -160,6 +162,7 @@
     'sales_coffee',
     'sales_print',
     'sales_ethereal',
+    'sales_target_progress',
     'portfolio_business_money',
   ]);
   $includeSales = in_array($reportType, ['sales', 'combined'], true)
@@ -171,6 +174,7 @@
     );
   $includeCompensation = in_array($reportType, ['compensation', 'combined'], true)
     && in_array('compensation', $includeSections, true);
+  $includeTargetProgress = in_array('sales_target_progress', $includeSections, true);
   $includeStaff = in_array('staff', $includeSections, true);
   $includeScheduleAttendance = in_array('schedule_attendance', $includeSections, true);
   $includeReferenceItems = in_array('reference_items', $includeSections, true);
@@ -329,6 +333,34 @@
   </div>
 
   <div class="section">
+    <h3>Daily Sales &amp; Profit</h3>
+    @if(count($dailyProfitSummary) === 0)
+      <p class="muted">No daily sales data in the selected range.</p>
+    @else
+      <table>
+        <thead>
+        <tr>
+          <th>Date</th>
+          <th class="num">Entries</th>
+          <th class="num">Sales</th>
+          <th class="num">Profit</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach($dailyProfitSummary as $dailyRow)
+          <tr>
+            <td>{{ isset($dailyRow['date']) ? \Carbon\Carbon::parse($dailyRow['date'])->format('F j, Y') : 'N/A' }}</td>
+            <td class="num">{{ $dailyRow['entries_count'] ?? 0 }}</td>
+            <td class="num">{{ number_format((float) ($dailyRow['sales_total'] ?? 0), 2) }}</td>
+            <td class="num profit">{{ number_format((float) ($dailyRow['profit_total'] ?? 0), 2) }}</td>
+          </tr>
+        @endforeach
+        </tbody>
+      </table>
+    @endif
+  </div>
+
+  <div class="section">
     <h3>Sales Detail Entries</h3>
     @if(count($salesEntries) === 0)
       <p class="muted">No sales entries in the selected range.</p>
@@ -395,6 +427,42 @@
                 <div class="tiny" style="font-weight:400;">
                   {{ $amountCharged < $originalPrice ? '▼' : '▲' }}
                   {{ number_format(abs($amountCharged - $originalPrice), 2) }}
+                </div>
+              @endif
+
+              @if($includeTargetProgress)
+                <div class="section">
+                  <h2>Sales Target Progress</h2>
+                  @if(count($salesTargetProgress) === 0)
+                    <p class="muted">No sales target progress data available.</p>
+                  @else
+                    <table>
+                      <thead>
+                      <tr>
+                        <th>Business</th>
+                        <th class="num">Target</th>
+                        <th class="num">Sales</th>
+                        <th class="num">Profit</th>
+                        <th class="num">Progress</th>
+                        <th class="num">Days Rendered</th>
+                        <th class="num">Days Left</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      @foreach($salesTargetProgress as $targetRow)
+                        <tr>
+                          <td>{{ $targetRow['business_name'] ?? 'Business' }}</td>
+                          <td class="num">{{ number_format((float) ($targetRow['sales_target'] ?? 0), 2) }}</td>
+                          <td class="num">{{ number_format((float) ($targetRow['total_sales'] ?? 0), 2) }}</td>
+                          <td class="num profit">{{ number_format((float) ($targetRow['total_profit'] ?? 0), 2) }}</td>
+                          <td class="num">{{ number_format((float) ($targetRow['progress_percent'] ?? 0), 2) }}%</td>
+                          <td class="num">{{ $targetRow['days_rendered'] ?? 0 }}/{{ $targetRow['days_total'] ?? 0 }}</td>
+                          <td class="num">{{ $targetRow['days_left'] ?? 0 }}</td>
+                        </tr>
+                      @endforeach
+                      </tbody>
+                    </table>
+                  @endif
                 </div>
               @endif
             </td>
