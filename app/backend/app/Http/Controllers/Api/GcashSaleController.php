@@ -22,7 +22,7 @@ class GcashSaleController extends Controller
         return GcashSaleResource::collection($this->gcashSaleService->paginate($business));
     }
 
-    public function store(StoreGcashSaleRequest $request, Business $business): GcashSaleResource
+  public function store(StoreGcashSaleRequest $request, Business $business): GcashSaleResource
     {
         return new GcashSaleResource($this->gcashSaleService->store($business, $request->validated()));
     }
