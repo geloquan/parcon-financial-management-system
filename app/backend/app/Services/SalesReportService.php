@@ -309,6 +309,13 @@ class SalesReportService
                     'total_movements' => 0,
                 ],
             ];
+        $capitalMoneyTotals = in_array('portfolio_business_money', $includeSections, true)
+            ? $this->collectCapitalMoneyTotals($targetBusiness)
+            : [
+                'portfolio_money_total' => 0.0,
+                'business_money_total' => 0.0,
+                'business_breakdown' => [],
+            ];
 
         $staffDetails = in_array('staff', $includeSections, true)
             ? $this->collectStaffDetails($targetBusiness, $startDate, $endDate)
@@ -343,6 +350,7 @@ class SalesReportService
             'compensation_entries' => $compensationDetails['entries'],
             'capital_flow_entries' => $capitalFlowDetails['entries'],
             'capital_flow_totals' => $capitalFlowDetails['totals'],
+            'capital_money_totals' => $capitalMoneyTotals,
             'staff_details' => $staffDetails,
             'schedule_attendance_details' => $scheduleAttendanceDetails,
             'reference_items_details' => $referenceItemsDetails,
@@ -691,6 +699,69 @@ class SalesReportService
                 'debts_settled' => $totalDebtsSettled,
                 'total_movements' => count($entries),
             ],
+        ];
+    }
+
+    private function collectCapitalMoneyTotals(?Business $business = null): array
+    {
+        $portfolioInflows = round((float) CapitalMovement::query()
+            ->where('source_type', 'portfolio')
+            ->where('direction', 'add')
+            ->sum('amount'), 2);
+        $portfolioOutflows = round((float) CapitalMovement::query()
+            ->where('source_type', 'portfolio')
+            ->whereIn('direction', ['deduct', 'transfer', 'debt'])
+            ->sum('amount'), 2);
+
+        $transferInflows = CapitalMovement::query()
+            ->selectRaw('target_business_id as business_id, SUM(amount) as total_amount')
+            ->where('source_type', 'portfolio')
+            ->where('direction', 'transfer')
+            ->when($business, fn (Builder $query) => $query->where('target_business_id', $business->id))
+            ->whereNotNull('target_business_id')
+            ->groupBy('target_business_id')
+            ->pluck('total_amount', 'business_id');
+        $directAdds = CapitalMovement::query()
+            ->selectRaw('source_business_id as business_id, SUM(amount) as total_amount')
+            ->where('source_type', 'business')
+            ->where('direction', 'add')
+            ->when($business, fn (Builder $query) => $query->where('source_business_id', $business->id))
+            ->whereNotNull('source_business_id')
+            ->groupBy('source_business_id')
+            ->pluck('total_amount', 'business_id');
+        $deductions = CapitalMovement::query()
+            ->selectRaw('source_business_id as business_id, SUM(amount) as total_amount')
+            ->where('source_type', 'business')
+            ->where('direction', 'deduct')
+            ->when($business, fn (Builder $query) => $query->where('source_business_id', $business->id))
+            ->whereNotNull('source_business_id')
+            ->groupBy('source_business_id')
+            ->pluck('total_amount', 'business_id');
+
+        $businesses = $business
+            ? collect([$business])
+            : Business::query()->orderBy('name')->get(['id', 'name']);
+
+        $businessBreakdown = $businesses->map(function (Business $item) use ($transferInflows, $directAdds, $deductions): array {
+            $businessId = (int) $item->id;
+            $balance = round(
+                ((float) ($transferInflows[$businessId] ?? 0))
+                + ((float) ($directAdds[$businessId] ?? 0))
+                - ((float) ($deductions[$businessId] ?? 0)),
+                2
+            );
+
+            return [
+                'business_id' => $businessId,
+                'business_name' => $item->name,
+                'money_total' => $balance,
+            ];
+        })->values()->all();
+
+        return [
+            'portfolio_money_total' => round($portfolioInflows - $portfolioOutflows, 2),
+            'business_money_total' => round((float) collect($businessBreakdown)->sum('money_total'), 2),
+            'business_breakdown' => $businessBreakdown,
         ];
     }
 

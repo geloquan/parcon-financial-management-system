@@ -144,6 +144,7 @@
   $compensationEntries = $details['compensation_entries'] ?? [];
   $capitalFlowEntries = $details['capital_flow_entries'] ?? [];
   $capitalFlowTotals = $details['capital_flow_totals'] ?? [];
+  $capitalMoneyTotals = $details['capital_money_totals'] ?? [];
   $staffDetails = $details['staff_details'] ?? ['totals' => [], 'entries' => []];
   $scheduleAttendanceDetails = $details['schedule_attendance_details'] ?? ['totals' => [], 'entries' => []];
   $referenceItemsDetails = $details['reference_items_details'] ?? ['totals' => [], 'entries' => []];
@@ -699,6 +700,46 @@
   <div class="section">
     <h2>Capital &amp; Financial Flows</h2>
     <p class="muted tiny">Portfolio and business money movements in the selected date range, including debts and settlements.</p>
+
+    <h3>Portfolio &amp; Business Money Totals (Not Date-Range Filtered)</h3>
+    <p class="muted tiny">These totals are computed from all active capital movement records and are not limited by the selected report date range.</p>
+    <table>
+      <thead>
+      <tr>
+        <th>Money Type</th>
+        <th class="num">Total Amount</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>Portfolio Money (All-Time)</td>
+        <td class="num">{{ number_format((float) ($capitalMoneyTotals['portfolio_money_total'] ?? 0), 2) }}</td>
+      </tr>
+      <tr>
+        <td>Business Money (All-Time)</td>
+        <td class="num">{{ number_format((float) ($capitalMoneyTotals['business_money_total'] ?? 0), 2) }}</td>
+      </tr>
+      </tbody>
+    </table>
+
+    @if(count($capitalMoneyTotals['business_breakdown'] ?? []) > 0)
+      <table>
+        <thead>
+        <tr>
+          <th>Business</th>
+          <th class="num">Money Total (All-Time)</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach(($capitalMoneyTotals['business_breakdown'] ?? []) as $businessMoney)
+          <tr>
+            <td>{{ $businessMoney['business_name'] ?? '—' }}</td>
+            <td class="num">{{ number_format((float) ($businessMoney['money_total'] ?? 0), 2) }}</td>
+          </tr>
+        @endforeach
+        </tbody>
+      </table>
+    @endif
 
     @if(!empty($capitalFlowTotals))
       <table>
