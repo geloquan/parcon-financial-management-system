@@ -1,22 +1,22 @@
 import {useEffect, useMemo, useRef, useState, type FormEvent, useCallback} from 'react'
-import { useLogin, useLogout, useMe } from './hooks/use-auth'
-import { useBusinesses } from './hooks/use-businesses'
-import { useCreateExpense, useExpenses } from './hooks/use-expenses'
-import { useCreateGcashSale, useDeleteGcashSale, useGcashSales } from './hooks/use-gcash-sales'
-import { useCreateCoffeeSale, useDeleteCoffeeSale, useCoffeeSales } from './hooks/use-coffee-sales'
-import { useCreatePrintSale, useDeletePrintSale, usePrintSales } from './hooks/use-print-sales'
-import { useCreateEtherealSale, useDeleteEtherealSale, useEtherealSales } from './hooks/use-ethereal-sales'
-import { useGenerateSalesReport } from './hooks/use-sales-reports'
-import { useCreateStaff, useDeleteStaff, useStaff, useUpdateStaff } from './hooks/use-staff'
-import { useCreateStaffDayOff, useDeleteStaffDayOff, useStaffDayOffs } from './hooks/use-staff-day-offs'
-import { useCreateStaffAbsence, useDeleteStaffAbsence, useStaffAbsences } from './hooks/use-staff-absences'
+import {useLogin, useLogout, useMe} from './hooks/use-auth'
+import {useBusinesses} from './hooks/use-businesses'
+import {useCreateExpense, useExpenses} from './hooks/use-expenses'
+import {useCreateGcashSale, useDeleteGcashSale, useGcashSales} from './hooks/use-gcash-sales'
+import {useCreateCoffeeSale, useDeleteCoffeeSale, useCoffeeSales} from './hooks/use-coffee-sales'
+import {useCreatePrintSale, useDeletePrintSale, usePrintSales} from './hooks/use-print-sales'
+import {useCreateEtherealSale, useDeleteEtherealSale, useEtherealSales} from './hooks/use-ethereal-sales'
+import {useGenerateSalesReport} from './hooks/use-sales-reports'
+import {useCreateStaff, useDeleteStaff, useStaff, useUpdateStaff} from './hooks/use-staff'
+import {useCreateStaffDayOff, useDeleteStaffDayOff, useStaffDayOffs} from './hooks/use-staff-day-offs'
+import {useCreateStaffAbsence, useDeleteStaffAbsence, useStaffAbsences} from './hooks/use-staff-absences'
 import {
   useBusinessReferenceItems,
   useCreateBusinessReferenceItem,
   useDeleteBusinessReferenceItem,
   useUpdateBusinessReferenceItem,
 } from './hooks/use-business-reference-items'
-import { useCompensationRuns, useCreateCompensationRun, useFinalizeCompensationRun } from './hooks/use-compensation-runs'
+import {useCompensationRuns, useCreateCompensationRun, useFinalizeCompensationRun} from './hooks/use-compensation-runs'
 import {
   useCreateSalesReport,
   useDownloadPortfolioSalesReport,
@@ -45,16 +45,16 @@ import {
   FileText,
   type LucideIcon,
 } from 'lucide-react'
-import type { SalesReport, SalesReportVersion } from './types/api'
+import type {SalesReport, SalesReportVersion} from './types/api'
 import {
   useCapitalMovements,
   useCreateBusinessCapitalMovement,
   useCreatePortfolioCapitalMovement,
   useSettlePortfolioDebt,
 } from './hooks/use-capital-movements'
-import { formatCompactDate } from './services/formatDate.ts'
-import { ActionErrorPanel, FieldErrorText } from './components/action-error-panel'
-import { getFieldErrorsFor } from './services/api-error'
+import {formatCompactDate} from './services/formatDate.ts'
+import {ActionErrorPanel, FieldErrorText} from './components/action-error-panel'
+import {getFieldErrorsFor} from './services/api-error'
 
 type Tab =
   | 'overview'
@@ -286,36 +286,36 @@ const navGroups: Array<{
   {
     label: 'Overview',
     items: [
-      { value: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-      { value: 'businesses', label: 'Businesses', icon: Building2 },
+      {value: 'overview', label: 'Dashboard', icon: LayoutDashboard},
+      {value: 'businesses', label: 'Businesses', icon: Building2},
     ],
   },
   {
     label: 'Management',
     items: [
-      { value: 'staff', label: 'Staff', icon: UserRound },
-      { value: 'scheduleAttendance', label: 'Schedule & Attendance', icon: CalendarCheck2 },
-      { value: 'compensation', label: 'Compensation', icon: BanknoteArrowUp },
-      { value: 'referenceItems', label: 'Reference Items', icon: NotebookPen },
-      { value: 'expenses', label: 'Expenses', icon: ReceiptText },
+      {value: 'staff', label: 'Staff', icon: UserRound},
+      {value: 'scheduleAttendance', label: 'Schedule & Attendance', icon: CalendarCheck2},
+      {value: 'compensation', label: 'Compensation', icon: BanknoteArrowUp},
+      {value: 'referenceItems', label: 'Reference Items', icon: NotebookPen},
+      {value: 'expenses', label: 'Expenses', icon: ReceiptText},
     ],
   },
   {
     label: 'Sales',
     items: [
-      { value: 'gcash', label: 'GCash', icon: Wallet },
-      { value: 'coffee', label: 'Coffee', icon: Coffee },
-      { value: 'print', label: 'Print', icon: Printer },
-      { value: 'ethereal', label: 'Ethereal', icon: Sparkles },
-      { value: 'salesReports', label: 'Quick Report', icon: FileText },
+      {value: 'gcash', label: 'GCash', icon: Wallet},
+      {value: 'coffee', label: 'Coffee', icon: Coffee},
+      {value: 'print', label: 'Print', icon: Printer},
+      {value: 'ethereal', label: 'Ethereal', icon: Sparkles},
+      {value: 'salesReports', label: 'Quick Report', icon: FileText},
     ],
   },
   {
     label: 'Capital',
     items: [
-      { value: 'portfolioCapital', label: 'Portfolio Money', icon: BanknoteArrowUp },
-      { value: 'businessCapital', label: 'Business Money', icon: BanknoteArrowDown },
-      { value: 'pdfSalesReports', label: 'Sales Reports', icon: FileText },
+      {value: 'portfolioCapital', label: 'Portfolio Money', icon: BanknoteArrowUp},
+      {value: 'businessCapital', label: 'Business Money', icon: BanknoteArrowDown},
+      {value: 'pdfSalesReports', label: 'Sales Reports', icon: FileText},
     ],
   },
 ]
@@ -362,16 +362,16 @@ type ReportIncludeSection =
   | 'portfolio_business_money'
 
 const reportIncludeSectionOptions: Array<{ value: ReportIncludeSection; label: string }> = [
-  { value: 'staff', label: 'Staff' },
-  { value: 'schedule_attendance', label: 'Schedule & Attendance' },
-  { value: 'compensation', label: 'Compensation' },
-  { value: 'reference_items', label: 'Reference Items' },
-  { value: 'expenses', label: 'Expenses' },
-  { value: 'sales_gcash', label: 'Sales: GCash' },
-  { value: 'sales_coffee', label: 'Sales: Coffee' },
-  { value: 'sales_print', label: 'Sales: Print' },
-  { value: 'sales_ethereal', label: 'Sales: Ethereal' },
-  { value: 'portfolio_business_money', label: 'Portfolio/Business Money' },
+  {value: 'staff', label: 'Staff'},
+  {value: 'schedule_attendance', label: 'Schedule & Attendance'},
+  {value: 'compensation', label: 'Compensation'},
+  {value: 'reference_items', label: 'Reference Items'},
+  {value: 'expenses', label: 'Expenses'},
+  {value: 'sales_gcash', label: 'Sales: GCash'},
+  {value: 'sales_coffee', label: 'Sales: Coffee'},
+  {value: 'sales_print', label: 'Sales: Print'},
+  {value: 'sales_ethereal', label: 'Sales: Ethereal'},
+  {value: 'portfolio_business_money', label: 'Portfolio/Business Money'},
 ]
 
 const defaultReportIncludeSections = reportIncludeSectionOptions.map((option) => option.value)
@@ -390,7 +390,7 @@ function SectionHeading({
   return (
     <div className="flex items-start gap-3">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--burgundy-50)]">
-        <Icon className="h-4 w-4 text-[var(--burgundy-600)]" />
+        <Icon className="h-4 w-4 text-[var(--burgundy-600)]"/>
       </span>
       <div>
         <h3 className="text-lg font-semibold text-[var(--neutral-espresso)]">{title}</h3>
@@ -403,32 +403,34 @@ function SectionHeading({
 }
 
 // Divider between form and list
-function SectionDivider({ label }: { label: string }) {
+function SectionDivider({label}: { label: string }) {
   return (
     <div className="mt-7 mb-4 flex items-center gap-3">
-      <div className="h-px flex-1 bg-[var(--neutral-linen)]" />
+      <div className="h-px flex-1 bg-[var(--neutral-linen)]"/>
       <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--neutral-rosewood)]">
         {label}
       </span>
-      <div className="h-px flex-1 bg-[var(--neutral-linen)]" />
+      <div className="h-px flex-1 bg-[var(--neutral-linen)]"/>
     </div>
   )
 }
 
 // Live preview callout
-function LivePreview({ children }: { children: React.ReactNode }) {
+function LivePreview({children}: { children: React.ReactNode }) {
   return (
-    <div className="mt-4 flex items-center gap-3 rounded-lg border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3">
-      <ArrowRightLeft className="h-4 w-4 shrink-0 text-[var(--status-info-text)]" />
+    <div
+      className="mt-4 flex items-center gap-3 rounded-lg border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3">
+      <ArrowRightLeft className="h-4 w-4 shrink-0 text-[var(--status-info-text)]"/>
       <p className="text-xs text-[var(--status-info-text)]">{children}</p>
     </div>
   )
 }
 
 // Empty state
-function EmptyState({ label }: { label: string }) {
+function EmptyState({label}: { label: string }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--neutral-linen)] py-10 text-center">
+    <div
+      className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--neutral-linen)] py-10 text-center">
       <p className="text-sm text-[var(--neutral-rosewood)]">{label}</p>
     </div>
   )
@@ -498,21 +500,21 @@ function App() {
       // Include business for every tab that uses it
       business: selectedBusinessId ? String(selectedBusinessId) : null,
       // Tab-specific context params
-      date:   tab === 'scheduleAttendance' ? scheduleDateFilter : null,
-      page:   tab === 'pdfSalesReports' && salesReportPage > 1 ? String(salesReportPage) : null,
-      scope:  tab === 'salesReports' ? reportScope : null,
+      date: tab === 'scheduleAttendance' ? scheduleDateFilter : null,
+      page: tab === 'pdfSalesReports' && salesReportPage > 1 ? String(salesReportPage) : null,
+      scope: tab === 'salesReports' ? reportScope : null,
       period: tab === 'salesReports' ? reportPeriod : null,
-      mode:   tab === 'compensation' && compensationMode !== 'today' ? compensationMode : null,
+      mode: tab === 'compensation' && compensationMode !== 'today' ? compensationMode : null,
     }
 
     const url = window.location.pathname + buildSearch(params)
 
     if (isTabChange) {
       // Push so the browser back button navigates between tabs
-      window.history.pushState({ tab }, '', url)
+      window.history.pushState({tab}, '', url)
     } else {
       // Replace for filter/context tweaks — no history spam
-      window.history.replaceState({ tab }, '', url)
+      window.history.replaceState({tab}, '', url)
     }
   }, [tab, selectedBusinessId, scheduleDateFilter, salesReportPage, reportScope, reportPeriod, compensationMode])
 
@@ -568,8 +570,8 @@ function App() {
   const settlePortfolioDebtMutation = useSettlePortfolioDebt()
   const createBusinessCapitalMutation = useCreateBusinessCapitalMovement(selectedBusinessId)
   const generateSalesReportMutation = useGenerateSalesReport()
-  const salesReportsQuery = useSalesReports(pdfBusinessId, salesReportPage, pdfReportScope, { enabled: pdfReportScope === 'business' && Boolean(pdfBusinessId) })
-  const portfolioSalesReportsQuery = usePortfolioSalesReports(salesReportPage, { enabled: pdfReportScope === 'all_businesses' })
+  const salesReportsQuery = useSalesReports(pdfBusinessId, salesReportPage, pdfReportScope, {enabled: pdfReportScope === 'business' && Boolean(pdfBusinessId)})
+  const portfolioSalesReportsQuery = usePortfolioSalesReports(salesReportPage, {enabled: pdfReportScope === 'all_businesses'})
   const createSalesReportMutation = useCreateSalesReport(salesReportPage, pdfReportScope)
   const downloadSalesReportMutation = useDownloadSalesReport()
   const downloadPortfolioSalesReportMutation = useDownloadPortfolioSalesReport()
@@ -689,7 +691,7 @@ function App() {
 
       return bal
     }, 0)
-    return { portfolioBalance, businessBalance }
+    return {portfolioBalance, businessBalance}
   }, [capitalMovementsQuery.data, selectedBusinessId])
 
   const portfolioAfterPreview = useMemo(() => {
@@ -881,7 +883,7 @@ function App() {
     if (!reauth) return
     await updateStaffMutation.mutateAsync({
       staffId,
-      payload: { is_active: false, ...reauth },
+      payload: {is_active: false, ...reauth},
     })
   }
 
@@ -900,7 +902,7 @@ function App() {
     if (!reauth) return
     await updateStaffMutation.mutateAsync({
       staffId,
-      payload: { is_active: false, employment_end_date: formatDateOnly(new Date()), ...reauth },
+      payload: {is_active: false, employment_end_date: formatDateOnly(new Date()), ...reauth},
     })
   }
 
@@ -912,7 +914,7 @@ function App() {
     }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    await deleteStaffMutation.mutateAsync({ staffId, payload: reauth })
+    await deleteStaffMutation.mutateAsync({staffId, payload: reauth})
   }
 
   const submitStaffDayOff = async (e: FormEvent<HTMLFormElement>) => {
@@ -955,7 +957,7 @@ function App() {
     }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    await deleteStaffDayOffMutation.mutateAsync({ dayOffId, payload: reauth })
+    await deleteStaffDayOffMutation.mutateAsync({dayOffId, payload: reauth})
   }
 
   const removeStaffAbsence = async (absenceId: number) => {
@@ -966,7 +968,7 @@ function App() {
     }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    await deleteStaffAbsenceMutation.mutateAsync({ absenceId, payload: reauth })
+    await deleteStaffAbsenceMutation.mutateAsync({absenceId, payload: reauth})
   }
 
   const submitCompensationRun = async (e: FormEvent<HTMLFormElement>) => {
@@ -996,7 +998,7 @@ function App() {
     if (!reauth) return
     finalizeCompensationRunMutation.reset()
     try {
-      await finalizeCompensationRunMutation.mutateAsync({ runId, payload: reauth })
+      await finalizeCompensationRunMutation.mutateAsync({runId, payload: reauth})
     } catch {
       // Error is presented via ActionErrorPanel.
     }
@@ -1012,7 +1014,7 @@ function App() {
 
     settlePortfolioDebtMutation.reset()
     try {
-      await settlePortfolioDebtMutation.mutateAsync({ movementId, payload: reauth })
+      await settlePortfolioDebtMutation.mutateAsync({movementId, payload: reauth})
     } catch {
       // Error is presented via ActionErrorPanel.
     }
@@ -1026,7 +1028,7 @@ function App() {
     const reportScope = report.metadata.report_scope ?? report.details.report_scope ?? 'business'
     const download = reportScope === 'all_businesses'
       ? await downloadPortfolioSalesReportMutation.mutateAsync(report.id)
-      : await downloadSalesReportMutation.mutateAsync({ businessId: report.business_id, reportId: report.id })
+      : await downloadSalesReportMutation.mutateAsync({businessId: report.business_id, reportId: report.id})
     const url = URL.createObjectURL(download.blob)
     const anchor = document.createElement('a')
     anchor.href = url
@@ -1172,7 +1174,7 @@ function App() {
     }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    await deleteGcashMutation.mutateAsync({ saleId, payload: reauth })
+    await deleteGcashMutation.mutateAsync({saleId, payload: reauth})
   }
 
   const submitCoffee = async (e: FormEvent<HTMLFormElement>) => {
@@ -1207,7 +1209,7 @@ function App() {
         sale_date: new Date(item.sale_date).toISOString(),
       }
     })
-    await createCoffeeMutation.mutateAsync({ ...entries[0], entries, ...reauth })
+    await createCoffeeMutation.mutateAsync({...entries[0], entries, ...reauth})
     setCoffeeItems([createCoffeeDraftItem()])
   }
 
@@ -1219,7 +1221,7 @@ function App() {
     }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    await deleteCoffeeMutation.mutateAsync({ saleId, payload: reauth })
+    await deleteCoffeeMutation.mutateAsync({saleId, payload: reauth})
   }
 
   const submitPrint = async (e: FormEvent<HTMLFormElement>) => {
@@ -1255,7 +1257,7 @@ function App() {
         sale_date: new Date(item.sale_date).toISOString(),
       }
     })
-    await createPrintMutation.mutateAsync({ ...entries[0], entries, ...reauth })
+    await createPrintMutation.mutateAsync({...entries[0], entries, ...reauth})
     setPrintItems([createPrintDraftItem()])
   }
 
@@ -1267,7 +1269,7 @@ function App() {
     }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    await deletePrintMutation.mutateAsync({ saleId, payload: reauth })
+    await deletePrintMutation.mutateAsync({saleId, payload: reauth})
   }
 
   const submitEthereal = async (e: FormEvent<HTMLFormElement>) => {
@@ -1321,7 +1323,7 @@ function App() {
     }
     const reauth = await requestMoneyReauth()
     if (!reauth) return
-    await deleteEtherealMutation.mutateAsync({ saleId, payload: reauth })
+    await deleteEtherealMutation.mutateAsync({saleId, payload: reauth})
   }
 
   const submitPortfolioCapital = async (e: FormEvent<HTMLFormElement>) => {
@@ -1508,7 +1510,8 @@ function App() {
   // ─── Login screen ─────────────────────────────────────────────────────────
   if (!meQuery.data) {
     return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--burgundy-900)] px-4 py-8">
+      <main
+        className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--burgundy-900)] px-4 py-8">
         {/* Decorative background rings */}
         <div
           aria-hidden
@@ -1521,33 +1524,38 @@ function App() {
         <section className="relative z-10 w-full max-w-sm">
           {/* Brand bar */}
           <div className="mb-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--burgundy-600)]">
-              <BanknoteArrowUp className="h-6 w-6 text-white" />
+            <div
+              className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--burgundy-600)]">
+              <BanknoteArrowUp className="h-6 w-6 text-white"/>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-white">Parcon FMS</h1>
             <p className="mt-1 text-sm text-[var(--burgundy-200)]">Financial Management System</p>
           </div>
 
-          <div className="rounded-2xl border border-[rgba(236,196,202,0.15)] bg-[var(--surface-card)] p-8 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
+          <div
+            className="rounded-2xl border border-[rgba(236,196,202,0.15)] bg-[var(--surface-card)] p-8 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
             <p className="mb-5 text-sm text-[var(--neutral-rosewood)]">Sign in with your credentials to continue.</p>
             <form onSubmit={submitLogin} className="grid gap-4">
-              <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+              <label
+                className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                 Username
-                <input name="username" required className="dashboard-input" placeholder="Enter username" />
+                <input name="username" required className="dashboard-input" placeholder="Enter username"/>
               </label>
-              <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+              <label
+                className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                 Password
-                <input name="password" type="password" required className="dashboard-input" placeholder="••••••••" />
+                <input name="password" type="password" required className="dashboard-input" placeholder="••••••••"/>
               </label>
               <button type="submit" className="dashboard-button-primary mt-1">
                 <span className="inline-flex items-center justify-center gap-2">
-                  <LogIn className="h-4 w-4" />
+                  <LogIn className="h-4 w-4"/>
                   {loginMutation.isPending ? 'Signing in…' : 'Sign in'}
                 </span>
               </button>
             </form>
             {loginMutation.error ? (
-              <p className="mt-4 rounded-lg border border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] px-3 py-2 text-sm text-[var(--status-danger-text)]">
+              <p
+                className="mt-4 rounded-lg border border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] px-3 py-2 text-sm text-[var(--status-danger-text)]">
                 {loginMutation.error.message}
               </p>
             ) : null}
@@ -1561,29 +1569,31 @@ function App() {
   return (
     <main className="min-h-screen bg-[var(--surface-page)] text-[var(--neutral-espresso)]">
       <datalist id="quick-number-values">
-        <option value="0" />
-        <option value="1" />
-        <option value="5" />
-        <option value="10" />
-        <option value="50" />
-        <option value="100" />
-        <option value="500" />
-        <option value="1000" />
+        <option value="0"/>
+        <option value="1"/>
+        <option value="5"/>
+        <option value="10"/>
+        <option value="50"/>
+        <option value="100"/>
+        <option value="500"/>
+        <option value="1000"/>
       </datalist>
       <div className="mx-auto grid w-full max-w-[1460px] gap-6 px-4 py-6 lg:grid-cols-[240px_minmax(0,1fr)]">
 
         {actionGuidance ? (
-          <div className="lg:col-span-2 rounded-lg border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3 text-sm text-[var(--status-info-text)]">
+          <div
+            className="lg:col-span-2 rounded-lg border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3 text-sm text-[var(--status-info-text)]">
             {actionGuidance}
           </div>
         ) : null}
 
         {/* ── Sidebar ───────────────────────────────────────────────────── */}
-        <aside className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-4 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:overflow-auto">
+        <aside
+          className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-4 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:overflow-auto">
           {/* Brand */}
           <div className="flex items-center gap-3 rounded-xl bg-[var(--burgundy-600)] px-4 py-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20">
-              <BanknoteArrowUp className="h-4 w-4 text-white" />
+              <BanknoteArrowUp className="h-4 w-4 text-white"/>
             </div>
             <div>
               <p className="text-sm font-semibold text-white">Parcon FMS</p>
@@ -1595,7 +1605,8 @@ function App() {
           <nav className="mt-4 grid gap-5">
             {navGroups.map((group) => (
               <div key={group.label}>
-                <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--neutral-rosewood)]">
+                <p
+                  className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--neutral-rosewood)]">
                   {group.label}
                 </p>
                 <div className="grid gap-0.5">
@@ -1614,7 +1625,8 @@ function App() {
                       >
                         {/* Active left indicator */}
                         {active && (
-                          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--burgundy-600)]" />
+                          <span
+                            className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--burgundy-600)]"/>
                         )}
                         <item.icon
                           className={`h-4 w-4 shrink-0 transition-colors ${
@@ -1622,7 +1634,7 @@ function App() {
                           }`}
                         />
                         {item.label}
-                        {active && <ChevronRight className="ml-auto h-3 w-3 text-[var(--burgundy-400)]" />}
+                        {active && <ChevronRight className="ml-auto h-3 w-3 text-[var(--burgundy-400)]"/>}
                       </button>
                     )
                   })}
@@ -1636,13 +1648,15 @@ function App() {
         <section className="grid gap-6 self-start">
 
           {/* Top header */}
-          <header className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-5 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+          <header
+            className="rounded-2xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-5 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
 
             {/* User Greeting */}
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 {/* Avatar initial */}
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--burgundy-600)] text-sm font-bold text-white">
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--burgundy-600)] text-sm font-bold text-white">
                   {meQuery.data.name?.charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -1682,7 +1696,8 @@ function App() {
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--neutral-rosewood)]">
                   Business filter
                 </p>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Select business explicitly
                   <select
                     value={selectedBusinessId ?? ''}
@@ -1705,40 +1720,50 @@ function App() {
           {tab === 'overview' && (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {/* Active business */}
-              <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              <article
+                className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--burgundy-50)]">
-                <Building2 className="h-5 w-5 text-[var(--burgundy-600)]" />
+                <Building2 className="h-5 w-5 text-[var(--burgundy-600)]"/>
               </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Business</p>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Business</p>
                   <p className="truncate text-base font-semibold">{selectedBusinessName ?? '—'}</p>
                 </div>
               </article>
 
               {/* Sales total */}
-              <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              <article
+                className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--teal-light)]">
-                <TrendingUp className="h-5 w-5 text-[var(--teal-dark)]" />
+                <TrendingUp className="h-5 w-5 text-[var(--teal-dark)]"/>
               </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Sales total</p>
-                  <p className="truncate text-base font-semibold text-[var(--accent-gold)]">{formatCurrency(salesTotal)}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Sales
+                    total</p>
+                  <p
+                    className="truncate text-base font-semibold text-[var(--accent-gold)]">{formatCurrency(salesTotal)}</p>
                 </div>
               </article>
 
               {/* Expenses total */}
-              <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--status-danger-bg)]">
-                <TrendingDown className="h-5 w-5 text-[var(--status-danger-text)]" />
+              <article
+                className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--status-danger-bg)]">
+                <TrendingDown className="h-5 w-5 text-[var(--status-danger-text)]"/>
               </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Expenses</p>
-                  <p className="truncate text-base font-semibold text-[var(--status-danger-text)]">{formatCurrency(expenseTotal)}</p>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Expenses</p>
+                  <p
+                    className="truncate text-base font-semibold text-[var(--status-danger-text)]">{formatCurrency(expenseTotal)}</p>
                 </div>
               </article>
 
               {/* Profit snapshot */}
-              <article className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
+              <article
+                className="flex items-center gap-4 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-5 py-4 shadow-[0_4px_20px_rgba(58,9,18,0.05)]">
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                   profitSnapshot >= 0 ? 'bg-[var(--status-success-bg)]' : 'bg-[var(--status-danger-bg)]'
@@ -1749,7 +1774,8 @@ function App() {
                 />
               </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Profit</p>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Profit</p>
                   <p
                     className={`truncate text-base font-semibold ${
                       profitSnapshot >= 0 ? 'text-[var(--teal-mid)]' : 'text-[var(--status-danger-text)]'
@@ -1769,14 +1795,34 @@ function App() {
             <section className="grid gap-4 lg:grid-cols-2">
               {/* Operations snapshot */}
               <article className={cardClass}>
-                <SectionHeading icon={LayoutDashboard} title="Operations snapshot" />
+                <SectionHeading icon={LayoutDashboard} title="Operations snapshot"/>
                 <div className="mt-5 grid gap-2">
                   {[
-                    { label: 'Staff records', value: staffEntries.length, colorBg: 'bg-[var(--burgundy-50)]', colorText: 'text-[var(--burgundy-800)]' },
-                    { label: 'Capital movements', value: (capitalMovementsQuery.data?.data ?? []).length, colorBg: 'bg-[var(--status-info-bg)]', colorText: 'text-[var(--status-info-text)]' },
-                    { label: 'Expense entries', value: expenseEntries.length, colorBg: 'bg-[var(--status-warning-bg)]', colorText: 'text-[var(--status-warning-text)]' },
-                    { label: 'Sales entries', value: gcashEntries.length + coffeeEntries.length + printEntries.length + etherealEntries.length, colorBg: 'bg-[var(--status-success-bg)]', colorText: 'text-[var(--status-success-text)]' },
-                  ].map(({ label, value, colorBg, colorText }) => (
+                    {
+                      label: 'Staff records',
+                      value: staffEntries.length,
+                      colorBg: 'bg-[var(--burgundy-50)]',
+                      colorText: 'text-[var(--burgundy-800)]'
+                    },
+                    {
+                      label: 'Capital movements',
+                      value: (capitalMovementsQuery.data?.data ?? []).length,
+                      colorBg: 'bg-[var(--status-info-bg)]',
+                      colorText: 'text-[var(--status-info-text)]'
+                    },
+                    {
+                      label: 'Expense entries',
+                      value: expenseEntries.length,
+                      colorBg: 'bg-[var(--status-warning-bg)]',
+                      colorText: 'text-[var(--status-warning-text)]'
+                    },
+                    {
+                      label: 'Sales entries',
+                      value: gcashEntries.length + coffeeEntries.length + printEntries.length + etherealEntries.length,
+                      colorBg: 'bg-[var(--status-success-bg)]',
+                      colorText: 'text-[var(--status-success-text)]'
+                    },
+                  ].map(({label, value, colorBg, colorText}) => (
                     <div key={label} className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${colorBg}`}>
                       <span className={`text-sm ${colorText}`}>{label}</span>
                       <span className={`text-sm font-bold tabular-nums ${colorText}`}>{value}</span>
@@ -1787,15 +1833,20 @@ function App() {
 
               {/* Capital balances */}
               <article className={cardClass}>
-                <SectionHeading icon={BanknoteArrowUp} title="Capital balances" description="Computed from movement history." />
+                <SectionHeading icon={BanknoteArrowUp} title="Capital balances"
+                                description="Computed from movement history."/>
                 <div className="mt-5 grid gap-3">
-                  <div className="rounded-xl border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-info-text)]">Portfolio balance</p>
+                  <div
+                    className="rounded-xl border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3">
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-info-text)]">Portfolio
+                      balance</p>
                     <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--status-info-text)]">
                       {formatCurrency(capitalBalances.portfolioBalance)}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3">
+                  <div
+                    className="rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">
                       Business balance {selectedBusinessName ? `· ${selectedBusinessName}` : ''}
                     </p>
@@ -1808,16 +1859,21 @@ function App() {
 
               {/* Preview card */}
               <article className={`${cardClass} lg:col-span-2`}>
-                <SectionHeading icon={ArrowRightLeft} title="Movement preview" description="Balances after current input forms are applied." />
+                <SectionHeading icon={ArrowRightLeft} title="Movement preview"
+                                description="Balances after current input forms are applied."/>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <div className="rounded-lg bg-[var(--burgundy-50)] px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">Portfolio after preview</p>
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">Portfolio
+                      after preview</p>
                     <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--burgundy-800)]">
                       {formatCurrency(portfolioAfterPreview)}
                     </p>
                   </div>
                   <div className="rounded-lg bg-[var(--burgundy-50)] px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">Business after preview</p>
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">Business
+                      after preview</p>
                     <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--burgundy-800)]">
                       {formatCurrency(businessAfterPreview)}
                     </p>
@@ -1826,9 +1882,11 @@ function App() {
               </article>
 
               <article className={`${cardClass} lg:col-span-2`}>
-                <SectionHeading icon={TrendingDown} title="Anomalies to address" description="Negative values and relapsed day-over-day trends." />
+                <SectionHeading icon={TrendingDown} title="Anomalies to address"
+                                description="Negative values and relapsed day-over-day trends."/>
                 {overviewAnomalies.length === 0 ? (
-                  <div className="mt-5 rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3 text-sm text-[var(--status-success-text)]">
+                  <div
+                    className="mt-5 rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3 text-sm text-[var(--status-success-text)]">
                     No anomalies detected for current data.
                   </div>
                 ) : (
@@ -1861,8 +1919,9 @@ function App() {
                     key={business.id}
                     className="flex items-center gap-3 rounded-xl border border-[var(--neutral-linen)] p-4 hover:border-[var(--burgundy-200)] hover:bg-[var(--burgundy-50)] transition-colors"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--burgundy-50)]">
-                      <Building2 className="h-4 w-4 text-[var(--burgundy-600)]" />
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--burgundy-50)]">
+                      <Building2 className="h-4 w-4 text-[var(--burgundy-600)]"/>
                     </span>
                     <div>
                       <p className="font-semibold">{business.name}</p>
@@ -1877,37 +1936,47 @@ function App() {
           {/* STAFF */}
           {tab === 'staff' && (
             <section className={cardClass}>
-              <SectionHeading icon={UserRound} title="Staff" description="Manage staff records for the selected business." />
+              <SectionHeading icon={UserRound} title="Staff"
+                              description="Manage staff records for the selected business."/>
               <form onSubmit={submitStaff} className={formGridClass}>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Full name
-                  <input name="full_name" required className="dashboard-input" />
+                  <input name="full_name" required className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Age
-                  <input name="age" type="number" list="quick-number-values" required className="dashboard-input" />
+                  <input name="age" type="number" list="quick-number-values" required className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Start date
-                  <input name="employment_start_date" type="date" required className="dashboard-input" />
+                  <input name="employment_start_date" type="date" required className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   End date
-                  <input name="employment_end_date" type="date" className="dashboard-input" />
+                  <input name="employment_end_date" type="date" className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Employment type
-                  <input name="employment_type" required className="dashboard-input" />
+                  <input name="employment_type" required className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Salary (per day)
-                  <input name="salary" type="number" list="quick-number-values" required className="dashboard-input" />
+                  <input name="salary" type="number" list="quick-number-values" required className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Commission (% per service)
-                  <input name="commission_rate_percent" type="number" list="quick-number-values" defaultValue="0" required className="dashboard-input" />
+                  <input name="commission_rate_percent" type="number" list="quick-number-values" defaultValue="0"
+                         required className="dashboard-input"/>
                 </label>
-                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Status
                   <select name="is_active" defaultValue="1" className="dashboard-input">
                     <option value="1">Active</option>
@@ -1919,16 +1988,17 @@ function App() {
                 </button>
               </form>
 
-              <SectionDivider label="Staff records" />
+              <SectionDivider label="Staff records"/>
               {staffEntries.length === 0 ? (
-                <EmptyState label="No staff records yet." />
+                <EmptyState label="No staff records yet."/>
               ) : (
                 <div className="overflow-auto rounded-xl border border-[var(--neutral-linen)]">
                   <table className="min-w-full text-sm">
                     <thead className="bg-[var(--surface-raised)] text-left">
                     <tr>
                       {['Name', 'Type', 'Daily salary', 'Commission %', 'Status', 'Actions'].map((h) => (
-                        <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        <th key={h}
+                            className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                           {h}
                         </th>
                       ))}
@@ -1936,17 +2006,22 @@ function App() {
                     </thead>
                     <tbody>
                     {staffEntries.map((staff) => (
-                      <tr key={staff.id} className="border-t border-[var(--neutral-linen)] hover:bg-[var(--burgundy-50)] transition-colors">
+                      <tr key={staff.id}
+                          className="border-t border-[var(--neutral-linen)] hover:bg-[var(--burgundy-50)] transition-colors">
                         <td className="px-4 py-3 font-medium">{staff.full_name}</td>
                         <td className="px-4 py-3 text-[var(--neutral-rosewood)]">{staff.employment_type}</td>
-                        <td className="px-4 py-3 tabular-nums text-[var(--accent-gold)]">{formatCurrency(parseAmount(staff.salary))}</td>
-                        <td className="px-4 py-3 tabular-nums text-[var(--neutral-rosewood)]">{Number(staff.commission_rate_percent).toFixed(2)}%</td>
+                        <td
+                          className="px-4 py-3 tabular-nums text-[var(--accent-gold)]">{formatCurrency(parseAmount(staff.salary))}</td>
+                        <td
+                          className="px-4 py-3 tabular-nums text-[var(--neutral-rosewood)]">{Number(staff.commission_rate_percent).toFixed(2)}%
+                        </td>
                         <td className="px-4 py-3">
-                            <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                              staff.is_active
-                                ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
-                                : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
-                            }`}>
+                            <span
+                              className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                staff.is_active
+                                  ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                                  : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
+                              }`}>
                               {staff.is_active ? 'Active' : 'Inactive'}
                             </span>
                         </td>
@@ -1996,7 +2071,8 @@ function App() {
                 description="Staff are present by default. Mark only day-off and absent records."
               />
               <form onSubmit={submitStaffDayOff} className={formGridClass}>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Staff
                   <select name="staff_id" required className="dashboard-input">
                     <option value="">Select staff</option>
@@ -2007,13 +2083,16 @@ function App() {
                     ))}
                   </select>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date
-                  <input name="attendance_date" type="date" defaultValue={scheduleDateFilter} required className="dashboard-input" />
+                  <input name="attendance_date" type="date" defaultValue={scheduleDateFilter} required
+                         className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Notes (optional)
-                  <input name="notes" className="dashboard-input" />
+                  <input name="notes" className="dashboard-input"/>
                 </label>
                 <button
                   type="submit"
@@ -2024,9 +2103,10 @@ function App() {
                 </button>
               </form>
 
-              <SectionDivider label="Mark absent" />
+              <SectionDivider label="Mark absent"/>
               <form onSubmit={submitStaffAbsence} className={formGridClass}>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Staff
                   <select name="staff_id" required className="dashboard-input">
                     <option value="">Select staff</option>
@@ -2037,13 +2117,16 @@ function App() {
                     ))}
                   </select>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date
-                  <input name="attendance_date" type="date" defaultValue={scheduleDateFilter} required className="dashboard-input" />
+                  <input name="attendance_date" type="date" defaultValue={scheduleDateFilter} required
+                         className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Notes (optional)
-                  <input name="notes" className="dashboard-input" />
+                  <input name="notes" className="dashboard-input"/>
                 </label>
                 <button
                   type="submit"
@@ -2054,9 +2137,10 @@ function App() {
                 </button>
               </form>
 
-              <SectionDivider label={`Attendance records (${scheduleDateFilter})`} />
+              <SectionDivider label={`Attendance records (${scheduleDateFilter})`}/>
               <div className="mb-3 w-full max-w-xs">
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date filter
                   <input
                     type="date"
@@ -2069,11 +2153,12 @@ function App() {
               {staffDayOffsQuery.isLoading || staffAbsencesQuery.isLoading ? (
                 <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
               ) : staffDayOffEntries.length === 0 && staffAbsenceEntries.length === 0 ? (
-                <EmptyState label="No day-off or absence records for the selected date." />
+                <EmptyState label="No day-off or absence records for the selected date."/>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Day-off</p>
+                    <p
+                      className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Day-off</p>
                     <ul className="grid gap-2">
                       {staffDayOffEntries.map((dayOff) => (
                         <li
@@ -2082,7 +2167,8 @@ function App() {
                         >
                           <div>
                             <p className="font-medium">{dayOff.staff_name ?? 'Unknown staff'}</p>
-                            <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateOnly(dayOff.day_off_on)}</p>
+                            <p
+                              className="text-xs text-[var(--neutral-rosewood)]">{formatDateOnly(dayOff.day_off_on)}</p>
                           </div>
                           <button
                             type="button"
@@ -2096,7 +2182,8 @@ function App() {
                     </ul>
                   </div>
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Absent</p>
+                    <p
+                      className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Absent</p>
                     <ul className="grid gap-2">
                       {staffAbsenceEntries.map((absence) => (
                         <li
@@ -2105,7 +2192,8 @@ function App() {
                         >
                           <div>
                             <p className="font-medium">{absence.staff_name ?? 'Unknown staff'}</p>
-                            <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateOnly(absence.absent_on)}</p>
+                            <p
+                              className="text-xs text-[var(--neutral-rosewood)]">{formatDateOnly(absence.absent_on)}</p>
                           </div>
                           <button
                             type="button"
@@ -2132,7 +2220,8 @@ function App() {
                 description="Run payroll using salary, ethereal commissions, attendance records, and cash-advance deductions."
               />
               <form onSubmit={submitCompensationRun} className={formGridClass}>
-                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Computation mode
                   <select
                     name="computation_mode"
@@ -2145,9 +2234,11 @@ function App() {
                   </select>
                 </label>
                 {compensationMode === 'specific_date' && (
-                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  <label
+                    className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                     Specific date
-                    <input name="cutoff_date" type="date" defaultValue={formatDateOnly(new Date())} required className="dashboard-input" />
+                    <input name="cutoff_date" type="date" defaultValue={formatDateOnly(new Date())} required
+                           className="dashboard-input"/>
                   </label>
                 )}
                 <button
@@ -2165,11 +2256,11 @@ function App() {
                 className="mt-4"
               />
 
-              <SectionDivider label="Payroll runs" />
+              <SectionDivider label="Payroll runs"/>
               {compensationRunsQuery.isLoading ? (
                 <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
               ) : compensationRuns.length === 0 ? (
-                <EmptyState label="No payroll runs yet." />
+                <EmptyState label="No payroll runs yet."/>
               ) : (
                 <ul className="grid gap-3">
                   {compensationRuns.map((run) => (
@@ -2180,11 +2271,12 @@ function App() {
                           {formatCompactDate(run.period_start)} – {formatCompactDate(run.period_end)}
                         </p>
                         <div className="flex items-center gap-2">
-                          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                            run.payment_status === 'finalized'
-                              ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
-                              : 'bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
-                          }`}>
+                          <span
+                            className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                              run.payment_status === 'finalized'
+                                ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                                : 'bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
+                            }`}>
                             {run.payment_status}
                           </span>
                           <span className="text-sm font-semibold text-[var(--teal-mid)]">
@@ -2193,7 +2285,8 @@ function App() {
                         </div>
                       </div>
                       <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
-                        Gross {formatCurrency(parseAmount(run.gross_pay))} · Deductions {formatCurrency(parseAmount(run.total_deductions))}
+                        Gross {formatCurrency(parseAmount(run.gross_pay))} ·
+                        Deductions {formatCurrency(parseAmount(run.total_deductions))}
                       </p>
                       {run.payment_status === 'finalized' ? (
                         <p className="mt-1 text-xs text-[var(--status-success-text)]">
@@ -2212,7 +2305,8 @@ function App() {
                       {run.payment_history.length > 0 && (
                         <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
                           Payment events: {run.payment_history.length} · Last settled deductions:{' '}
-                          {run.payment_history[run.payment_history.length - 1]?.settled_deductions.length ?? 0} · Business deduction:{' '}
+                          {run.payment_history[run.payment_history.length - 1]?.settled_deductions.length ?? 0} ·
+                          Business deduction:{' '}
                           {(run.payment_history[run.payment_history.length - 1]?.business_deduction ?? run.payment_history[run.payment_history.length - 1]?.portfolio_deduction)
                             ? formatCurrency(parseAmount((run.payment_history[run.payment_history.length - 1]?.business_deduction ?? run.payment_history[run.payment_history.length - 1]?.portfolio_deduction)?.amount))
                             : 'N/A'}
@@ -2228,44 +2322,51 @@ function App() {
           {/* REFERENCE ITEMS */}
           {tab === 'referenceItems' && (
             <section className={cardClass}>
-              <SectionHeading icon={NotebookPen} title="Reference Items" description="Product and service catalog for autocomplete and pricing." />
+              <SectionHeading icon={NotebookPen} title="Reference Items"
+                              description="Product and service catalog for autocomplete and pricing."/>
               <form onSubmit={submitReferenceItem} className={formGridClass}>
-                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Item type
                   <select name="item_type" defaultValue="product" className="dashboard-input">
                     <option value="product">Product</option>
                     <option value="service">Service</option>
                   </select>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Item name
-                  <input name="name" required className="dashboard-input" />
+                  <input name="name" required className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Base price
-                  <input name="price" type="number" list="quick-number-values" required className="dashboard-input" />
+                  <input name="price" type="number" list="quick-number-values" required className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Description (optional)
-                  <input name="description" className="dashboard-input" />
+                  <input name="description" className="dashboard-input"/>
                 </label>
                 <button type="submit" className="dashboard-button-primary">
                   {createReferenceItemMutation.isPending ? 'Saving…' : 'Save reference item'}
                 </button>
               </form>
 
-              <SectionDivider label="Catalog" />
+              <SectionDivider label="Catalog"/>
               {referenceItemsQuery.isLoading ? (
                 <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
               ) : referenceItems.length === 0 ? (
-                <EmptyState label="No reference items yet." />
+                <EmptyState label="No reference items yet."/>
               ) : (
                 <ul className="grid gap-2">
                   {referenceItems.map((item) => (
-                    <li key={item.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                    <li key={item.id}
+                        className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
                       {editingReferenceItemId === item.id ? (
                         <div className="grid w-full gap-3 md:grid-cols-2 lg:grid-cols-4">
-                          <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                          <label
+                            className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                             Type
                             <select
                               value={editingReferenceItemForm.item_type}
@@ -2281,28 +2382,37 @@ function App() {
                               <option value="service">Service</option>
                             </select>
                           </label>
-                          <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                          <label
+                            className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                             Name
                             <input
                               value={editingReferenceItemForm.name}
-                              onChange={(e) => setEditingReferenceItemForm((prev) => ({ ...prev, name: e.target.value }))}
+                              onChange={(e) => setEditingReferenceItemForm((prev) => ({...prev, name: e.target.value}))}
                               className="dashboard-input"
                             />
                           </label>
-                          <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                          <label
+                            className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                             Price
                             <input
                               type="number"
                               value={editingReferenceItemForm.price}
-                              onChange={(e) => setEditingReferenceItemForm((prev) => ({ ...prev, price: toNonNegativeInputValue(e.target.value) }))}
+                              onChange={(e) => setEditingReferenceItemForm((prev) => ({
+                                ...prev,
+                                price: toNonNegativeInputValue(e.target.value)
+                              }))}
                               className="dashboard-input"
                             />
                           </label>
-                          <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                          <label
+                            className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                             Description
                             <input
                               value={editingReferenceItemForm.description}
-                              onChange={(e) => setEditingReferenceItemForm((prev) => ({ ...prev, description: e.target.value }))}
+                              onChange={(e) => setEditingReferenceItemForm((prev) => ({
+                                ...prev,
+                                description: e.target.value
+                              }))}
                               className="dashboard-input"
                             />
                           </label>
@@ -2315,7 +2425,8 @@ function App() {
                             >
                               {updateReferenceItemMutation.isPending ? 'Saving…' : 'Save'}
                             </button>
-                            <button type="button" onClick={cancelReferenceItemEdit} className="dashboard-button-secondary">
+                            <button type="button" onClick={cancelReferenceItemEdit}
+                                    className="dashboard-button-secondary">
                               Cancel
                             </button>
                           </div>
@@ -2327,16 +2438,18 @@ function App() {
                             {item.description ? (
                               <span className="ml-2 text-xs text-[var(--neutral-rosewood)]">· {item.description}</span>
                             ) : null}
-                            <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                              item.item_type === 'product'
-                                ? 'bg-[var(--status-info-bg)] text-[var(--status-info-text)]'
-                                : 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
-                            }`}>
+                            <span
+                              className={`ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                item.item_type === 'product'
+                                  ? 'bg-[var(--status-info-bg)] text-[var(--status-info-text)]'
+                                  : 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                              }`}>
                               {item.item_type}
                             </span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(item.price))}</span>
+                            <span
+                              className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(item.price))}</span>
                             <button
                               type="button"
                               onClick={() => beginReferenceItemEdit(item.id)}
@@ -2365,21 +2478,27 @@ function App() {
           {/* EXPENSES */}
           {tab === 'expenses' && (
             <section className={cardClass}>
-              <SectionHeading icon={ReceiptText} title="Expenses" description="Track business expenses with optional proof images." />
+              <SectionHeading icon={ReceiptText} title="Expenses"
+                              description="Track business expenses with optional proof images."/>
               <form onSubmit={submitExpense} className={formGridClass}>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date issued
-                  <input name="date_issued" type="datetime-local" max={dateInputMax} min={dateInputMin} defaultValue={dateInputMax} required className="dashboard-input" />
+                  <input name="date_issued" type="datetime-local" max={dateInputMax} min={dateInputMin}
+                         defaultValue={dateInputMax} required className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" list="quick-number-values" required className="dashboard-input" />
+                  <input name="amount" type="number" list="quick-number-values" required className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Description
-                  <input name="description" required className="dashboard-input" />
+                  <input name="description" required className="dashboard-input"/>
                 </label>
-                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Purpose
                   <select name="purpose" defaultValue="business" className="dashboard-input">
                     <option value="business">business</option>
@@ -2387,28 +2506,34 @@ function App() {
                     <option value="service">service</option>
                   </select>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Recurrence reference
-                  <input name="recurrence_reference" className="dashboard-input" placeholder="Optional recurring batch reference" />
+                  <input name="recurrence_reference" className="dashboard-input"
+                         placeholder="Optional recurring batch reference"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Proof image (optional)
-                  <input name="proof" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" className="dashboard-input" />
+                  <input name="proof" type="file" accept="image/png,image/jpeg,image/jpg,image/webp"
+                         className="dashboard-input"/>
                 </label>
                 <button type="submit" className="dashboard-button-primary">
                   {createExpenseMutation.isPending ? 'Adding…' : 'Add expense'}
                 </button>
               </form>
 
-              <SectionDivider label={`${expenseEntries.length} expense${expenseEntries.length === 1 ? '' : 's'} · total ${formatCurrency(expenseTotal)}`} />
+              <SectionDivider
+                label={`${expenseEntries.length} expense${expenseEntries.length === 1 ? '' : 's'} · total ${formatCurrency(expenseTotal)}`}/>
               {expensesQuery.isLoading ? (
                 <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
               ) : expenseEntries.length === 0 ? (
-                <EmptyState label="No expenses recorded yet." />
+                <EmptyState label="No expenses recorded yet."/>
               ) : (
                 <ul className="grid gap-2">
                   {expenseEntries.map((expense) => (
-                    <li key={expense.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                    <li key={expense.id}
+                        className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
                       <div>
                         <p className="font-medium">{expense.description}</p>
                         <p className="text-xs text-[var(--neutral-rosewood)]">
@@ -2440,9 +2565,11 @@ function App() {
           {/* GCASH */}
           {tab === 'gcash' && (
             <section className={cardClass}>
-              <SectionHeading icon={Wallet} title="GCash Sales" description="Manually log GCash cash-in and cash-out transactions." />
+              <SectionHeading icon={Wallet} title="GCash Sales"
+                              description="Manually log GCash cash-in and cash-out transactions."/>
               <form onSubmit={submitGcash} className={formGridClass}>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Copy from reference item (optional)
                   <select
                     value={gcashReferenceItemId}
@@ -2469,7 +2596,8 @@ function App() {
                     ))}
                   </select>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transaction recipient (optional)
                   <input
                     name="transaction_recipient"
@@ -2478,11 +2606,15 @@ function App() {
                     className="dashboard-input"
                   />
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Moved cash
-                  <input name="amount_moved" type="number" list="quick-number-values" required value={gcashAmountMoved} onChange={(e) => setGcashAmountMoved(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
+                  <input name="amount_moved" type="number" list="quick-number-values" required value={gcashAmountMoved}
+                         onChange={(e) => setGcashAmountMoved(toNonNegativeInputValue(e.target.value))}
+                         className="dashboard-input"/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Sales amount
                   <input
                     name="sales_amount"
@@ -2505,7 +2637,8 @@ function App() {
                     Mark as debt
                   </label>
                 </div>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Charged amount
                   <input
                     type="number"
@@ -2516,7 +2649,8 @@ function App() {
                     className="dashboard-input"
                   />
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
                   Remarks
                   <input
                     value={gcashRemarks}
@@ -2525,41 +2659,49 @@ function App() {
                     className="dashboard-input"
                   />
                 </label>
-                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transaction type
                   <select name="transaction_type" defaultValue="cash_in" className="dashboard-input">
                     <option value="cash_in">cash in</option>
                     <option value="cash_out">cash out</option>
                   </select>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transaction date
-                  <input name="transaction_date" type="datetime-local" max={dateInputMax} defaultValue={dateInputMax} required className="dashboard-input" />
+                  <input name="transaction_date" type="datetime-local" max={dateInputMax} defaultValue={dateInputMax}
+                         required className="dashboard-input"/>
                 </label>
                 <button type="submit" className="dashboard-button-primary">
                   {createGcashMutation.isPending ? 'Adding…' : 'Add GCash entry'}
                 </button>
               </form>
               <LivePreview>
-                Total to be paid: <strong className="font-semibold">{formatCurrency(parseAmount(gcashSalesAmount))}</strong> ·
-                {' '}Profit from this transaction: <strong className="font-semibold">{formatCurrency(gcashProfitPreview)}</strong>{' '}
-                (sales {formatCurrency(parseAmount(gcashSalesAmount))} − moved {formatCurrency(parseAmount(gcashAmountMoved))})
+                Total to be paid: <strong
+                className="font-semibold">{formatCurrency(parseAmount(gcashSalesAmount))}</strong> ·
+                {' '}Profit from this transaction: <strong
+                className="font-semibold">{formatCurrency(gcashProfitPreview)}</strong>{' '}
+                (sales {formatCurrency(parseAmount(gcashSalesAmount))} −
+                moved {formatCurrency(parseAmount(gcashAmountMoved))})
               </LivePreview>
 
-              <SectionDivider label={`${gcashEntries.length} entr${gcashEntries.length === 1 ? 'y' : 'ies'}`} />
+              <SectionDivider label={`${gcashEntries.length} entr${gcashEntries.length === 1 ? 'y' : 'ies'}`}/>
               {gcashQuery.isLoading ? (
                 <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
               ) : gcashEntries.length === 0 ? (
-                <EmptyState label="No GCash entries yet." />
+                <EmptyState label="No GCash entries yet."/>
               ) : (
                 <ul className="grid gap-2">
                   {gcashEntries.map((sale) => (
-                    <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                    <li key={sale.id}
+                        className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
                       <div>
                         <p className="font-medium">
                           {sale.transaction_recipient ?? 'No recipient'}
                           {sale.is_debt && (
-                            <span className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
+                            <span
+                              className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
                               Debt
                             </span>
                           )}
@@ -2567,7 +2709,8 @@ function App() {
                         <p className="text-xs text-[var(--neutral-rosewood)]">
                           {formatDateTimeDisplay(sale.transaction_date)} · {formatRelative(sale.transaction_date)}
                         </p>
-                        {sale.remarks && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
+                        {sale.remarks &&
+                          <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="tabular-nums font-semibold text-[var(--accent-gold)]">
@@ -2592,11 +2735,12 @@ function App() {
           {/* COFFEE */}
           {tab === 'coffee' && (
             <section className={cardClass}>
-              <SectionHeading icon={Coffee} title="Coffee Sales" description="Log individual coffee orders, including add-ons." />
+              <SectionHeading icon={Coffee} title="Coffee Sales"
+                              description="Log individual coffee orders, including add-ons."/>
               <form onSubmit={submitCoffee} className={formGridClass}>
                 <datalist id="coffee-reference-items">
                   {productReferenceItems.map((item) => (
-                    <option key={item.id} value={item.name} />
+                    <option key={item.id} value={item.name}/>
                   ))}
                 </datalist>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-3">
@@ -2619,7 +2763,8 @@ function App() {
                           </button>
                         )}
                       </div>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Copy from reference item (optional)
                         <select
                           value={item.selectedReferenceItemId}
@@ -2631,7 +2776,7 @@ function App() {
                                 const selectedItem = selectedId ? referenceItemById.get(selectedId) : undefined
 
                                 if (!selectedItem) {
-                                  return { ...entry, selectedReferenceItemId: selectedId }
+                                  return {...entry, selectedReferenceItemId: selectedId}
                                 }
 
                                 return {
@@ -2653,20 +2798,34 @@ function App() {
                           ))}
                         </select>
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Price
-                        <input type="number" list="quick-number-values" required value={item.price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, price: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.price}
+                               onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 price: toNonNegativeInputValue(e.target.value)
+                               } : en))} className="dashboard-input"/>
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Coffee type
-                        <input list="coffee-reference-items" required value={item.coffee_type} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, coffee_type: e.target.value } : en))} className="dashboard-input" />
+                        <input list="coffee-reference-items" required value={item.coffee_type}
+                               onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 coffee_type: e.target.value
+                               } : en))} className="dashboard-input"/>
                       </label>
-                      <label className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Size
                         <select
                           value={item.size}
                           onChange={(event) =>
-                            setCoffeeItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? { ...entry, size: event.target.value as CoffeeDraftItem['size'] } : entry))
+                            setCoffeeItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? {
+                              ...entry,
+                              size: event.target.value as CoffeeDraftItem['size']
+                            } : entry))
                           }
                           className="dashboard-input"
                         >
@@ -2677,13 +2836,23 @@ function App() {
                           ))}
                         </select>
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Add-on price
-                        <input type="number" list="quick-number-values" required value={item.add_on_price} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, add_on_price: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.add_on_price}
+                               onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 add_on_price: toNonNegativeInputValue(e.target.value)
+                               } : en))} className="dashboard-input"/>
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Add-on description
-                        <input value={item.add_on_description} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, add_on_description: e.target.value } : en))} className="dashboard-input" />
+                        <input value={item.add_on_description}
+                               onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 add_on_description: e.target.value
+                               } : en))} className="dashboard-input"/>
                       </label>
                       <div className="md:col-span-2 lg:col-span-3">
                         <label className={optionPillClass}>
@@ -2692,7 +2861,7 @@ function App() {
                             checked={item.is_debt}
                             onChange={(e) =>
                               setCoffeeItems((prev) =>
-                                prev.map((en, ei) => ei === index ? { ...en, is_debt: e.target.checked } : en),
+                                prev.map((en, ei) => ei === index ? {...en, is_debt: e.target.checked} : en),
                               )
                             }
                             className="sr-only"
@@ -2700,7 +2869,8 @@ function App() {
                           Mark as debt
                         </label>
                       </div>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Charged amount
                         <input
                           type="number"
@@ -2709,32 +2879,43 @@ function App() {
                           required={!item.is_debt}
                           onChange={(e) =>
                             setCoffeeItems((prev) =>
-                              prev.map((en, ei) => ei === index ? { ...en, charged_amount: toNonNegativeInputValue(e.target.value) } : en),
+                              prev.map((en, ei) => ei === index ? {
+                                ...en,
+                                charged_amount: toNonNegativeInputValue(e.target.value)
+                              } : en),
                             )
                           }
                           className="dashboard-input"
                         />
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
                         Remarks
                         <input
                           value={item.remarks}
                           required={item.is_debt}
                           onChange={(e) =>
                             setCoffeeItems((prev) =>
-                              prev.map((en, ei) => ei === index ? { ...en, remarks: e.target.value } : en),
+                              prev.map((en, ei) => ei === index ? {...en, remarks: e.target.value} : en),
                             )
                           }
                           className="dashboard-input"
                         />
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sale date
-                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.sale_date} onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sale_date: e.target.value } : en))} className="dashboard-input" />
+                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required
+                               value={item.sale_date}
+                               onChange={(e) => setCoffeeItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 sale_date: e.target.value
+                               } : en))} className="dashboard-input"/>
                       </label>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setCoffeeItems((prev) => [...prev, createCoffeeDraftItem()])} className="dashboard-button-secondary">
+                  <button type="button" onClick={() => setCoffeeItems((prev) => [...prev, createCoffeeDraftItem()])}
+                          className="dashboard-button-secondary">
                     + Add another order
                   </button>
                 </div>
@@ -2743,69 +2924,83 @@ function App() {
                 </button>
               </form>
               <LivePreview>
-                Total to be paid: <strong className="font-semibold">{formatCurrency(coffeeBatchPreview)}</strong> across {coffeeItems.length} order{coffeeItems.length === 1 ? '' : 's'}
+                Total to be paid: <strong
+                className="font-semibold">{formatCurrency(coffeeBatchPreview)}</strong> across {coffeeItems.length} order{coffeeItems.length === 1 ? '' : 's'}
               </LivePreview>
 
-              <SectionDivider label={`${coffeeEntries.length} sale${coffeeEntries.length === 1 ? '' : 's'}`} />
-              {coffeeQuery.isLoading ? <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p> : coffeeEntries.length === 0 ? (
-                <EmptyState label="No coffee sales yet." />
-              ) : (
-                <ul className="grid gap-2">
-                  {coffeeEntries.map((sale) => (
-                    <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
-                      <div>
-                        <p className="font-medium">
-                          {sale.coffee_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.size}</span>
-                          {sale.is_debt && (
-                            <span className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
+              <SectionDivider label={`${coffeeEntries.length} sale${coffeeEntries.length === 1 ? '' : 's'}`}/>
+              {coffeeQuery.isLoading ?
+                <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p> : coffeeEntries.length === 0 ? (
+                  <EmptyState label="No coffee sales yet."/>
+                ) : (
+                  <ul className="grid gap-2">
+                    {coffeeEntries.map((sale) => (
+                      <li key={sale.id}
+                          className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                        <div>
+                          <p className="font-medium">
+                            {sale.coffee_type} <span
+                            className="text-xs text-[var(--neutral-rosewood)]">· {sale.size}</span>
+                            {sale.is_debt && (
+                              <span
+                                className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
                               Debt
                             </span>
-                          )}
-                        </p>
-                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
-                        {sale.remarks && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
-                      </div>
-                      <div className="flex items-center gap-3">
+                            )}
+                          </p>
+                          <p
+                            className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
+                          {sale.remarks &&
+                            <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
+                        </div>
+                        <div className="flex items-center gap-3">
                         <span className="tabular-nums font-semibold text-[var(--accent-gold)]">
                           {formatCurrency(parseAmount(sale.charged_amount ?? sale.total_amount))}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => voidCoffeeSale(sale.id)}
+                          <button
+                            type="button"
+                            onClick={() => voidCoffeeSale(sale.id)}
 
-                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
-                        >
-                          Void
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                            className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
+                          >
+                            Void
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
             </section>
           )}
 
           {/* PRINT */}
           {tab === 'print' && (
             <section className={cardClass}>
-              <SectionHeading icon={Printer} title="Print Sales" description="Log xerox, document, and other print jobs." />
+              <SectionHeading icon={Printer} title="Print Sales"
+                              description="Log xerox, document, and other print jobs."/>
               <form onSubmit={submitPrint} className={formGridClass}>
                 <datalist id="print-reference-items">
-                  {productReferenceItems.map((item) => <option key={item.id} value={item.name} />)}
+                  {productReferenceItems.map((item) => <option key={item.id} value={item.name}/>)}
                 </datalist>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-3">
                   {printItems.map((item, index) => (
-                    <div key={`print-item-${index}`} className="rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-raised)] p-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    <div key={`print-item-${index}`}
+                         className="rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-raised)] p-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                       <div className="md:col-span-2 lg:col-span-3 flex items-center justify-between">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Job #{index + 1}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Job
+                          #{index + 1}</p>
                         {printItems.length > 1 && (
-                          <button type="button" onClick={() => setPrintItems((prev) => prev.filter((_, i) => i !== index))} className="text-xs text-[var(--status-danger-text)] hover:underline">
+                          <button type="button"
+                                  onClick={() => setPrintItems((prev) => prev.filter((_, i) => i !== index))}
+                                  className="text-xs text-[var(--status-danger-text)] hover:underline">
                             Remove
                           </button>
                         )}
                       </div>
                       <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Copy from reference item (optional)</p>
+                        <p
+                          className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Copy
+                          from reference item (optional)</p>
                         <select
                           value={item.selectedReferenceItemId}
                           onChange={(e) =>
@@ -2816,7 +3011,7 @@ function App() {
                                 const selectedItem = selectedId ? referenceItemById.get(selectedId) : undefined
 
                                 if (!selectedItem) {
-                                  return { ...entry, selectedReferenceItemId: selectedId }
+                                  return {...entry, selectedReferenceItemId: selectedId}
                                 }
 
                                 return {
@@ -2838,12 +3033,16 @@ function App() {
                           ))}
                         </select>
                       </div>
-                      <label className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Job type
                         <select
                           value={item.job_type}
                           onChange={(event) =>
-                            setPrintItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? { ...entry, job_type: event.target.value } : entry))
+                            setPrintItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? {
+                              ...entry,
+                              job_type: event.target.value
+                            } : entry))
                           }
                           className="dashboard-input"
                         >
@@ -2854,16 +3053,25 @@ function App() {
                           ))}
                         </select>
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Description
-                        <input list="print-reference-items" required value={item.description} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, description: e.target.value } : en))} className="dashboard-input" />
+                        <input list="print-reference-items" required value={item.description}
+                               onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 description: e.target.value
+                               } : en))} className="dashboard-input"/>
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Color mode
                         <select
                           value={item.color_mode}
                           onChange={(event) =>
-                            setPrintItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? { ...entry, color_mode: event.target.value as PrintDraftItem['color_mode'] } : entry))
+                            setPrintItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? {
+                              ...entry,
+                              color_mode: event.target.value as PrintDraftItem['color_mode']
+                            } : entry))
                           }
                           className="dashboard-input"
                         >
@@ -2871,12 +3079,16 @@ function App() {
                           <option value="white">white</option>
                         </select>
                       </label>
-                      <label className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Print size
                         <select
                           value={item.print_size}
                           onChange={(event) =>
-                            setPrintItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? { ...entry, print_size: event.target.value } : entry))
+                            setPrintItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? {
+                              ...entry,
+                              print_size: event.target.value
+                            } : entry))
                           }
                           className="dashboard-input"
                         >
@@ -2887,13 +3099,23 @@ function App() {
                           ))}
                         </select>
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Paper count
-                        <input type="number" list="quick-number-values" required value={item.paper_count} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, paper_count: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.paper_count}
+                               onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 paper_count: toNonNegativeInputValue(e.target.value)
+                               } : en))} className="dashboard-input"/>
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sales amount
-                        <input type="number" list="quick-number-values" required value={item.sales_amount} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sales_amount: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.sales_amount}
+                               onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 sales_amount: toNonNegativeInputValue(e.target.value)
+                               } : en))} className="dashboard-input"/>
                       </label>
                       <div className="md:col-span-2 lg:col-span-3">
                         <label className={optionPillClass}>
@@ -2902,7 +3124,7 @@ function App() {
                             checked={item.is_debt}
                             onChange={(e) =>
                               setPrintItems((prev) =>
-                                prev.map((en, ei) => ei === index ? { ...en, is_debt: e.target.checked } : en),
+                                prev.map((en, ei) => ei === index ? {...en, is_debt: e.target.checked} : en),
                               )
                             }
                             className="sr-only"
@@ -2910,7 +3132,8 @@ function App() {
                           Mark as debt
                         </label>
                       </div>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Charged amount
                         <input
                           type="number"
@@ -2919,32 +3142,43 @@ function App() {
                           required={!item.is_debt}
                           onChange={(e) =>
                             setPrintItems((prev) =>
-                              prev.map((en, ei) => ei === index ? { ...en, charged_amount: toNonNegativeInputValue(e.target.value) } : en),
+                              prev.map((en, ei) => ei === index ? {
+                                ...en,
+                                charged_amount: toNonNegativeInputValue(e.target.value)
+                              } : en),
                             )
                           }
                           className="dashboard-input"
                         />
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
                         Remarks
                         <input
                           value={item.remarks}
                           required={item.is_debt}
                           onChange={(e) =>
                             setPrintItems((prev) =>
-                              prev.map((en, ei) => ei === index ? { ...en, remarks: e.target.value } : en),
+                              prev.map((en, ei) => ei === index ? {...en, remarks: e.target.value} : en),
                             )
                           }
                           className="dashboard-input"
                         />
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Sale date
-                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.sale_date} onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? { ...en, sale_date: e.target.value } : en))} className="dashboard-input" />
+                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required
+                               value={item.sale_date}
+                               onChange={(e) => setPrintItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 sale_date: e.target.value
+                               } : en))} className="dashboard-input"/>
                       </label>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setPrintItems((prev) => [...prev, createPrintDraftItem()])} className="dashboard-button-secondary">
+                  <button type="button" onClick={() => setPrintItems((prev) => [...prev, createPrintDraftItem()])}
+                          className="dashboard-button-secondary">
                     + Add another print job
                   </button>
                 </div>
@@ -2953,64 +3187,80 @@ function App() {
                 </button>
               </form>
               <LivePreview>
-                Total to be paid: <strong className="font-semibold">{formatCurrency(printBatchPreview)}</strong> across {printItems.length} job{printItems.length === 1 ? '' : 's'}
+                Total to be paid: <strong
+                className="font-semibold">{formatCurrency(printBatchPreview)}</strong> across {printItems.length} job{printItems.length === 1 ? '' : 's'}
               </LivePreview>
 
-              <SectionDivider label={`${printEntries.length} sale${printEntries.length === 1 ? '' : 's'}`} />
-              {printQuery.isLoading ? <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p> : printEntries.length === 0 ? (
-                <EmptyState label="No print sales yet." />
-              ) : (
-                <ul className="grid gap-2">
-                  {printEntries.map((sale) => (
-                    <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
-                      <div>
-                        <p className="font-medium">
-                          {sale.job_type} <span className="text-xs text-[var(--neutral-rosewood)]">· {sale.color_mode} · {sale.print_size} · {sale.paper_count}pg</span>
-                          {sale.is_debt && (
-                            <span className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
+              <SectionDivider label={`${printEntries.length} sale${printEntries.length === 1 ? '' : 's'}`}/>
+              {printQuery.isLoading ?
+                <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p> : printEntries.length === 0 ? (
+                  <EmptyState label="No print sales yet."/>
+                ) : (
+                  <ul className="grid gap-2">
+                    {printEntries.map((sale) => (
+                      <li key={sale.id}
+                          className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                        <div>
+                          <p className="font-medium">
+                            {sale.job_type} <span
+                            className="text-xs text-[var(--neutral-rosewood)]">· {sale.color_mode} · {sale.print_size} · {sale.paper_count}pg</span>
+                            {sale.is_debt && (
+                              <span
+                                className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
                               Debt
                             </span>
-                          )}
-                        </p>
-                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
-                        {sale.remarks && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.charged_amount ?? sale.sales_amount))}</span>
-                        <button
-                          type="button"
-                          onClick={() => voidPrintSale(sale.id)}
+                            )}
+                          </p>
+                          <p
+                            className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.sale_date)} · {formatRelative(sale.sale_date)}</p>
+                          {sale.remarks &&
+                            <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.charged_amount ?? sale.sales_amount))}</span>
+                          <button
+                            type="button"
+                            onClick={() => voidPrintSale(sale.id)}
 
-                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
-                        >
-                          Void
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                            className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
+                          >
+                            Void
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
             </section>
           )}
 
           {/* ETHEREAL */}
           {tab === 'ethereal' && (
             <section className={cardClass}>
-              <SectionHeading icon={Sparkles} title="Ethereal Sales" description="Beauty salon service bookings with discount and provider tracking." />
+              <SectionHeading icon={Sparkles} title="Ethereal Sales"
+                              description="Beauty salon service bookings with discount and provider tracking."/>
               <form onSubmit={submitEthereal} className={formGridClass}>
                 <div className="md:col-span-2 lg:col-span-3 grid gap-3">
                   {etherealItems.map((item, index) => (
-                    <div key={`ethereal-item-${index}`} className="rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-raised)] p-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    <div key={`ethereal-item-${index}`}
+                         className="rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-raised)] p-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                       <div className="md:col-span-2 lg:col-span-3 flex items-center justify-between">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Service #{index + 1}</p>
+                        <p
+                          className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Service
+                          #{index + 1}</p>
                         {etherealItems.length > 1 && (
-                          <button type="button" onClick={() => setEtherealItems((prev) => prev.filter((_, i) => i !== index))} className="text-xs text-[var(--status-danger-text)] hover:underline">
+                          <button type="button"
+                                  onClick={() => setEtherealItems((prev) => prev.filter((_, i) => i !== index))}
+                                  className="text-xs text-[var(--status-danger-text)] hover:underline">
                             Remove
                           </button>
                         )}
                       </div>
                       <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Copy from reference item (optional)</p>
+                        <p
+                          className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Copy
+                          from reference item (optional)</p>
                         <select
                           value={item.selectedReferenceItemId}
                           onChange={(e) =>
@@ -3021,7 +3271,7 @@ function App() {
                                 const selectedItem = selectedId ? referenceItemById.get(selectedId) : undefined
 
                                 if (!selectedItem) {
-                                  return { ...entry, selectedReferenceItemId: selectedId }
+                                  return {...entry, selectedReferenceItemId: selectedId}
                                 }
 
                                 return {
@@ -3043,16 +3293,22 @@ function App() {
                           ))}
                         </select>
                       </div>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Service name
                         <input
                           value={item.service_name}
-                          onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_name: e.target.value } : en))}
+                          onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? {
+                            ...en,
+                            service_name: e.target.value
+                          } : en))}
                           className="dashboard-input"
                         />
                       </label>
                       <div className="grid gap-1.5 md:col-span-2 lg:col-span-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Service provider(s)</p>
+                        <p
+                          className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Service
+                          provider(s)</p>
                         <div className="flex flex-wrap gap-2">
                           {staffEntries.map((staff) => {
                             const checked = item.staff_ids.includes(staff.id)
@@ -3066,7 +3322,7 @@ function App() {
                                       prev.map((en, ei) => {
                                         if (ei !== index) return en
                                         const next = checked ? en.staff_ids.filter((id) => id !== staff.id) : [...en.staff_ids, staff.id]
-                                        return { ...en, staff_ids: next }
+                                        return {...en, staff_ids: next}
                                       }),
                                     )
                                   }}
@@ -3078,24 +3334,43 @@ function App() {
                           })}
                         </div>
                       </div>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Customer name
-                        <input value={item.customer_name} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, customer_name: e.target.value } : en))} className="dashboard-input" />
+                        <input value={item.customer_name}
+                               onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 customer_name: e.target.value
+                               } : en))} className="dashboard-input"/>
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Service cost
-                        <input type="number" list="quick-number-values" required value={item.service_cost} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_cost: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.service_cost}
+                               onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 service_cost: toNonNegativeInputValue(e.target.value)
+                               } : en))} className="dashboard-input"/>
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Discount %
-                        <input type="number" list="quick-number-values" required value={item.discount_percentage} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, discount_percentage: toNonNegativeInputValue(e.target.value) } : en))} className="dashboard-input" />
+                        <input type="number" list="quick-number-values" required value={item.discount_percentage}
+                               onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 discount_percentage: toNonNegativeInputValue(e.target.value)
+                               } : en))} className="dashboard-input"/>
                       </label>
-                      <label className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 md:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Discount type
                         <select
                           value={item.discount_type}
                           onChange={(event) =>
-                            setEtherealItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? { ...entry, discount_type: event.target.value } : entry))
+                            setEtherealItems((prev) => prev.map((entry, entryIndex) => entryIndex === index ? {
+                              ...entry,
+                              discount_type: event.target.value
+                            } : entry))
                           }
                           className="dashboard-input"
                         >
@@ -3113,7 +3388,7 @@ function App() {
                             checked={item.is_debt}
                             onChange={(e) =>
                               setEtherealItems((prev) =>
-                                prev.map((en, ei) => ei === index ? { ...en, is_debt: e.target.checked } : en),
+                                prev.map((en, ei) => ei === index ? {...en, is_debt: e.target.checked} : en),
                               )
                             }
                             className="sr-only"
@@ -3121,7 +3396,8 @@ function App() {
                           Mark as debt
                         </label>
                       </div>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Charged amount
                         <input
                           type="number"
@@ -3130,32 +3406,43 @@ function App() {
                           required={!item.is_debt}
                           onChange={(e) =>
                             setEtherealItems((prev) =>
-                              prev.map((en, ei) => ei === index ? { ...en, charged_amount: toNonNegativeInputValue(e.target.value) } : en),
+                              prev.map((en, ei) => ei === index ? {
+                                ...en,
+                                charged_amount: toNonNegativeInputValue(e.target.value)
+                              } : en),
                             )
                           }
                           className="dashboard-input"
                         />
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)] md:col-span-2 lg:col-span-2">
                         Remarks
                         <input
                           value={item.remarks}
                           required={item.is_debt}
                           onChange={(e) =>
                             setEtherealItems((prev) =>
-                              prev.map((en, ei) => ei === index ? { ...en, remarks: e.target.value } : en),
+                              prev.map((en, ei) => ei === index ? {...en, remarks: e.target.value} : en),
                             )
                           }
                           className="dashboard-input"
                         />
                       </label>
-                      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Service date
-                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required value={item.service_date} onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? { ...en, service_date: e.target.value } : en))} className="dashboard-input" />
+                        <input type="datetime-local" max={dateInputMax} min={dateInputMin} required
+                               value={item.service_date}
+                               onChange={(e) => setEtherealItems((prev) => prev.map((en, ei) => ei === index ? {
+                                 ...en,
+                                 service_date: e.target.value
+                               } : en))} className="dashboard-input"/>
                       </label>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setEtherealItems((prev) => [...prev, createEtherealDraftItem()])} className="dashboard-button-secondary">
+                  <button type="button" onClick={() => setEtherealItems((prev) => [...prev, createEtherealDraftItem()])}
+                          className="dashboard-button-secondary">
                     + Add another service
                   </button>
                 </div>
@@ -3164,53 +3451,64 @@ function App() {
                 </button>
               </form>
               <LivePreview>
-                Cash discount: <strong className="font-semibold">{formatCurrency(etherealCashDiscountPreview)}</strong> · Total to be paid: <strong className="font-semibold">{formatCurrency(etherealNetPreview)}</strong>
-                {serviceReferenceItems.length > 0 && <span className="ml-2 opacity-70">· Services: {serviceReferenceItems.slice(0, 3).map((i) => i.name).join(', ')}</span>}
+                Cash discount: <strong
+                className="font-semibold">{formatCurrency(etherealCashDiscountPreview)}</strong> · Total to be
+                paid: <strong className="font-semibold">{formatCurrency(etherealNetPreview)}</strong>
+                {serviceReferenceItems.length > 0 && <span
+                  className="ml-2 opacity-70">· Services: {serviceReferenceItems.slice(0, 3).map((i) => i.name).join(', ')}</span>}
               </LivePreview>
 
-              <SectionDivider label={`${etherealEntries.length} service${etherealEntries.length === 1 ? '' : 's'}`} />
-              {etherealQuery.isLoading ? <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p> : etherealEntries.length === 0 ? (
-                <EmptyState label="No ethereal sales yet." />
-              ) : (
-                <ul className="grid gap-2">
-                  {etherealEntries.map((sale) => (
-                    <li key={sale.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
-                      <div>
-                        <p className="font-medium">
-                          {sale.service_name ?? 'Service'} · net amount
-                          {sale.is_debt && (
-                            <span className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
+              <SectionDivider label={`${etherealEntries.length} service${etherealEntries.length === 1 ? '' : 's'}`}/>
+              {etherealQuery.isLoading ?
+                <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p> : etherealEntries.length === 0 ? (
+                  <EmptyState label="No ethereal sales yet."/>
+                ) : (
+                  <ul className="grid gap-2">
+                    {etherealEntries.map((sale) => (
+                      <li key={sale.id}
+                          className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                        <div>
+                          <p className="font-medium">
+                            {sale.service_name ?? 'Service'} · net amount
+                            {sale.is_debt && (
+                              <span
+                                className="ml-2 inline-block rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning-text)]">
                               Debt
                             </span>
-                          )}
-                        </p>
-                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.service_date)} · {formatRelative(sale.service_date)}</p>
-                        {sale.remarks && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.charged_amount ?? sale.net_amount))}</span>
-                        <button
-                          type="button"
-                          onClick={() => voidEtherealSale(sale.id)}
+                            )}
+                          </p>
+                          <p
+                            className="text-xs text-[var(--neutral-rosewood)]">{formatDateTimeDisplay(sale.service_date)} · {formatRelative(sale.service_date)}</p>
+                          {sale.remarks &&
+                            <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {sale.remarks}</p>}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(sale.charged_amount ?? sale.net_amount))}</span>
+                          <button
+                            type="button"
+                            onClick={() => voidEtherealSale(sale.id)}
 
-                          className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
-                        >
-                          Void
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                            className="rounded-md bg-[var(--burgundy-50)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--burgundy-800)]"
+                          >
+                            Void
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
             </section>
           )}
 
           {/* SALES REPORTS */}
           {tab === 'salesReports' && (
             <section className={cardClass}>
-              <SectionHeading icon={FileText} title="Quick Report" description="On-screen sales snapshot by scope and period (no document export)." />
+              <SectionHeading icon={FileText} title="Quick Report"
+                              description="On-screen sales snapshot by scope and period (no document export)."/>
               <form onSubmit={submitSalesReport} className={formGridClass}>
-                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Scope
                   <select
                     name="scope"
@@ -3223,7 +3521,8 @@ function App() {
                   </select>
                 </label>
                 {reportScope === 'business' && (
-                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  <label
+                    className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                     Business
                     <select name="business_id" defaultValue={selectedBusinessId ?? ''} className="dashboard-input">
                       <option value="">Select business</option>
@@ -3235,7 +3534,8 @@ function App() {
                     </select>
                   </label>
                 )}
-                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Period
                   <select
                     name="period"
@@ -3249,13 +3549,15 @@ function App() {
                 </label>
                 {reportPeriod === 'date_range' && (
                   <>
-                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                    <label
+                      className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                       Start date
-                      <input name="start_date" type="date" required className="dashboard-input" />
+                      <input name="start_date" type="date" required className="dashboard-input"/>
                     </label>
-                    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                    <label
+                      className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                       End date
-                      <input name="end_date" type="date" required className="dashboard-input" />
+                      <input name="end_date" type="date" required className="dashboard-input"/>
                     </label>
                   </>
                 )}
@@ -3266,43 +3568,60 @@ function App() {
 
               {latestSalesReport && (
                 <>
-                  <SectionDivider label={`Generated ${formatDateTimeDisplay(latestSalesReport.generated_at)}`} />
+                  <SectionDivider label={`Generated ${formatDateTimeDisplay(latestSalesReport.generated_at)}`}/>
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-lg border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-info-text)]">Scope</p>
+                    <div
+                      className="rounded-lg border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-3">
+                      <p
+                        className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-info-text)]">Scope</p>
                       <p className="mt-1 text-sm font-semibold text-[var(--status-info-text)]">
                         {latestSalesReport.scope === 'portfolio' ? 'Portfolio' : latestSalesReport.business_name ?? 'Specific business'}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">Period</p>
+                    <div
+                      className="rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3">
+                      <p
+                        className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">Period</p>
                       <p className="mt-1 text-sm font-semibold text-[var(--status-success-text)]">
                         {formatDateTimeDisplay(latestSalesReport.start_date)} to {formatDateTimeDisplay(latestSalesReport.end_date)}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-4 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Transactions</p>
+                    <div
+                      className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-4 py-3">
+                      <p
+                        className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Transactions</p>
                       <p className="mt-1 text-sm font-semibold">{latestSalesReport.totals.total_transactions}</p>
                     </div>
                     <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">GCash</p>
-                      <p className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.gcash_sales_total))}</p>
+                      <p
+                        className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">GCash</p>
+                      <p
+                        className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.gcash_sales_total))}</p>
                     </div>
                     <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Coffee</p>
-                      <p className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.coffee_sales_total))}</p>
+                      <p
+                        className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Coffee</p>
+                      <p
+                        className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.coffee_sales_total))}</p>
                     </div>
                     <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Print</p>
-                      <p className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.print_sales_total))}</p>
+                      <p
+                        className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Print</p>
+                      <p
+                        className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.print_sales_total))}</p>
                     </div>
                     <div className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Ethereal</p>
-                      <p className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.ethereal_sales_total))}</p>
+                      <p
+                        className="text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">Ethereal</p>
+                      <p
+                        className="mt-1 tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(latestSalesReport.totals.ethereal_sales_total))}</p>
                     </div>
-                    <div className="rounded-lg border border-[var(--burgundy-200)] bg-[var(--burgundy-50)] px-4 py-3 md:col-span-2 xl:col-span-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">Sales total</p>
-                      <p className="mt-1 tabular-nums text-lg font-semibold text-[var(--burgundy-800)]">{formatCurrency(parseAmount(latestSalesReport.totals.sales_total))}</p>
+                    <div
+                      className="rounded-lg border border-[var(--burgundy-200)] bg-[var(--burgundy-50)] px-4 py-3 md:col-span-2 xl:col-span-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--burgundy-800)]">Sales
+                        total</p>
+                      <p
+                        className="mt-1 tabular-nums text-lg font-semibold text-[var(--burgundy-800)]">{formatCurrency(parseAmount(latestSalesReport.totals.sales_total))}</p>
                     </div>
                   </div>
                 </>
@@ -3313,23 +3632,30 @@ function App() {
           {/* PORTFOLIO CAPITAL */}
           {tab === 'portfolioCapital' && (
             <section className={cardClass}>
-              <SectionHeading icon={BanknoteArrowUp} title="Portfolio Money" description="Re-authentication required. Movements are permanently recorded." />
+              <SectionHeading icon={BanknoteArrowUp} title="Portfolio Money"
+                              description="Re-authentication required. Movements are permanently recorded."/>
 
               {/* Balance callout */}
-              <div className="mt-5 rounded-xl border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-5 py-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-info-text)]">Current portfolio balance</p>
+              <div
+                className="mt-5 rounded-xl border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-5 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-info-text)]">Current
+                  portfolio balance</p>
                 <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--status-info-text)]">
                   {formatCurrency(capitalBalances.portfolioBalance)}
                 </p>
               </div>
 
               <form onSubmit={submitPortfolioCapital} className={formGridClass}>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" list="quick-number-values" required value={portfolioAmountPreview} onChange={(e) => setPortfolioAmountPreview(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
-                  <FieldErrorText messages={portfolioMovementFieldErrors.amount} />
+                  <input name="amount" type="number" list="quick-number-values" required value={portfolioAmountPreview}
+                         onChange={(e) => setPortfolioAmountPreview(toNonNegativeInputValue(e.target.value))}
+                         className="dashboard-input"/>
+                  <FieldErrorText messages={portfolioMovementFieldErrors.amount}/>
                 </label>
-                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Direction
                   <select
                     name="direction"
@@ -3342,22 +3668,25 @@ function App() {
                     <option value="transfer">Transfer to business</option>
                     <option value="debt">Debt</option>
                   </select>
-                  <FieldErrorText messages={portfolioMovementFieldErrors.direction} />
+                  <FieldErrorText messages={portfolioMovementFieldErrors.direction}/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Transfer target
                   <select name="target_business_id" defaultValue="" className="dashboard-input">
                     <option value="">Select business (required for transfer)</option>
                     {businesses.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
-                  <FieldErrorText messages={portfolioMovementFieldErrors.target_business_id} />
+                  <FieldErrorText messages={portfolioMovementFieldErrors.target_business_id}/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date
-                  <input name="occurred_on" type="date" required className="dashboard-input" />
-                  <FieldErrorText messages={portfolioMovementFieldErrors.occurred_on} />
+                  <input name="occurred_on" type="date" required className="dashboard-input"/>
+                  <FieldErrorText messages={portfolioMovementFieldErrors.occurred_on}/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Notes {portfolioDirectionPreview === 'transfer' || portfolioDirectionPreview === 'debt' ? '(optional)' : '(required)'}
                   <input
                     name="notes"
@@ -3366,9 +3695,10 @@ function App() {
                     onChange={(e) => setPortfolioNotes(e.target.value)}
                     className="dashboard-input"
                   />
-                  <FieldErrorText messages={portfolioMovementFieldErrors.notes} />
+                  <FieldErrorText messages={portfolioMovementFieldErrors.notes}/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Debt remarks {portfolioDirectionPreview === 'debt' ? '(required)' : '(optional)'}
                   <input
                     name="remarks"
@@ -3377,7 +3707,7 @@ function App() {
                     onChange={(e) => setPortfolioRemarks(e.target.value)}
                     className="dashboard-input"
                   />
-                  <FieldErrorText messages={portfolioMovementFieldErrors.remarks} />
+                  <FieldErrorText messages={portfolioMovementFieldErrors.remarks}/>
                 </label>
                 <button type="submit" className="dashboard-button-primary">
                   {createPortfolioCapitalMutation.isPending ? 'Processing…' : 'Save portfolio movement'}
@@ -3400,26 +3730,32 @@ function App() {
                 className="mt-4"
               />
 
-              <SectionDivider label={`${portfolioMovements.length} movement${portfolioMovements.length === 1 ? '' : 's'}`} />
+              <SectionDivider
+                label={`${portfolioMovements.length} movement${portfolioMovements.length === 1 ? '' : 's'}`}/>
               {portfolioMovements.length === 0 ? (
-                <EmptyState label="No portfolio movements yet." />
+                <EmptyState label="No portfolio movements yet."/>
               ) : (
                 <ul className="grid gap-2">
                   {portfolioMovements.map((movement) => (
-                    <li key={movement.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                    <li key={movement.id}
+                        className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
                       <div>
-                        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                          movement.direction === 'add'
-                            ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
-                            : movement.direction === 'debt'
-                              ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
-                              : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
-                        }`}>
+                        <span
+                          className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                            movement.direction === 'add'
+                              ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                              : movement.direction === 'debt'
+                                ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
+                                : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
+                          }`}>
                           {movement.direction}
                         </span>
-                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatCompactDate(movement.occurred_on)}</p>
-                        {movement.notes && <p className="text-xs text-[var(--neutral-rosewood)]">Notes: {movement.notes}</p>}
-                        {movement.remarks && <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {movement.remarks}</p>}
+                        <p
+                          className="text-xs text-[var(--neutral-rosewood)]">{formatCompactDate(movement.occurred_on)}</p>
+                        {movement.notes &&
+                          <p className="text-xs text-[var(--neutral-rosewood)]">Notes: {movement.notes}</p>}
+                        {movement.remarks &&
+                          <p className="text-xs text-[var(--neutral-rosewood)]">Remarks: {movement.remarks}</p>}
                         {movement.direction === 'debt' && (
                           <p className="text-xs text-[var(--neutral-rosewood)]">
                             Status: {movement.debt_status ?? 'outstanding'}
@@ -3427,7 +3763,8 @@ function App() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
+                        <span
+                          className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
                         {movement.direction === 'debt' && movement.debt_status === 'outstanding' && (
                           <button
                             type="button"
@@ -3456,20 +3793,27 @@ function App() {
               />
 
               {/* Balance callout */}
-              <div className="mt-5 rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-5 py-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">Current business balance</p>
+              <div
+                className="mt-5 rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-5 py-4">
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">Current
+                  business balance</p>
                 <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--status-success-text)]">
                   {formatCurrency(capitalBalances.businessBalance)}
                 </p>
               </div>
 
               <form onSubmit={submitBusinessCapital} className={formGridClass}>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Amount
-                  <input name="amount" type="number" list="quick-number-values" required value={businessAmountPreview} onChange={(e) => setBusinessAmountPreview(toNonNegativeInputValue(e.target.value))} className="dashboard-input" />
-                  <FieldErrorText messages={businessMovementFieldErrors.amount} />
+                  <input name="amount" type="number" list="quick-number-values" required value={businessAmountPreview}
+                         onChange={(e) => setBusinessAmountPreview(toNonNegativeInputValue(e.target.value))}
+                         className="dashboard-input"/>
+                  <FieldErrorText messages={businessMovementFieldErrors.amount}/>
                 </label>
-                <label className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="md:col-span-2 lg:col-span-3 grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Direction
                   <select
                     name="direction"
@@ -3480,17 +3824,19 @@ function App() {
                     <option value="add">Add from portfolio</option>
                     <option value="deduct">Deduct to portfolio</option>
                   </select>
-                  <FieldErrorText messages={businessMovementFieldErrors.direction} />
+                  <FieldErrorText messages={businessMovementFieldErrors.direction}/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Date
-                  <input name="occurred_on" type="date" required className="dashboard-input" />
-                  <FieldErrorText messages={businessMovementFieldErrors.occurred_on} />
+                  <input name="occurred_on" type="date" required className="dashboard-input"/>
+                  <FieldErrorText messages={businessMovementFieldErrors.occurred_on}/>
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                <label
+                  className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Notes
-                  <input name="notes" className="dashboard-input" />
-                  <FieldErrorText messages={businessMovementFieldErrors.notes} />
+                  <input name="notes" className="dashboard-input"/>
+                  <FieldErrorText messages={businessMovementFieldErrors.notes}/>
                 </label>
                 <button type="submit" className="dashboard-button-primary">
                   {createBusinessCapitalMutation.isPending ? 'Processing…' : 'Save business movement'}
@@ -3507,24 +3853,29 @@ function App() {
                 {' '}(current {formatCurrency(capitalBalances.businessBalance)} {businessDirectionPreview === 'add' ? '+' : '−'} {formatCurrency(parseAmount(businessAmountPreview))})
               </LivePreview>
 
-              <SectionDivider label={`${businessMovements.length} movement${businessMovements.length === 1 ? '' : 's'}`} />
+              <SectionDivider
+                label={`${businessMovements.length} movement${businessMovements.length === 1 ? '' : 's'}`}/>
               {businessMovements.length === 0 ? (
-                <EmptyState label="No business movements yet." />
+                <EmptyState label="No business movements yet."/>
               ) : (
                 <ul className="grid gap-2">
                   {businessMovements.map((movement) => (
-                    <li key={movement.id} className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
+                    <li key={movement.id}
+                        className="flex items-center justify-between rounded-xl border border-[var(--neutral-linen)] px-4 py-3 hover:bg-[var(--burgundy-50)] transition-colors">
                       <div>
-                        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                          movement.direction === 'add'
-                            ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
-                            : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
-                        }`}>
+                        <span
+                          className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                            movement.direction === 'add'
+                              ? 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+                              : 'bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
+                          }`}>
                           {movement.direction}
                         </span>
-                        <p className="text-xs text-[var(--neutral-rosewood)]">{formatCompactDate(movement.occurred_on)}</p>
+                        <p
+                          className="text-xs text-[var(--neutral-rosewood)]">{formatCompactDate(movement.occurred_on)}</p>
                       </div>
-                      <span className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
+                      <span
+                        className="tabular-nums font-semibold text-[var(--accent-gold)]">{formatCurrency(parseAmount(movement.amount))}</span>
                     </li>
                   ))}
                 </ul>
@@ -3542,22 +3893,26 @@ function App() {
               />
               <>
                 <form onSubmit={submitPdfSalesReport} className={formGridClass}>
-                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  <label
+                    className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                     Start date
-                    <input name="start_date" type="date" required className="dashboard-input" />
+                    <input name="start_date" type="date" required className="dashboard-input"/>
                   </label>
-                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  <label
+                    className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                     End date
-                    <input name="end_date" type="date" required className="dashboard-input" />
+                    <input name="end_date" type="date" required className="dashboard-input"/>
                   </label>
-                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                  <label
+                    className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                     Document title (optional)
-                    <input name="document_title" className="dashboard-input" />
+                    <input name="document_title" className="dashboard-input"/>
                   </label>
+
                   <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                      Optional contents
-                    </span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+            Optional contents
+          </span>
                     <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                       {reportIncludeSectionOptions.map((option) => (
                         <label key={`pdf-section-${option.value}`} className={optionPillClass}>
@@ -3576,48 +3931,68 @@ function App() {
                       Report type is auto-computed from selected sections.
                     </p>
                   </div>
-                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                    Report scope
-                    <select
-                      name="report_scope"
-                      value={pdfReportScope}
-                      onChange={(event) => setPdfReportScope(event.target.value as 'business' | 'all_businesses')}
-                      className="dashboard-input"
-                    >
-                      <option value="all_businesses">All businesses (default)</option>
-                      <option value="business">Specific business</option>
-                    </select>
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                    Business
-                    <select
-                      name="business_id"
-                      value={pdfBusinessId ?? ''}
-                      onChange={(event) => setPdfBusinessId(event.target.value ? Number(event.target.value) : null)}
-                      className="dashboard-input"
-                    >
-                      <option value="">Select business</option>
-                      {businesses.map((business) => (
-                        <option key={business.id} value={business.id}>
-                          {business.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+
+                  {/* Scope + Business — kept together so they read as a unit */}
+                  <div
+                    className="md:col-span-2 lg:col-span-3 grid gap-3 rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-raised)] p-4 md:grid-cols-2 lg:grid-cols-3">
+                    <label
+                      className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      Report scope
+                      <select
+                        name="report_scope"
+                        value={pdfReportScope}
+                        onChange={(event) => {
+                          const next = event.target.value as 'business' | 'all_businesses'
+                          setPdfReportScope(next)
+                          // Clear business selection when switching to portfolio scope
+                          if (next === 'all_businesses') setPdfBusinessId(null)
+                        }}
+                        className="dashboard-input"
+                      >
+                        <option value="all_businesses">All businesses (portfolio)</option>
+                        <option value="business">Specific business</option>
+                      </select>
+                    </label>
+
+                    {pdfReportScope === 'business' ? (
+                      <label
+                        className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        Business
+                        <select
+                          name="business_id"
+                          value={pdfBusinessId ?? ''}
+                          onChange={(event) => setPdfBusinessId(event.target.value ? Number(event.target.value) : null)}
+                          required
+                          className="dashboard-input"
+                        >
+                          <option value="" disabled>Select a business</option>
+                          {businesses.map((business) => (
+                            <option key={business.id} value={business.id}>
+                              {business.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : (
+                      <p className="self-end pb-2 text-[11px] text-[var(--neutral-rosewood)] lg:col-span-2">
+                        Report will aggregate data across all businesses in the portfolio.
+                      </p>
+                    )}
+                  </div>
+
                   <button
                     type="submit"
-
                     className="dashboard-button-primary"
                   >
                     {createSalesReportMutation.isPending ? 'Generating…' : 'Generate report version'}
                   </button>
                 </form>
 
-                <SectionDivider label="Generated versions" />
+                <SectionDivider label="Generated versions"/>
                 {(pdfReportScope === 'all_businesses' ? portfolioSalesReportsQuery : salesReportsQuery).isLoading ? (
                   <p className="text-sm text-[var(--neutral-rosewood)]">Loading…</p>
                 ) : salesReportVersions.length === 0 ? (
-                  <EmptyState label="No report versions generated yet." />
+                  <EmptyState label="No report versions generated yet."/>
                 ) : (
                   <div className="grid gap-3">
                     {salesReportVersions.map((report) => (
@@ -3629,45 +4004,51 @@ function App() {
                           <button
                             type="button"
                             onClick={() => triggerDownloadSalesReport(report)}
-
                             className="dashboard-button-secondary"
                           >
                             Download PDF
                           </button>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <span className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
-                            Range {formatCompactDate(report.start_date)} – {formatCompactDate(report.end_date)}
-                          </span>
-                          <span className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
-                            Business: {report.metadata.business_name ?? 'N/A'}
-                          </span>
-                          <span className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
-                            Scope: {(report.metadata.report_scope ?? report.details.report_scope ?? 'business').replace('_', ' ')}
-                          </span>
-                          <span className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
-                            Type: {report.report_type}
-                          </span>
-                          <span className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
-                            {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
-                          </span>
+                <span
+                  className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
+                  Range {formatCompactDate(report.start_date)} – {formatCompactDate(report.end_date)}
+                </span>
+                          <span
+                            className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
+                  Business: {report.metadata.business_name ?? 'N/A'}
+                </span>
+                          <span
+                            className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
+                  Scope: {(report.metadata.report_scope ?? report.details.report_scope ?? 'business').replace('_', ' ')}
+                </span>
+                          <span
+                            className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
+                  Type: {report.report_type}
+                </span>
+                          <span
+                            className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
+                  {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
+                </span>
                           {report.report_type !== 'compensation' && (
-                            <span className="inline-flex rounded-full border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-info-text)]">
-                              Overall sales: {formatCurrency(parseAmount(report.details.totals.overall_sales))}
-                            </span>
+                            <span
+                              className="inline-flex rounded-full border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-info-text)]">
+                    Overall sales: {formatCurrency(parseAmount(report.details.totals.overall_sales))}
+                  </span>
                           )}
                           {report.report_type !== 'sales' && (
-                            <span className="inline-flex rounded-full border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-success-text)]">
-                              Net pay: {formatCurrency(parseAmount(report.details.compensation_totals?.net_pay ?? 0))}
-                            </span>
+                            <span
+                              className="inline-flex rounded-full border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-success-text)]">
+                    Net pay: {formatCurrency(parseAmount(report.details.compensation_totals?.net_pay ?? 0))}
+                  </span>
                           )}
                           {(report.details.include_sections ?? []).map((section) => (
                             <span
                               key={`report-section-pill-${report.id}-${section}`}
                               className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--burgundy-50)] px-2.5 py-1 text-[11px] font-semibold text-[var(--burgundy-800)]"
                             >
-                              {section.replaceAll('_', ' ')}
-                            </span>
+                    {section.replaceAll('_', ' ')}
+                  </span>
                           ))}
                           {report.pdf_verification && (
                             <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
@@ -3677,8 +4058,8 @@ function App() {
                                   ? 'border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
                                   : 'border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
                             }`}>
-                              PDF verification: {report.pdf_verification.status.replace('_', ' ')}
-                            </span>
+                    PDF verification: {report.pdf_verification.status.replace('_', ' ')}
+                  </span>
                           )}
                         </div>
                       </article>
@@ -3720,26 +4101,20 @@ function App() {
                   </div>
                 )}
               </>
-
-              {/*{meQuery.data.role !== 'admin' && meQuery.data.role !== 'owner' ? (*/}
-              {/*  <div className="mt-5 rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-4 py-3 text-sm text-[var(--status-warning-text)]">*/}
-              {/*    Only admin and owner can view and download exported report files.*/}
-              {/*  </div>*/}
-              {/*) : (*/}
-              {/*)}*/}
             </section>
           )}
-
         </section>
       </div>
 
       {moneyReauthModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--surface-overlay)] px-4">
-          <div className="w-full max-w-md rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-5 shadow-[0_16px_40px_rgba(58,9,18,0.25)]">
+          <div
+            className="w-full max-w-md rounded-xl border border-[var(--neutral-linen)] bg-[var(--surface-card)] p-5 shadow-[0_16px_40px_rgba(58,9,18,0.25)]">
             <h3 className="text-base font-semibold text-[var(--neutral-espresso)]">Confirm password to continue</h3>
             <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">Money transactions require re-authentication.</p>
             <form onSubmit={submitMoneyReauthModal} className="mt-4 grid gap-3">
-              <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+              <label
+                className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                 Username
                 <input
                   name="reauth_username"
@@ -3749,7 +4124,8 @@ function App() {
                   className="dashboard-input"
                 />
               </label>
-              <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+              <label
+                className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                 Password
                 <input
                   name="reauth_password"
