@@ -770,6 +770,29 @@ function App() {
     setActionGuidance(message)
   }, [])
 
+  const handleGcashSalesAmountChange = useCallback((value: string) => {
+    const nextSalesAmount = toNonNegativeInputValue(value)
+    setGcashSalesAmount(nextSalesAmount)
+    if (!gcashIsDebt) {
+      setGcashChargedAmount((previousChargedAmount) => (
+        previousChargedAmount.trim() === '' || previousChargedAmount === gcashSalesAmount
+          ? nextSalesAmount
+          : previousChargedAmount
+      ))
+    }
+  }, [gcashIsDebt, gcashSalesAmount])
+
+  const handleGcashDebtToggle = useCallback((checked: boolean) => {
+    setGcashIsDebt(checked)
+    if (!checked) {
+      setGcashChargedAmount((previousChargedAmount) => (
+        previousChargedAmount.trim() === ''
+          ? gcashSalesAmount
+          : previousChargedAmount
+      ))
+    }
+  }, [gcashSalesAmount])
+
   const requireBusinessSelection = useCallback(
     (action: string) => {
       if (selectedBusinessId) return true
@@ -2432,7 +2455,9 @@ function App() {
                         const copiedSalesAmount = toNonNegativeInputValue(String(parseAmount(selectedItem.price)))
                         setGcashRecipient(selectedItem.name)
                         setGcashSalesAmount(copiedSalesAmount)
-                        setGcashChargedAmount(copiedSalesAmount)
+                        if (!gcashIsDebt) {
+                          setGcashChargedAmount(copiedSalesAmount)
+                        }
                       }
                     }}
                     className="dashboard-input"
@@ -2466,15 +2491,7 @@ function App() {
                     list="quick-number-values"
                     required
                     value={gcashSalesAmount}
-                    onChange={(e) => {
-                      const nextSalesAmount = toNonNegativeInputValue(e.target.value)
-                      setGcashSalesAmount(nextSalesAmount)
-                      setGcashChargedAmount((previousChargedAmount) => (
-                        previousChargedAmount.trim() === '' || previousChargedAmount === gcashSalesAmount
-                          ? nextSalesAmount
-                          : previousChargedAmount
-                      ))
-                    }}
+                    onChange={(e) => handleGcashSalesAmountChange(e.target.value)}
                     className="dashboard-input"
                   />
                 </label>
@@ -2483,7 +2500,7 @@ function App() {
                     <input
                       type="checkbox"
                       checked={gcashIsDebt}
-                      onChange={(e) => setGcashIsDebt(e.target.checked)}
+                      onChange={(e) => handleGcashDebtToggle(e.target.checked)}
                       className="sr-only"
                     />
                     Mark as debt
