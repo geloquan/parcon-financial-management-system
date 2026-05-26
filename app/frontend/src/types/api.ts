@@ -388,6 +388,17 @@ export type SalesReportVersion = {
       debts_settled: number
       total_movements: number
     }
+    capital_money_totals?: {
+      portfolio_money_total: number
+      business_money_total: number
+      debts_outstanding: number
+      debts_settled: number
+      business_breakdown: Array<{
+        business_id: number
+        business_name: string
+        money_total: number
+      }>
+    }
     staff_details?: {
       totals: {
         total_staff: number

@@ -699,7 +699,7 @@
 @if($includeCapitalFlow)
   <div class="section">
     <h2>Capital &amp; Financial Flows</h2>
-    <p class="muted tiny">Portfolio and business money movements in the selected date range, including debts and settlements.</p>
+    <p class="muted tiny">Portfolio and business money movements in the selected date range, with separate all-time debt totals.</p>
 
     <h3>Portfolio &amp; Business Money Totals (Not Date-Range Filtered)</h3>
     <p class="muted tiny">These totals are computed from all active capital movement records and are not limited by the selected report date range.</p>
@@ -718,6 +718,14 @@
       <tr>
         <td>Business Money (All-Time)</td>
         <td class="num">{{ number_format((float) ($capitalMoneyTotals['business_money_total'] ?? 0), 2) }}</td>
+      </tr>
+      <tr>
+        <td>Debts Outstanding (All-Time)</td>
+        <td class="num" style="color:#633806;">{{ number_format((float) ($capitalMoneyTotals['debts_outstanding'] ?? 0), 2) }}</td>
+      </tr>
+      <tr>
+        <td>Debts Settled (All-Time)</td>
+        <td class="num profit">{{ number_format((float) ($capitalMoneyTotals['debts_settled'] ?? 0), 2) }}</td>
       </tr>
       </tbody>
     </table>

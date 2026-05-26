@@ -137,6 +137,7 @@ class SalesReportService
         $reportType = (string) ($validated['report_type'] ?? 'sales');
         $reportScope = (string) ($validated['report_scope'] ?? 'business');
         $includeSections = $this->resolveIncludeSections($validated['include_sections'] ?? null);
+        $documentTitle = $this->buildDocumentTitle($business, $reportType, $reportScope, $includeSections);
 
         $nextVersion = (int) SalesReportVersion::query()
             ->where('business_id', $business->id)
@@ -151,11 +152,7 @@ class SalesReportService
             'version' => $nextVersion,
             'start_date' => $startDate->toDateString(),
             'end_date' => $endDate->toDateString(),
-            'document_title' => $validated['document_title'] ?: (
-                $reportScope === 'all_businesses'
-                    ? 'All Businesses Detail Report'
-                    : sprintf('%s Detail Report', $business->name)
-            ),
+            'document_title' => $documentTitle,
             'document_format' => 'pdf-8.5x13',
             'report_type' => $reportType,
             'metadata' => [
@@ -314,6 +311,8 @@ class SalesReportService
             : [
                 'portfolio_money_total' => 0.0,
                 'business_money_total' => 0.0,
+                'debts_outstanding' => 0.0,
+                'debts_settled' => 0.0,
                 'business_breakdown' => [],
             ];
 
@@ -443,6 +442,9 @@ class SalesReportService
                         'transaction_type' => $sale->transaction_type,
                         'amount_moved' => round((float) $sale->amount_moved, 2),
                         'profit_amount' => round((float) $sale->profit_amount, 2),
+                        'is_debt' => $sale->is_debt ? 'Yes' : 'No',
+                        'charged_amount' => $sale->charged_amount !== null ? round((float) $sale->charged_amount, 2) : null,
+                        'remarks' => $sale->remarks,
                     ],
                 ];
             }
@@ -471,6 +473,9 @@ class SalesReportService
                         'size' => $sale->size,
                         'add_on_price' => round((float) $sale->add_on_price, 2),
                         'add_on_description' => $sale->add_on_description,
+                        'is_debt' => $sale->is_debt ? 'Yes' : 'No',
+                        'charged_amount' => $sale->charged_amount !== null ? round((float) $sale->charged_amount, 2) : null,
+                        'remarks' => $sale->remarks,
                     ],
                 ];
             }
@@ -499,6 +504,9 @@ class SalesReportService
                         'color_mode' => $sale->color_mode,
                         'print_size' => $sale->print_size,
                         'paper_count' => $sale->paper_count,
+                        'is_debt' => $sale->is_debt ? 'Yes' : 'No',
+                        'charged_amount' => $sale->charged_amount !== null ? round((float) $sale->charged_amount, 2) : null,
+                        'remarks' => $sale->remarks,
                     ],
                 ];
             }
@@ -535,6 +543,9 @@ class SalesReportService
                         'discount' => round((float) $sale->discount_percentage, 2) . '%',
                         'discount_type' => $sale->discount_type,
                         'cash_discount' => round((float) $sale->cash_discount, 2),
+                        'is_debt' => $sale->is_debt ? 'Yes' : 'No',
+                        'charged_amount' => $sale->charged_amount !== null ? round((float) $sale->charged_amount, 2) : null,
+                        'remarks' => $sale->remarks,
                     ],
                 ];
             }
@@ -758,9 +769,27 @@ class SalesReportService
             ];
         })->values()->all();
 
+        $allTimeDebtTotals = CapitalMovement::query()
+            ->when(
+                $business,
+                fn (Builder $query) => $query->where(function (Builder $nested) use ($business): void {
+                    $nested
+                        ->where('source_business_id', $business->id)
+                        ->orWhere('target_business_id', $business->id);
+                })
+            )
+            ->where('direction', 'debt')
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN debt_status = 'outstanding' THEN amount ELSE 0 END), 0) as debts_outstanding,
+                COALESCE(SUM(CASE WHEN debt_status = 'settled' THEN amount ELSE 0 END), 0) as debts_settled
+            ")
+            ->first();
+
         return [
             'portfolio_money_total' => round($portfolioInflows - $portfolioOutflows, 2),
             'business_money_total' => round((float) collect($businessBreakdown)->sum('money_total'), 2),
+            'debts_outstanding' => round((float) ($allTimeDebtTotals?->debts_outstanding ?? 0), 2),
+            'debts_settled' => round((float) ($allTimeDebtTotals?->debts_settled ?? 0), 2),
             'business_breakdown' => $businessBreakdown,
         ];
     }
@@ -1049,10 +1078,51 @@ class SalesReportService
         return number_format($value, 2, '.', '');
     }
 
+    private function buildDocumentTitle(
+        Business $business,
+        string $reportType,
+        string $reportScope,
+        array $includeSections
+    ): string {
+        $sectionLabels = collect($includeSections)
+            ->map(function (string $section): string {
+                return match ($section) {
+                    'staff' => 'Staff',
+                    'schedule_attendance' => 'Schedule & Attendance',
+                    'compensation' => 'Compensation',
+                    'reference_items' => 'Reference Items',
+                    'expenses' => 'Expenses',
+                    'sales_gcash' => 'Sales GCash',
+                    'sales_coffee' => 'Sales Coffee',
+                    'sales_print' => 'Sales Print',
+                    'sales_ethereal' => 'Sales Ethereal',
+                    'portfolio_business_money' => 'Portfolio/Business Money & All-Time Debts',
+                    default => ucwords(str_replace('_', ' ', $section)),
+                };
+            })
+            ->values()
+            ->all();
+
+        $scopeLabel = $reportScope === 'all_businesses' ? 'All Businesses' : $business->name;
+        $title = sprintf(
+            'FINANCIAL REPORTS: %s | %s | %s',
+            $scopeLabel,
+            ucfirst($reportType),
+            count($sectionLabels) > 0 ? implode(', ', $sectionLabels) : 'No Sections'
+        );
+
+        return mb_substr($title, 0, 255);
+    }
+
     private function resolveDownloadFilename(SalesReportVersion $report, ?Business $business = null): string
     {
         if ($report->file_path) {
             return basename($report->file_path);
+        }
+
+        $documentTitle = trim((string) $report->document_title);
+        if ($documentTitle !== '') {
+            return sprintf('%s-v%s.pdf', $this->slugify($documentTitle), $report->version);
         }
 
         $metadataBusinessSlug = (string) (($report->metadata ?? [])['business_slug'] ?? '');
