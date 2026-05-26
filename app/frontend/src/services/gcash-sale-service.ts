@@ -18,11 +18,11 @@ export type CreateGcashSalePayload = {
 }
 
 export const fetchGcashSales = async (businessId: number): Promise<ApiCollectionResponse<GcashSale>> => {
-  return apiRequest<ApiCollectionResponse<GcashSale>>(`/businesses/${businessId}/gcash_sales`)
+  return apiRequest<ApiCollectionResponse<GcashSale>>(`/businesses/4/gcash_sales`)
 }
 
 export const createGcashSale = async (businessId: number, payload: CreateGcashSalePayload): Promise<GcashSale> => {
-  return apiRequest<GcashSale>(`/businesses/${businessId}/gcash_sales`, {
+  return apiRequest<GcashSale>(`/businesses/4/gcash_sales`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })
@@ -33,7 +33,7 @@ export const deleteGcashSale = async (
   saleId: number,
   reauth: ReauthPayload,
 ): Promise<{ message: string }> => {
-  return apiRequest<{ message: string }>(`/businesses/${businessId}/gcash_sales/${saleId}`, {
+  return apiRequest<{ message: string }>(`/businesses/4/gcash_sales/${saleId}`, {
     method: 'DELETE',
     body: JSON.stringify(reauth),
   })
