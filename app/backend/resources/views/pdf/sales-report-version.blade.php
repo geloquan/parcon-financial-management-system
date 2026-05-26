@@ -144,7 +144,37 @@
   $compensationEntries = $details['compensation_entries'] ?? [];
   $capitalFlowEntries = $details['capital_flow_entries'] ?? [];
   $capitalFlowTotals = $details['capital_flow_totals'] ?? [];
+  $staffDetails = $details['staff_details'] ?? ['totals' => [], 'entries' => []];
+  $scheduleAttendanceDetails = $details['schedule_attendance_details'] ?? ['totals' => [], 'entries' => []];
+  $referenceItemsDetails = $details['reference_items_details'] ?? ['totals' => [], 'entries' => []];
+  $expensesDetails = $details['expenses_details'] ?? ['totals' => [], 'entries' => []];
   $reportScope = $details['report_scope'] ?? ($metadata['report_scope'] ?? 'business');
+  $includeSections = $details['include_sections'] ?? ($metadata['include_sections'] ?? [
+    'staff',
+    'schedule_attendance',
+    'compensation',
+    'reference_items',
+    'expenses',
+    'sales_gcash',
+    'sales_coffee',
+    'sales_print',
+    'sales_ethereal',
+    'portfolio_business_money',
+  ]);
+  $includeSales = in_array($reportType, ['sales', 'combined'], true)
+    && (
+      in_array('sales_gcash', $includeSections, true)
+      || in_array('sales_coffee', $includeSections, true)
+      || in_array('sales_print', $includeSections, true)
+      || in_array('sales_ethereal', $includeSections, true)
+    );
+  $includeCompensation = in_array($reportType, ['compensation', 'combined'], true)
+    && in_array('compensation', $includeSections, true);
+  $includeStaff = in_array('staff', $includeSections, true);
+  $includeScheduleAttendance = in_array('schedule_attendance', $includeSections, true);
+  $includeReferenceItems = in_array('reference_items', $includeSections, true);
+  $includeExpenses = in_array('expenses', $includeSections, true);
+  $includeCapitalFlow = in_array('portfolio_business_money', $includeSections, true);
 @endphp
 
 <h1>{{ $report->document_title }}</h1>
@@ -166,7 +196,7 @@
   <p><strong>Stored File:</strong> {{ $metadata['stored_file_name'] ?? basename((string) $report->file_path) }}</p>
 </div>
 
-@if(in_array($reportType, ['sales', 'combined'], true))
+@if($includeSales)
   <div class="section">
     <h2>Sales Summary</h2>
     @php
@@ -375,7 +405,7 @@
   </div>
 @endif
 
-@if(in_array($reportType, ['compensation', 'combined'], true))
+@if($includeCompensation)
   <div class="section">
     <h2>Compensation Summary</h2>
     <table>
@@ -463,10 +493,212 @@
   </div>
 @endif
 
-@if($reportScope === 'all_businesses' && (count($capitalFlowEntries) > 0 || !empty($capitalFlowTotals)))
+@if($includeStaff)
+  <div class="section">
+    <h2>Staff</h2>
+    <table>
+      <thead>
+      <tr>
+        <th class="num">Total</th>
+        <th class="num">Active</th>
+        <th class="num">Inactive</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td class="num">{{ $staffDetails['totals']['total_staff'] ?? 0 }}</td>
+        <td class="num">{{ $staffDetails['totals']['active_staff'] ?? 0 }}</td>
+        <td class="num">{{ $staffDetails['totals']['inactive_staff'] ?? 0 }}</td>
+      </tr>
+      </tbody>
+    </table>
+
+    @if(count($staffDetails['entries'] ?? []) === 0)
+      <p class="muted">No staff records for the selected period.</p>
+    @else
+      <table>
+        <thead>
+        <tr>
+          <th>Business</th>
+          <th>Name</th>
+          <th>Employment Type</th>
+          <th>Status</th>
+          <th class="num">Salary</th>
+          <th>Employment Dates</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach(($staffDetails['entries'] ?? []) as $staffEntry)
+          <tr>
+            <td>{{ $staffEntry['business_name'] ?? '—' }}</td>
+            <td>{{ $staffEntry['full_name'] ?? '—' }}</td>
+            <td>{{ $staffEntry['employment_type'] ?? '—' }}</td>
+            <td>{{ ($staffEntry['is_active'] ?? false) ? 'Active' : 'Inactive' }}</td>
+            <td class="num">{{ number_format((float) ($staffEntry['salary'] ?? 0), 2) }}</td>
+            <td class="tiny">
+              {{ !empty($staffEntry['employment_start_date']) ? \Carbon\Carbon::parse($staffEntry['employment_start_date'])->format('M j, Y') : '—' }}
+              –
+              {{ !empty($staffEntry['employment_end_date']) ? \Carbon\Carbon::parse($staffEntry['employment_end_date'])->format('M j, Y') : 'Present' }}
+            </td>
+          </tr>
+        @endforeach
+        </tbody>
+      </table>
+    @endif
+  </div>
+@endif
+
+@if($includeScheduleAttendance)
+  <div class="section">
+    <h2>Schedule &amp; Attendance</h2>
+    <table>
+      <thead>
+      <tr>
+        <th class="num">Day Off</th>
+        <th class="num">Absence</th>
+        <th class="num">Total Events</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td class="num">{{ $scheduleAttendanceDetails['totals']['day_off_count'] ?? 0 }}</td>
+        <td class="num">{{ $scheduleAttendanceDetails['totals']['absence_count'] ?? 0 }}</td>
+        <td class="num">{{ $scheduleAttendanceDetails['totals']['attendance_related_count'] ?? 0 }}</td>
+      </tr>
+      </tbody>
+    </table>
+
+    @if(count($scheduleAttendanceDetails['entries'] ?? []) === 0)
+      <p class="muted">No schedule or attendance records in the selected range.</p>
+    @else
+      <table>
+        <thead>
+        <tr>
+          <th>Date</th>
+          <th>Business</th>
+          <th>Staff</th>
+          <th>Type</th>
+          <th>Notes</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach(($scheduleAttendanceDetails['entries'] ?? []) as $entry)
+          <tr>
+            <td class="tiny">{{ !empty($entry['event_date']) ? \Carbon\Carbon::parse($entry['event_date'])->format('M j, Y') : '—' }}</td>
+            <td>{{ $entry['business_name'] ?? '—' }}</td>
+            <td>{{ $entry['staff_name'] ?? '—' }}</td>
+            <td>{{ ucwords(str_replace('_', ' ', $entry['event_type'] ?? '—')) }}</td>
+            <td>{{ $entry['notes'] ?? '—' }}</td>
+          </tr>
+        @endforeach
+        </tbody>
+      </table>
+    @endif
+  </div>
+@endif
+
+@if($includeReferenceItems)
+  <div class="section">
+    <h2>Reference Items</h2>
+    <table>
+      <thead>
+      <tr>
+        <th class="num">Total</th>
+        <th class="num">Product</th>
+        <th class="num">Service</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td class="num">{{ $referenceItemsDetails['totals']['total_items'] ?? 0 }}</td>
+        <td class="num">{{ $referenceItemsDetails['totals']['product_items'] ?? 0 }}</td>
+        <td class="num">{{ $referenceItemsDetails['totals']['service_items'] ?? 0 }}</td>
+      </tr>
+      </tbody>
+    </table>
+
+    @if(count($referenceItemsDetails['entries'] ?? []) === 0)
+      <p class="muted">No reference items found.</p>
+    @else
+      <table>
+        <thead>
+        <tr>
+          <th>Business</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th class="num">Price</th>
+          <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach(($referenceItemsDetails['entries'] ?? []) as $item)
+          <tr>
+            <td>{{ $item['business_name'] ?? '—' }}</td>
+            <td>{{ $item['name'] ?? '—' }}</td>
+            <td>{{ ucfirst($item['item_type'] ?? '—') }}</td>
+            <td class="num">{{ number_format((float) ($item['price'] ?? 0), 2) }}</td>
+            <td>{{ $item['description'] ?? '—' }}</td>
+          </tr>
+        @endforeach
+        </tbody>
+      </table>
+    @endif
+  </div>
+@endif
+
+@if($includeExpenses)
+  <div class="section">
+    <h2>Expenses</h2>
+    <table>
+      <thead>
+      <tr>
+        <th class="num">Total Records</th>
+        <th class="num">Total Amount</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td class="num">{{ $expensesDetails['totals']['total_expenses'] ?? 0 }}</td>
+        <td class="num loss">{{ number_format((float) ($expensesDetails['totals']['expense_amount_total'] ?? 0), 2) }}</td>
+      </tr>
+      </tbody>
+    </table>
+
+    @if(count($expensesDetails['entries'] ?? []) === 0)
+      <p class="muted">No expenses in the selected range.</p>
+    @else
+      <table>
+        <thead>
+        <tr>
+          <th>Date</th>
+          <th>Business</th>
+          <th>Purpose</th>
+          <th>Description</th>
+          <th>Recurrence</th>
+          <th class="num">Amount</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach(($expensesDetails['entries'] ?? []) as $expense)
+          <tr>
+            <td class="tiny">{{ !empty($expense['date_issued']) ? \Carbon\Carbon::parse($expense['date_issued'])->format('M j, Y') : '—' }}</td>
+            <td>{{ $expense['business_name'] ?? '—' }}</td>
+            <td>{{ ucwords(str_replace('_', ' ', $expense['purpose'] ?? '—')) }}</td>
+            <td>{{ $expense['description'] ?? '—' }}</td>
+            <td>{{ $expense['recurrence_reference'] ?? '—' }}</td>
+            <td class="num loss">{{ number_format((float) ($expense['amount'] ?? 0), 2) }}</td>
+          </tr>
+        @endforeach
+        </tbody>
+      </table>
+    @endif
+  </div>
+@endif
+
+@if($includeCapitalFlow)
   <div class="section">
     <h2>Capital &amp; Financial Flows</h2>
-    <p class="muted tiny">All portfolio and business money movements in the selected date range, including debts and settlements.</p>
+    <p class="muted tiny">Portfolio and business money movements in the selected date range, including debts and settlements.</p>
 
     @if(!empty($capitalFlowTotals))
       <table>

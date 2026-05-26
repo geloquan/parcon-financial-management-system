@@ -15,6 +15,18 @@ export type CreateSalesReportPayload = {
   document_title?: string
   report_type?: 'sales' | 'compensation' | 'combined'
   report_scope?: 'business' | 'all_businesses'
+  include_sections?: Array<
+    | 'staff'
+    | 'schedule_attendance'
+    | 'compensation'
+    | 'reference_items'
+    | 'expenses'
+    | 'sales_gcash'
+    | 'sales_coffee'
+    | 'sales_print'
+    | 'sales_ethereal'
+    | 'portfolio_business_money'
+  >
 }
 
 export const generateSalesReport = async (payload: GenerateSalesReportPayload): Promise<SalesReport> => {

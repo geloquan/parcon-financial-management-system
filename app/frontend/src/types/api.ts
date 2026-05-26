@@ -293,6 +293,18 @@ export type SalesReportVersion = {
   }
   details: {
     report_scope?: 'business' | 'all_businesses'
+    include_sections?: Array<
+      | 'staff'
+      | 'schedule_attendance'
+      | 'compensation'
+      | 'reference_items'
+      | 'expenses'
+      | 'sales_gcash'
+      | 'sales_coffee'
+      | 'sales_print'
+      | 'sales_ethereal'
+      | 'portfolio_business_money'
+    >
     range: {
       start_date: string
       end_date: string
@@ -375,6 +387,64 @@ export type SalesReportVersion = {
       debts_outstanding: number
       debts_settled: number
       total_movements: number
+    }
+    staff_details?: {
+      totals: {
+        total_staff: number
+        active_staff: number
+        inactive_staff: number
+      }
+      entries: Array<{
+        business_name: string
+        full_name: string
+        employment_type: string
+        salary: number
+        is_active: boolean
+        employment_start_date: string | null
+        employment_end_date: string | null
+      }>
+    }
+    schedule_attendance_details?: {
+      totals: {
+        day_off_count: number
+        absence_count: number
+        attendance_related_count: number
+      }
+      entries: Array<{
+        business_name: string
+        staff_name: string
+        event_type: 'day_off' | 'absence'
+        event_date: string | null
+        notes: string | null
+      }>
+    }
+    reference_items_details?: {
+      totals: {
+        total_items: number
+        product_items: number
+        service_items: number
+      }
+      entries: Array<{
+        business_name: string
+        item_type: 'product' | 'service'
+        name: string
+        price: number
+        description: string | null
+      }>
+    }
+    expenses_details?: {
+      totals: {
+        total_expenses: number
+        expense_amount_total: number
+      }
+      entries: Array<{
+        business_name: string
+        date_issued: string | null
+        amount: number
+        purpose: 'business' | 'business_portfolio' | 'service'
+        description: string
+        recurrence_reference: string | null
+      }>
     }
   }
   pdf_verification?: {

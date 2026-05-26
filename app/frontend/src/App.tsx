@@ -349,6 +349,34 @@ const optionPillClass =
   'has-[:checked]:border-[var(--burgundy-600)] has-[:checked]:bg-[var(--burgundy-50)] ' +
   'has-[:checked]:text-[var(--burgundy-800)] has-[:checked]:shadow-[inset_0_0_0_1px_var(--burgundy-600)]'
 
+type ReportIncludeSection =
+  | 'staff'
+  | 'schedule_attendance'
+  | 'compensation'
+  | 'reference_items'
+  | 'expenses'
+  | 'sales_gcash'
+  | 'sales_coffee'
+  | 'sales_print'
+  | 'sales_ethereal'
+  | 'portfolio_business_money'
+
+const reportIncludeSectionOptions: Array<{ value: ReportIncludeSection; label: string }> = [
+  { value: 'staff', label: 'Staff' },
+  { value: 'schedule_attendance', label: 'Schedule & Attendance' },
+  { value: 'compensation', label: 'Compensation' },
+  { value: 'reference_items', label: 'Reference Items' },
+  { value: 'expenses', label: 'Expenses' },
+  { value: 'sales_gcash', label: 'Sales: GCash' },
+  { value: 'sales_coffee', label: 'Sales: Coffee' },
+  { value: 'sales_print', label: 'Sales: Print' },
+  { value: 'sales_ethereal', label: 'Sales: Ethereal' },
+  { value: 'portfolio_business_money', label: 'Portfolio/Business Money' },
+]
+
+const defaultReportIncludeSections = reportIncludeSectionOptions.map((option) => option.value)
+const salesIncludeSections: ReportIncludeSection[] = ['sales_gcash', 'sales_coffee', 'sales_print', 'sales_ethereal']
+
 // Section heading inside a card
 function SectionHeading({
                           icon: Icon,
@@ -1359,8 +1387,28 @@ function App() {
 
     const f = new FormData(e.currentTarget)
     const reportScope = String(f.get('report_scope') ?? 'business') as 'business' | 'all_businesses'
+    const includeSections = f
+      .getAll('include_sections')
+      .map((value) => String(value))
+      .filter((value): value is ReportIncludeSection =>
+        defaultReportIncludeSections.includes(value as ReportIncludeSection),
+      )
     const selectedPdfBusinessId = Number(f.get('business_id') ?? 0)
     const fallbackBusinessId = businesses[0]?.id ?? null
+
+    if (includeSections.length === 0) {
+      showActionGuidance('Select at least one optional content section before generating the report.')
+      return
+    }
+
+    const hasSelectedSalesContent = salesIncludeSections.some((section) => includeSections.includes(section))
+    const hasSelectedCompensationContent = includeSections.includes('compensation')
+    const reportType: 'sales' | 'compensation' | 'combined' = hasSelectedSalesContent && hasSelectedCompensationContent
+      ? 'combined'
+      : hasSelectedCompensationContent
+        ? 'compensation'
+        : 'sales'
+
     const requestBusinessId = reportScope === 'business'
       ? (selectedPdfBusinessId > 0 ? selectedPdfBusinessId : null)
       : (selectedPdfBusinessId > 0 ? selectedPdfBusinessId : fallbackBusinessId)
@@ -1375,8 +1423,9 @@ function App() {
         start_date: String(f.get('start_date') ?? ''),
         end_date: String(f.get('end_date') ?? ''),
         document_title: String(f.get('document_title') ?? '').trim() || undefined,
-        report_type: String(f.get('report_type') ?? 'sales') as 'sales' | 'compensation' | 'combined',
+        report_type: reportType,
         report_scope: reportScope,
+        include_sections: includeSections,
       },
     })
 
@@ -3455,7 +3504,7 @@ function App() {
               <SectionHeading
                 icon={FileText}
                 title="Detail Reports"
-                description="Generate versioned PDF 8.5x13 detail reports (sales, compensation, or combined) with metadata."
+                description="Generate versioned PDF 8.5x13 detail reports with optional checkbox-based content sections."
               />
               <>
                 <form onSubmit={submitPdfSalesReport} className={formGridClass}>
@@ -3471,14 +3520,28 @@ function App() {
                     Document title (optional)
                     <input name="document_title" className="dashboard-input" />
                   </label>
-                  <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
-                    Report type
-                    <select name="report_type" defaultValue="sales" className="dashboard-input">
-                      <option value="sales">Sales</option>
-                      <option value="compensation">Compensation</option>
-                      <option value="combined">Combined</option>
-                    </select>
-                  </label>
+                  <div className="md:col-span-2 lg:col-span-3 grid gap-1.5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                      Optional contents
+                    </span>
+                    <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                      {reportIncludeSectionOptions.map((option) => (
+                        <label key={`pdf-section-${option.value}`} className={optionPillClass}>
+                          <input
+                            name="include_sections"
+                            value={option.value}
+                            type="checkbox"
+                            defaultChecked
+                            className="sr-only"
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-[var(--neutral-rosewood)]">
+                      Report type is auto-computed from selected sections.
+                    </p>
+                  </div>
                   <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                     Report scope
                     <select
@@ -3538,53 +3601,52 @@ function App() {
                             Download PDF
                           </button>
                         </div>
-                        <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
-                          Range {formatCompactDate(report.start_date)} – {formatCompactDate(report.end_date)}
-                          {' · '}
-                          Business: {report.metadata.business_name ?? 'N/A'}
-                          {' · '}
-                          {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
-                          {' · '}
-                          Scope: {(report.metadata.report_scope ?? report.details.report_scope ?? 'business').replace('_', ' ')}
-                        </p>
-                        <p className="mt-1 text-xs text-[var(--neutral-rosewood)]">
-                          Type: {report.report_type}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
+                            Range {formatCompactDate(report.start_date)} – {formatCompactDate(report.end_date)}
+                          </span>
+                          <span className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
+                            Business: {report.metadata.business_name ?? 'N/A'}
+                          </span>
+                          <span className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
+                            Scope: {(report.metadata.report_scope ?? report.details.report_scope ?? 'business').replace('_', ' ')}
+                          </span>
+                          <span className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
+                            Type: {report.report_type}
+                          </span>
+                          <span className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold text-[var(--neutral-espresso)]">
+                            {formatDateTimeDisplay(report.metadata.generated_at)} · {report.metadata.page_size}
+                          </span>
                           {report.report_type !== 'compensation' && (
-                            <>
-                              {' · '}Overall sales: {formatCurrency(parseAmount(report.details.totals.overall_sales))}
-                            </>
+                            <span className="inline-flex rounded-full border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-info-text)]">
+                              Overall sales: {formatCurrency(parseAmount(report.details.totals.overall_sales))}
+                            </span>
                           )}
                           {report.report_type !== 'sales' && (
-                            <>
-                              {' · '}Net pay: {formatCurrency(parseAmount(report.details.compensation_totals?.net_pay ?? 0))}
-                            </>
+                            <span className="inline-flex rounded-full border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-success-text)]">
+                              Net pay: {formatCurrency(parseAmount(report.details.compensation_totals?.net_pay ?? 0))}
+                            </span>
                           )}
-                        </p>
-                        {report.pdf_verification && (
-                          <div className="mt-2 grid gap-1 text-xs">
-                            <p className={`font-semibold uppercase tracking-wide ${
+                          {(report.details.include_sections ?? []).map((section) => (
+                            <span
+                              key={`report-section-pill-${report.id}-${section}`}
+                              className="inline-flex rounded-full border border-[var(--neutral-linen)] bg-[var(--burgundy-50)] px-2.5 py-1 text-[11px] font-semibold text-[var(--burgundy-800)]"
+                            >
+                              {section.replaceAll('_', ' ')}
+                            </span>
+                          ))}
+                          {report.pdf_verification && (
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
                               report.pdf_verification.status === 'verified'
-                                ? 'text-[var(--status-success-text)]'
+                                ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
                                 : report.pdf_verification.status === 'missing_file'
-                                  ? 'text-[var(--status-warning-text)]'
-                                  : 'text-[var(--status-danger-text)]'
+                                  ? 'border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
+                                  : 'border-[var(--status-danger-border)] bg-[var(--status-danger-bg)] text-[var(--status-danger-text)]'
                             }`}>
                               PDF verification: {report.pdf_verification.status.replace('_', ' ')}
-                            </p>
-                            <p className="text-[var(--neutral-rosewood)]">
-                              Module checks · GCash: {report.pdf_verification.module_checks.gcash ? 'ok' : 'failed'}
-                              {' · '}Coffee: {report.pdf_verification.module_checks.coffee ? 'ok' : 'failed'}
-                              {' · '}Print: {report.pdf_verification.module_checks.print ? 'ok' : 'failed'}
-                              {' · '}Ethereal: {report.pdf_verification.module_checks.ethereal ? 'ok' : 'failed'}
-                            </p>
-                            <p className="text-[var(--neutral-rosewood)]">
-                              Metadata checks · Business: {report.pdf_verification.metadata_checks.business_name ? 'ok' : 'failed'}
-                              {' · '}Generated at: {report.pdf_verification.metadata_checks.generated_at ? 'ok' : 'failed'}
-                              {' · '}Generated by: {report.pdf_verification.metadata_checks.generated_by ? 'ok' : 'failed'}
-                              {' · '}Stored file: {report.pdf_verification.metadata_checks.stored_file_name ? 'ok' : 'failed'}
-                            </p>
-                          </div>
-                        )}
+                            </span>
+                          )}
+                        </div>
                       </article>
                     ))}
                     <div className="flex items-center justify-end gap-2">
