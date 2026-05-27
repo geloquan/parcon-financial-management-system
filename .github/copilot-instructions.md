@@ -144,6 +144,47 @@ Fields: job type (`xerox` / `document` / other), description, sales amount, date
 ### Ethereal (beauty salon)
 Fields: service cost, discount percentage, computed cash discount, net amount, service provider (staff FK), date, business ID.
 
+## Form UX — Sales Entry
+
+These rules apply to every sales entry form across all source-of-sales modules (Coffee, Print, Ethereal, GCash).
+
+---
+
+### Post-Submit Focus Reset
+
+After a sale is successfully submitted, automatically return focus to the **first input field** of the form that was just submitted. Do not redirect, close the form, or clear focus to the page body. The intent is continuous rapid entry — the user should be able to immediately start the next sale without a mouse interaction.
+
+- Use a `ref` on the first field and call `.focus()` inside the success handler, after state has been reset.
+- This applies to both inline forms and modal-based forms. For modals that stay open after submit, focus the first field inside the modal.
+- Do not scroll the page or move the viewport on focus reset unless the field is out of view.
+
+---
+
+### Eager Validation Display (Pre-Touch Error State)
+
+Forms must render in a **submitted-once** validation mode by default — meaning required fields and validation errors are visible immediately on mount, without requiring the user to attempt a submit first.
+
+- All required fields must display their error/emphasis state on initial render, not only after blur or submit.
+- Required field borders must use `--status-danger-solid` (`#E24B4A`).
+- Required field labels must use `--status-danger-text` (`#791F1F`).
+- Inline error messages beneath each required field must be visible on mount using the same danger token pair: background `--status-danger-bg`, text `--status-danger-text`.
+- After the user begins entering a valid value into a field, that field's error state clears in real time (on `onChange`), transitioning to the neutral or success border state.
+- This eager state must be reset and re-applied after each successful submit, so the cleared form immediately shows which fields are still required for the next entry.
+
+---
+
+### Token Mapping for Field Validation States
+
+| State | Border token | Label token | Helper text |
+|---|---|---|---|
+| Required / empty (default) | `--status-danger-solid` | `--status-danger-text` | Visible, `--status-danger-text` |
+| Focused + invalid | `--status-danger-solid` + focus ring `rgba(226,75,74,0.2)` | `--status-danger-text` | Visible |
+| Focused + valid | `--burgundy-600` + focus ring `rgba(133,32,48,0.2)` | `--neutral-rosewood` | Hidden |
+| Filled + valid | `--status-success-solid` | `--neutral-rosewood` | Hidden |
+| Disabled | `--neutral-linen` | `--neutral-rosewood` at 60% | Hidden |
+
+> These rules override the general input token defaults in Section 4.4 specifically for the required/empty state. The base focus ring rule still applies for non-required fields that are untouched.
+
 ---
 
 ## Capital Management
@@ -803,4 +844,6 @@ These patterns are explicitly banned regardless of context:
 --surface-card: #FFFFFF;
 --surface-raised: #F7ECEE;
 --surface-overlay: rgba(58, 9, 18, 0.45);
+
+
 ```
