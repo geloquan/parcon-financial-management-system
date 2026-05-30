@@ -56,6 +56,76 @@ import {formatCompactDate} from './services/formatDate.ts'
 import {ActionErrorPanel, FieldErrorText} from './components/action-error-panel'
 import {getFieldErrorsFor} from './services/api-error'
 
+type ValidationField = {
+  value: string | number | boolean | readonly string[]
+  required?: boolean
+}
+
+function useEagerValidation(fields: Record<string, ValidationField>) {
+  // Returns per-field "hasError" boolean — true when required and empty/zero
+  const fieldErrors = useMemo(() => {
+    const result: Record<string, boolean> = {}
+    for (const [key, field] of Object.entries(fields)) {
+      if (!field.required) {
+        result[key] = false
+        continue
+      }
+      const v = field.value
+      if (typeof v === 'boolean') {
+        result[key] = false // checkboxes are never "empty"
+      } else if (typeof v === 'number') {
+        result[key] = !Number.isFinite(v)
+      } else if (Array.isArray(v)) {
+        result[key] = v.length === 0
+      } else {
+        result[key] = String(v).trim() === ''
+      }
+    }
+    return result
+  }, [fields])
+
+  // Returns CSS classes for an input given its key
+  const inputClass = useCallback(
+    (key: string, extraClasses = '') => {
+      const hasError = fieldErrors[key]
+      const base = 'dashboard-input'
+      if (hasError) {
+        return `${base} !border-[var(--status-danger-solid)] focus:!ring-[rgba(226,75,74,0.2)] ${extraClasses}`
+      }
+      return `${base} ${extraClasses}`
+    },
+    [fieldErrors],
+  )
+
+  // Returns CSS classes for a label given its key
+  const labelClass = useCallback(
+    (key: string, extraClasses = '') => {
+      const hasError = fieldErrors[key]
+      const base = 'grid gap-1.5 text-xs font-semibold uppercase tracking-wider'
+      if (hasError) {
+        return `${base} text-[var(--status-danger-text)] ${extraClasses}`
+      }
+      return `${base} text-[var(--neutral-rosewood)] ${extraClasses}`
+    },
+    [fieldErrors],
+  )
+
+  // Inline error message shown below a field
+  const fieldError = useCallback(
+    (key: string, message = 'Required') => {
+      if (!fieldErrors[key]) return null
+      return (
+        <span className="mt-0.5 text-[11px] font-medium text-[var(--status-danger-text)]">
+          {message}
+        </span>
+      )
+    },
+    [fieldErrors],
+  )
+
+  return {fieldErrors, inputClass, labelClass, fieldError}
+}
+
 type Tab =
   | 'overview'
   | 'businesses'
@@ -445,6 +515,9 @@ function App() {
   const [tab, setTabState] = useState<Tab>(_initial.tab)
   const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(_initial.businessId)
 
+  const printFirstFieldRef = useRef<HTMLSelectElement>(null)
+  const coffeeFirstFieldRef = useRef<HTMLSelectElement>(null)
+  const gcashFirstFieldRef = useRef<HTMLSelectElement>(null)
   const [gcashRecipient, setGcashRecipient] = useState('')
   const [gcashReferenceItemId, setGcashReferenceItemId] = useState('')
   const [gcashAmountMoved, setGcashAmountMoved] = useState('0')
@@ -477,6 +550,35 @@ function App() {
   const [moneyReauthModalOpen, setMoneyReauthModalOpen] = useState(false)
   const [moneyReauthUsername, setMoneyReauthUsername] = useState('')
   const [moneyReauthPassword, setMoneyReauthPassword] = useState('')
+
+  const gcashValidation = useEagerValidation({
+    amount_moved: {value: gcashAmountMoved, required: true},
+    sales_amount: {value: gcashSalesAmount, required: true},
+    charged_amount: {value: gcashChargedAmount, required: !gcashIsDebt},
+    remarks: {value: gcashRemarks, required: gcashIsDebt},
+  })
+
+  const coffeeFirstItem = coffeeItems[0]
+  const coffeeValidation = useEagerValidation({
+    price: {value: coffeeFirstItem?.price ?? '', required: true},
+    coffee_type: {value: coffeeFirstItem?.coffee_type ?? '', required: true},
+    charged_amount: {value: coffeeFirstItem?.charged_amount ?? '', required: !(coffeeFirstItem?.is_debt ?? false)},
+  })
+
+  const printFirstItem = printItems[0]
+  const printValidation = useEagerValidation({
+    description: {value: printFirstItem?.description ?? '', required: true},
+    paper_count: {value: printFirstItem?.paper_count ?? '', required: true},
+    sales_amount: {value: printFirstItem?.sales_amount ?? '', required: true},
+    charged_amount: {value: printFirstItem?.charged_amount ?? '', required: !(printFirstItem?.is_debt ?? false)},
+  })
+
+  const etherealFirstItem = etherealItems[0]
+  const etherealValidation = useEagerValidation({
+    service_name: {value: etherealFirstItem?.service_name ?? '', required: true},
+    service_cost: {value: etherealFirstItem?.service_cost ?? '', required: true},
+    charged_amount: {value: etherealFirstItem?.charged_amount ?? '', required: !(etherealFirstItem?.is_debt ?? false)},
+  })
 
   const moneyReauthResolverRef = useRef<((credentials: MoneyReauthCredentials | null) => void) | null>(null)
 
@@ -1201,6 +1303,7 @@ function App() {
     setGcashIsDebt(false)
     setGcashChargedAmount('')
     setGcashRemarks('')
+    gcashFirstFieldRef.current?.focus()
   }
   const voidGcashSale = async (saleId: number) => {
     if (!requireBusinessSelection('remove GCash sale')) return
@@ -1247,6 +1350,7 @@ function App() {
     })
     await createCoffeeMutation.mutateAsync({...entries[0], entries, ...reauth})
     setCoffeeItems([createCoffeeDraftItem()])
+    coffeeFirstFieldRef.current?.focus()
   }
 
   const voidCoffeeSale = async (saleId: number) => {
@@ -1997,7 +2101,8 @@ function App() {
                     </div>
                     {canManageBusinessSettings && (
                       <div className="mt-3 flex items-end gap-2">
-                        <label className="flex-1 grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
+                        <label
+                          className="flex-1 grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                           Sales target
                           <input
                             type="number"
@@ -2666,6 +2771,7 @@ function App() {
                   className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Copy from reference item (optional)
                   <select
+                    ref={gcashFirstFieldRef}
                     value={gcashReferenceItemId}
                     onChange={(e) => {
                       const selectedId = e.target.value
@@ -2703,9 +2809,16 @@ function App() {
                 <label
                   className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                   Moved cash
-                  <input name="amount_moved" type="number" list="quick-number-values" required value={gcashAmountMoved}
-                         onChange={(e) => setGcashAmountMoved(toNonNegativeInputValue(e.target.value))}
-                         className="dashboard-input"/>
+                  <input
+                    name="amount_moved"
+                    type="number"
+                    list="quick-number-values"
+                    required
+                    value={gcashAmountMoved}
+                    onChange={(e) =>
+                      setGcashAmountMoved(toNonNegativeInputValue(e.target.value))
+                    }
+                  />
                 </label>
                 <label
                   className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
@@ -2717,7 +2830,7 @@ function App() {
                     required
                     value={gcashSalesAmount}
                     onChange={(e) => handleGcashSalesAmountChange(e.target.value)}
-                    className="dashboard-input"
+                    className={`${gcashValidation.inputClass('sales_amount')} dashboard-input`}
                   />
                 </label>
                 <div className="md:col-span-2 lg:col-span-3">
@@ -2740,7 +2853,7 @@ function App() {
                     value={gcashChargedAmount}
                     required={!gcashIsDebt}
                     onChange={(e) => setGcashChargedAmount(toNonNegativeInputValue(e.target.value))}
-                    className="dashboard-input"
+                    className={`${gcashValidation.inputClass('charged_amount')} dashboard-input`}
                   />
                 </label>
                 <label
@@ -2750,7 +2863,7 @@ function App() {
                     value={gcashRemarks}
                     required={gcashIsDebt}
                     onChange={(e) => setGcashRemarks(e.target.value)}
-                    className="dashboard-input"
+                    className={`${gcashValidation.inputClass('remarks')} dashboard-input`}
                   />
                 </label>
                 <label
@@ -2829,7 +2942,8 @@ function App() {
                 </ul>
               )}
             </section>
-          )}
+          )
+          }
 
           {/* COFFEE */}
           {tab === 'coffee' && (
@@ -2866,6 +2980,7 @@ function App() {
                         className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-rosewood)]">
                         Copy from reference item (optional)
                         <select
+                          ref={index === 0 ? coffeeFirstFieldRef : undefined}
                           value={item.selectedReferenceItemId}
                           onChange={(e) =>
                             setCoffeeItems((prev) =>
@@ -3753,7 +3868,8 @@ function App() {
                     </div>
                     <div
                       className="rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3 md:col-span-2 xl:col-span-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">
+                      <p
+                        className="text-[10px] font-semibold uppercase tracking-wider text-[var(--status-success-text)]">
                         Profit total
                       </p>
                       <p className="mt-1 tabular-nums text-lg font-semibold text-[var(--status-success-text)]">
@@ -3766,10 +3882,12 @@ function App() {
                       <SectionDivider label="Business profit"/>
                       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                         {latestSalesReport.business_summary.map((summary) => (
-                          <article key={`business-profit-${summary.business_id}`} className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
+                          <article key={`business-profit-${summary.business_id}`}
+                                   className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
                             <p className="text-sm font-semibold">{summary.business_name}</p>
                             <p className="text-xs text-[var(--neutral-rosewood)]">
-                              Sales {formatCurrency(summary.total_sales)} · Profit {formatCurrency(summary.total_profit)}
+                              Sales {formatCurrency(summary.total_sales)} ·
+                              Profit {formatCurrency(summary.total_profit)}
                             </p>
                           </article>
                         ))}
@@ -3786,9 +3904,12 @@ function App() {
                             className="flex items-center justify-between rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3"
                           >
                             <p className="text-sm font-semibold">{formatCompactDate(dailyRow.date)}</p>
-                            <p className="text-xs text-[var(--neutral-rosewood)]">{dailyRow.entries_count} entr{dailyRow.entries_count === 1 ? 'y' : 'ies'}</p>
-                            <p className="tabular-nums text-sm font-semibold text-[var(--accent-gold)]">{formatCurrency(dailyRow.sales_total)}</p>
-                            <p className="tabular-nums text-sm font-semibold text-[var(--teal-mid)]">Profit {formatCurrency(dailyRow.profit_total)}</p>
+                            <p
+                              className="text-xs text-[var(--neutral-rosewood)]">{dailyRow.entries_count} entr{dailyRow.entries_count === 1 ? 'y' : 'ies'}</p>
+                            <p
+                              className="tabular-nums text-sm font-semibold text-[var(--accent-gold)]">{formatCurrency(dailyRow.sales_total)}</p>
+                            <p
+                              className="tabular-nums text-sm font-semibold text-[var(--teal-mid)]">Profit {formatCurrency(dailyRow.profit_total)}</p>
                           </div>
                         ))}
                       </div>
@@ -3799,13 +3920,16 @@ function App() {
                       <SectionDivider label="Sales target progress"/>
                       <div className="grid gap-3 md:grid-cols-2">
                         {latestSalesReport.sales_target_progress.map((targetRow) => (
-                          <article key={`target-progress-${targetRow.business_id}`} className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
+                          <article key={`target-progress-${targetRow.business_id}`}
+                                   className="rounded-lg border border-[var(--neutral-linen)] bg-[var(--surface-card)] px-4 py-3">
                             <p className="text-sm font-semibold">{targetRow.business_name}</p>
                             <p className="text-xs text-[var(--neutral-rosewood)]">
-                              Target {formatCurrency(targetRow.sales_target)} · Progress {targetRow.progress_percent.toFixed(2)}%
+                              Target {formatCurrency(targetRow.sales_target)} ·
+                              Progress {targetRow.progress_percent.toFixed(2)}%
                             </p>
                             <p className="text-xs text-[var(--neutral-rosewood)]">
-                              Rendered {targetRow.days_rendered}/{targetRow.days_total} day(s) · {targetRow.days_left} day(s) left
+                              Rendered {targetRow.days_rendered}/{targetRow.days_total} day(s)
+                              · {targetRow.days_left} day(s) left
                             </p>
                           </article>
                         ))}
